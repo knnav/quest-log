@@ -1,0 +1,22 @@
+:root[data-theme="sunset-cabinet"] {
+  --bg: #150e0a;
+  --panel: #221510;
+  --panel-border: #3c3c3c;
+  --text: #f4e3d3;
+  --text-dim: #9c8f7e;
+  --accent: #ff8a4c;
+  --accent-bright: #ffab7a;
+  --accent-glow: rgba(255, 138, 76, 0.24);
+  --status-backlog: #9c8f7e;
+  --status-backlog-bg: #241d16;
+  --status-progress: #f0b429;
+  --status-progress-bg: #2e2410;
+  --status-shipped: #2dd4a7;
+  --status-shipped-bg: #0f2a22;
+  --chip-bg: #2a1c14;
+  --chip-bg-active: #ff8a4c;
+  --chip-text-active: #150e0a;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 20px rgba(255, 138, 76, 0.15);
+}
+
+.theme-swatch[data-swatch="sunset-cabinet"] { background: #ff8a4c; }

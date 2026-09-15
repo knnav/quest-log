@@ -1,0 +1,22 @@
+:root[data-theme="game-boy"] {
+  --bg: #0d1209;
+  --panel: #161d10;
+  --panel-border: #2b3620;
+  --text: #dde8d0;
+  --text-dim: #8aa07a;
+  --accent: #9bbc0f;
+  --accent-bright: #c4e05a;
+  --accent-glow: rgba(155, 188, 15, 0.20);
+  --status-backlog: #7c8a6e;
+  --status-backlog-bg: #1e2517;
+  --status-progress: #e0a458;
+  --status-progress-bg: #2e2414;
+  --status-shipped: #9bbc0f;
+  --status-shipped-bg: #1c2a12;
+  --chip-bg: #1b2314;
+  --chip-bg-active: #9bbc0f;
+  --chip-text-active: #0d1209;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 20px rgba(155, 188, 15, 0.12);
+}
+
+.theme-swatch[data-swatch="game-boy"] { background: #9bbc0f; }

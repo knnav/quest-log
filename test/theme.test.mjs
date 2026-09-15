@@ -1,9 +1,17 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
-import { initTheme } from "../js/theme.js";
+import { initTheme, THEMES } from "../js/theme.js";
 
-function installGlobals(dom, { matchesDark = false } = {}) {
+const FIXTURE_HTML = `<!doctype html><body>
+  <div class="theme-picker">
+    <button id="themeMenuBtn" aria-expanded="false">brush</button>
+    <div class="theme-menu" id="themeMenu" hidden></div>
+  </div>
+</body>`;
+
+function setup({ matchesDark = false, stored = null } = {}) {
+  const dom = new JSDOM(FIXTURE_HTML, { url: "http://localhost/" });
   globalThis.window = dom.window;
   globalThis.document = dom.window.document;
   globalThis.localStorage = dom.window.localStorage;
@@ -15,61 +23,117 @@ function installGlobals(dom, { matchesDark = false } = {}) {
     addEventListener() {},
     removeEventListener() {},
   });
+
+  if (stored !== null) dom.window.localStorage.setItem("quest-log-theme", stored);
+  return dom;
 }
 
-function newDom() {
-  return new JSDOM(`<!doctype html><body><button id="themeToggleBtn"></button></body>`, { url: "http://localhost/" });
+function themeAttr(dom) {
+  return dom.window.document.documentElement.getAttribute("data-theme");
 }
 
-test("defaults to light (no override) when system prefers light", () => {
-  const dom = newDom();
-  installGlobals(dom, { matchesDark: false });
+function click(dom, el) {
+  el.dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+}
 
+test("system preference resolves to light when the OS is light", () => {
+  const dom = setup({ matchesDark: false });
   initTheme();
-
-  assert.equal(dom.window.document.documentElement.hasAttribute("data-theme"), false);
-  const btn = dom.window.document.getElementById("themeToggleBtn");
-  assert.equal(btn.textContent, "☾");
-  assert.equal(btn.title, "Switch to dark mode");
+  assert.equal(themeAttr(dom), "light");
 });
 
-test("follows system dark preference when nothing is stored", () => {
-  const dom = newDom();
-  installGlobals(dom, { matchesDark: true });
-
+test("system preference resolves to neon-arcade when the OS is dark", () => {
+  const dom = setup({ matchesDark: true });
   initTheme();
-
-  assert.equal(dom.window.document.documentElement.hasAttribute("data-theme"), false);
-  const btn = dom.window.document.getElementById("themeToggleBtn");
-  assert.equal(btn.textContent, "☀");
-  assert.equal(btn.title, "Switch to light mode");
+  assert.equal(themeAttr(dom), "neon-arcade");
 });
 
-test("a stored override wins over the system preference", () => {
-  const dom = newDom();
-  installGlobals(dom, { matchesDark: false });
-  dom.window.localStorage.setItem("quest-log-theme", "dark");
-
+test("a stored theme wins over the system preference", () => {
+  const dom = setup({ matchesDark: true, stored: "game-boy" });
   initTheme();
-
-  assert.equal(dom.window.document.documentElement.getAttribute("data-theme"), "dark");
-  assert.equal(dom.window.document.getElementById("themeToggleBtn").textContent, "☀");
+  assert.equal(themeAttr(dom), "game-boy");
 });
 
-test("clicking the toggle flips the theme and persists it", () => {
-  const dom = newDom();
-  installGlobals(dom, { matchesDark: false });
-
+test("an unknown stored theme falls back to system", () => {
+  const dom = setup({ matchesDark: false, stored: "nonsense" });
   initTheme();
-  const btn = dom.window.document.getElementById("themeToggleBtn");
+  assert.equal(themeAttr(dom), "light");
+});
 
-  btn.dispatchEvent(new dom.window.Event("click", { bubbles: true }));
-  assert.equal(dom.window.document.documentElement.getAttribute("data-theme"), "dark");
-  assert.equal(dom.window.localStorage.getItem("quest-log-theme"), "dark");
-  assert.equal(btn.textContent, "☀");
+test("the legacy \"dark\" preference maps onto neon-arcade", () => {
+  const dom = setup({ matchesDark: false, stored: "dark" });
+  initTheme();
+  assert.equal(themeAttr(dom), "neon-arcade");
+});
 
-  btn.dispatchEvent(new dom.window.Event("click", { bubbles: true }));
-  assert.equal(dom.window.document.documentElement.getAttribute("data-theme"), "light");
-  assert.equal(dom.window.localStorage.getItem("quest-log-theme"), "light");
-  assert.equal(btn.textContent, "☾");
+test("the button toggles the menu open and closed", () => {
+  const dom = setup();
+  initTheme();
+
+  const btn = dom.window.document.getElementById("themeMenuBtn");
+  const menu = dom.window.document.getElementById("themeMenu");
+
+  assert.equal(menu.hidden, true);
+
+  click(dom, btn);
+  assert.equal(menu.hidden, false);
+  assert.equal(btn.getAttribute("aria-expanded"), "true");
+
+  click(dom, btn);
+  assert.equal(menu.hidden, true);
+  assert.equal(btn.getAttribute("aria-expanded"), "false");
+});
+
+test("the menu lists every theme and marks the active one", () => {
+  const dom = setup({ stored: "cyber-terminal" });
+  initTheme();
+
+  const options = dom.window.document.querySelectorAll(".theme-option");
+  assert.equal(options.length, THEMES.length);
+
+  const active = dom.window.document.querySelectorAll(".theme-option.active");
+  assert.equal(active.length, 1);
+  assert.equal(active[0].getAttribute("data-theme-id"), "cyber-terminal");
+});
+
+test("picking a theme applies it, persists it, and closes the menu", () => {
+  const dom = setup();
+  initTheme();
+
+  const btn = dom.window.document.getElementById("themeMenuBtn");
+  const menu = dom.window.document.getElementById("themeMenu");
+
+  click(dom, btn);
+  click(dom, menu.querySelector('[data-theme-id="sunset-cabinet"]'));
+
+  assert.equal(themeAttr(dom), "sunset-cabinet");
+  assert.equal(dom.window.localStorage.getItem("quest-log-theme"), "sunset-cabinet");
+  assert.equal(menu.hidden, true);
+});
+
+test("clicking the swatch inside an option still selects that theme", () => {
+  const dom = setup();
+  initTheme();
+
+  const btn = dom.window.document.getElementById("themeMenuBtn");
+  const menu = dom.window.document.getElementById("themeMenu");
+
+  click(dom, btn);
+  click(dom, menu.querySelector('[data-theme-id="game-boy"] .theme-swatch'));
+
+  assert.equal(themeAttr(dom), "game-boy");
+});
+
+test("clicking outside the picker closes the menu", () => {
+  const dom = setup();
+  initTheme();
+
+  const btn = dom.window.document.getElementById("themeMenuBtn");
+  const menu = dom.window.document.getElementById("themeMenu");
+
+  click(dom, btn);
+  assert.equal(menu.hidden, false);
+
+  click(dom, dom.window.document.body);
+  assert.equal(menu.hidden, true);
 });

@@ -1,0 +1,22 @@
+:root[data-theme="neon-arcade"] {
+  --bg: #0b0714;
+  --panel: #161022;
+  --panel-border: #3c3c3c;
+  --text: #ece6ff;
+  --text-dim: #9086b8;
+  --accent: #b388ff;
+  --accent-bright: #d0a8ff;
+  --accent-glow: rgba(179, 136, 255, 0.28);
+  --status-backlog: #8b93ab;
+  --status-backlog-bg: #1c2233;
+  --status-progress: #fbbf24;
+  --status-progress-bg: #2e2410;
+  --status-shipped: #34d399;
+  --status-shipped-bg: #10261c;
+  --chip-bg: #1e1830;
+  --chip-bg-active: #a855f7;
+  --chip-text-active: #0b0714;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 20px rgba(124, 58, 237, 0.18);
+}
+
+.theme-swatch[data-swatch="neon-arcade"] { background: #b388ff; }

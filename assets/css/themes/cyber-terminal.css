@@ -1,0 +1,22 @@
+:root[data-theme="cyber-terminal"] {
+  --bg: #06121a;
+  --panel: #0f1f26;
+  --panel-border: #3c3c3c;
+  --text: #d9f4f8;
+  --text-dim: #7c92a0;
+  --accent: #22d3ee;
+  --accent-bright: #67e8f9;
+  --accent-glow: rgba(34, 211, 238, 0.24);
+  --status-backlog: #7c92a0;
+  --status-backlog-bg: #16242c;
+  --status-progress: #e879f9;
+  --status-progress-bg: #2a1430;
+  --status-shipped: #4ade80;
+  --status-shipped-bg: #10281a;
+  --chip-bg: #132630;
+  --chip-bg-active: #22d3ee;
+  --chip-text-active: #06121a;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 20px rgba(34, 211, 238, 0.15);
+}
+
+.theme-swatch[data-swatch="cyber-terminal"] { background: #22d3ee; }
