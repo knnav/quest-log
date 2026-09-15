@@ -5,10 +5,10 @@ const store = require("./store");
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 1180,
-    height: 860,
-    minWidth: 640,
-    minHeight: 480,
+    width: 480,
+    height: 920,
+    minWidth: 380,
+    minHeight: 560,
     center: true,
     frame: false,
     backgroundColor: nativeTheme.shouldUseDarkColors ? "#0b0714" : "#f6f3ff",
