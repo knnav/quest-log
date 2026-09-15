@@ -1,0 +1,22 @@
+:root[data-theme="paper"] {
+  --bg: #efe7d5;
+  --panel: #fbf6ea;
+  --panel-border: #ddd2ba;
+  --text: #3b3228;
+  --text-dim: #7a6a55;
+  --accent: #9c5a2d;
+  --accent-bright: #bd7040;
+  --accent-glow: rgba(156, 90, 45, 0.18);
+  --status-backlog: #7a6a55;
+  --status-backlog-bg: #e6dcc7;
+  --status-progress: #b07800;
+  --status-progress-bg: #f2e6c8;
+  --status-shipped: #4f7942;
+  --status-shipped-bg: #e2ead9;
+  --chip-bg: #e8dfca;
+  --chip-bg-active: #9c5a2d;
+  --chip-text-active: #fbf6ea;
+  --shadow: 0 1px 2px rgba(59, 50, 40, 0.10), 0 6px 16px rgba(59, 50, 40, 0.08);
+}
+
+.theme-swatch[data-swatch="paper"] { background: #9c5a2d; }

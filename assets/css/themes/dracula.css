@@ -1,0 +1,22 @@
+:root[data-theme="dracula"] {
+  --bg: #282a36;
+  --panel: #343746;
+  --panel-border: #44475a;
+  --text: #f8f8f2;
+  --text-dim: #7b87b8;
+  --accent: #bd93f9;
+  --accent-bright: #d6b3ff;
+  --accent-glow: rgba(189, 147, 249, 0.26);
+  --status-backlog: #6272a4;
+  --status-backlog-bg: #2f3344;
+  --status-progress: #f1fa8c;
+  --status-progress-bg: #35361f;
+  --status-shipped: #50fa7b;
+  --status-shipped-bg: #1c3526;
+  --chip-bg: #3a3d4e;
+  --chip-bg-active: #bd93f9;
+  --chip-text-active: #282a36;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 20px rgba(189, 147, 249, 0.15);
+}
+
+.theme-swatch[data-swatch="dracula"] { background: #bd93f9; }

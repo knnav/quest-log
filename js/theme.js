@@ -9,7 +9,17 @@ export const THEMES = [
   { id: "neon-arcade", label: "Neon Arcade" },
   { id: "game-boy", label: "Game Boy" },
   { id: "sunset-cabinet", label: "Sunset Cabinet" },
-  { id: "cyber-terminal", label: "Cyber Terminal" }
+  { id: "cyber-terminal", label: "Cyber Terminal" },
+  { id: "dracula", label: "Dracula" },
+  { id: "nord", label: "Nord" },
+  { id: "tokyo-night", label: "Tokyo Night" },
+  { id: "gruvbox", label: "Gruvbox" },
+  { id: "catppuccin", label: "Catppuccin" },
+  { id: "rose-pine", label: "Rosé Pine" },
+  { id: "synthwave", label: "Synthwave" },
+  { id: "matrix", label: "Matrix" },
+  { id: "solarized-light", label: "Solarized Light" },
+  { id: "paper", label: "Paper" }
 ];
 
 var menuEl, buttonEl;

@@ -1,0 +1,22 @@
+:root[data-theme="gruvbox"] {
+  --bg: #282828;
+  --panel: #32302f;
+  --panel-border: #504945;
+  --text: #ebdbb2;
+  --text-dim: #a89984;
+  --accent: #fabd2f;
+  --accent-bright: #ffd766;
+  --accent-glow: rgba(250, 189, 47, 0.22);
+  --status-backlog: #a89984;
+  --status-backlog-bg: #3a3735;
+  --status-progress: #fe8019;
+  --status-progress-bg: #3a2a1a;
+  --status-shipped: #b8bb26;
+  --status-shipped-bg: #2f331a;
+  --chip-bg: #3c3836;
+  --chip-bg-active: #fabd2f;
+  --chip-text-active: #282828;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 20px rgba(250, 189, 47, 0.12);
+}
+
+.theme-swatch[data-swatch="gruvbox"] { background: #fabd2f; }
