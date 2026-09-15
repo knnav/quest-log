@@ -433,6 +433,7 @@ footer.note {
   border-top: 1px solid var(--panel-border);
   padding-top: 14px;
   line-height: 1.6;
+  text-align: center;
 }
 
 .modal-overlay {
