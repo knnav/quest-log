@@ -57,16 +57,29 @@
   background: transparent;
 }
 
+html { height: 100%; }
+
 body {
   margin: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background: var(--bg);
   color: var(--text);
   font-family: "JetBrains Mono", ui-monospace, "SF Mono", Consolas, monospace;
   -webkit-font-smoothing: antialiased;
 }
 
+.app-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
 .titlebar {
   -webkit-app-region: drag;
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -362,6 +375,18 @@ section.tier { margin-bottom: 34px; }
   transform: translateY(-2px);
   border-color: var(--accent);
   box-shadow: var(--shadow), 0 0 0 1px var(--accent-glow);
+}
+
+.card[draggable="true"] { cursor: grab; }
+
+.card[draggable="true"] button,
+.card[draggable="true"] a { cursor: pointer; }
+
+.card.dragging {
+  opacity: 0.45;
+  cursor: grabbing;
+  border-color: var(--accent);
+  transform: none;
 }
 
 .card-head {

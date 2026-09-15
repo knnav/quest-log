@@ -23,6 +23,13 @@ function nextOrder(list) {
   return list.reduce((max, item) => Math.max(max, item.order || 0), 0) + 1;
 }
 
+function applyOrder(list, orderedIds) {
+  orderedIds.forEach((id, index) => {
+    const item = list.find((entry) => entry.id === id);
+    if (item) item.order = index + 1;
+  });
+}
+
 function createStore(storePath) {
   function ensureStore() {
     if (!fs.existsSync(storePath)) {
@@ -88,6 +95,13 @@ function createStore(storePath) {
     writeStore(store);
   }
 
+  function reorderQuests(orderedIds) {
+    const store = readStore();
+    applyOrder(store.quests, orderedIds);
+    writeStore(store);
+    return store.quests;
+  }
+
   function getSideQuests() {
     return readStore().sideQuests;
   }
@@ -121,6 +135,13 @@ function createStore(storePath) {
     writeStore(store);
   }
 
+  function reorderSideQuests(orderedIds) {
+    const store = readStore();
+    applyOrder(store.sideQuests, orderedIds);
+    writeStore(store);
+    return store.sideQuests;
+  }
+
   function getPinned() {
     return readStore().pinned;
   }
@@ -139,10 +160,12 @@ function createStore(storePath) {
     createQuest,
     updateQuest,
     deleteQuest,
+    reorderQuests,
     getSideQuests,
     createSideQuest,
     updateSideQuest,
     deleteSideQuest,
+    reorderSideQuests,
     getPinned,
     updatePinned,
   };
@@ -164,10 +187,12 @@ module.exports = {
   createQuest: (...args) => getDefaultStore().createQuest(...args),
   updateQuest: (...args) => getDefaultStore().updateQuest(...args),
   deleteQuest: (...args) => getDefaultStore().deleteQuest(...args),
+  reorderQuests: (...args) => getDefaultStore().reorderQuests(...args),
   getSideQuests: (...args) => getDefaultStore().getSideQuests(...args),
   createSideQuest: (...args) => getDefaultStore().createSideQuest(...args),
   updateSideQuest: (...args) => getDefaultStore().updateSideQuest(...args),
   deleteSideQuest: (...args) => getDefaultStore().deleteSideQuest(...args),
+  reorderSideQuests: (...args) => getDefaultStore().reorderSideQuests(...args),
   getPinned: (...args) => getDefaultStore().getPinned(...args),
   updatePinned: (...args) => getDefaultStore().updatePinned(...args),
 };

@@ -131,6 +131,57 @@ test("side quests persist across separate store instances", () => {
   assert.deepEqual(reopened.getSideQuests().map((s) => s.title), ["Survives a restart"]);
 });
 
+test("reorderQuests renumbers order to match the given id sequence", () => {
+  const store = createStore(emptyStorePath());
+  const a = store.createQuest({ title: "A" });
+  const b = store.createQuest({ title: "B" });
+  const c = store.createQuest({ title: "C" });
+
+  store.reorderQuests([c.id, a.id, b.id]);
+
+  const byId = Object.fromEntries(store.getQuests().map((q) => [q.id, q.order]));
+  assert.equal(byId[c.id], 1);
+  assert.equal(byId[a.id], 2);
+  assert.equal(byId[b.id], 3);
+});
+
+test("reorderQuests leaves quests outside the given ids untouched", () => {
+  const store = createStore(emptyStorePath());
+  const a = store.createQuest({ title: "A" });
+  const b = store.createQuest({ title: "B" });
+  const untouched = store.createQuest({ title: "Other tier" });
+
+  store.reorderQuests([b.id, a.id]);
+
+  const byId = Object.fromEntries(store.getQuests().map((q) => [q.id, q.order]));
+  assert.equal(byId[b.id], 1);
+  assert.equal(byId[a.id], 2);
+  assert.equal(byId[untouched.id], 3);
+});
+
+test("reorderQuests ignores unknown ids", () => {
+  const store = createStore(emptyStorePath());
+  const a = store.createQuest({ title: "A" });
+
+  store.reorderQuests(["ghost", a.id]);
+
+  assert.equal(store.getQuests()[0].order, 2);
+});
+
+test("reorderSideQuests renumbers order and persists", () => {
+  const storePath = emptyStorePath();
+  const store = createStore(storePath);
+  const a = store.createSideQuest({ title: "A" });
+  const b = store.createSideQuest({ title: "B" });
+
+  store.reorderSideQuests([b.id, a.id]);
+
+  const reopened = createStore(storePath);
+  const byId = Object.fromEntries(reopened.getSideQuests().map((s) => [s.id, s.order]));
+  assert.equal(byId[b.id], 1);
+  assert.equal(byId[a.id], 2);
+});
+
 test("updatePinned merges fields and persists across separate store instances", () => {
   const storePath = tempStorePath();
   fs.writeFileSync(storePath, JSON.stringify({

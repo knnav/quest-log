@@ -32,6 +32,10 @@ export function openCreateSideQuest() {
   openSideQuestModal(null);
 }
 
+export function persistSideQuestOrder(ids) {
+  window.questLog.reorderSideQuests(ids).then(refetchSideQuests).catch(function () {});
+}
+
 export function loadSideQuests() {
   return window.questLog.listSideQuests().then(ingest);
 }
@@ -57,7 +61,7 @@ export function sideQuestCardHtml(sideQuest) {
     : "";
 
   return (
-    '<div class="card side-quest-card">' +
+    '<div class="card side-quest-card" data-drag-id="' + sideQuest.id + '">' +
     '<div class="card-head">' +
     '<h3 class="card-title">' + escapeHtml(sideQuest.title) + '</h3>' +
     '<div class="card-actions">' +

@@ -3,7 +3,8 @@ import { initTitlebar } from "./titlebar.js";
 import { initMotd } from "./motd.js";
 import { initQuests, loadQuests, cardHtml, bindQuestActions, getInProgressQuests, openCreateQuest } from "./quests.js";
 import { initPinned, loadPinned, pinnedCardHtml, bindPinnedActions, getPinnedList } from "./pinned.js";
-import { initSideQuests, loadSideQuests, sideQuestCardHtml, bindSideQuestActions, getSideQuestsByStatus, openCreateSideQuest } from "./sideQuests.js";
+import { initSideQuests, loadSideQuests, sideQuestCardHtml, bindSideQuestActions, getSideQuestsByStatus, openCreateSideQuest, persistSideQuestOrder } from "./sideQuests.js";
+import { enableDragSort } from "./dragSort.js";
 
 function renderProgress() {
   var progressGridEl = document.getElementById("progressGrid");
@@ -22,6 +23,7 @@ function renderSideQuestSection(sectionId, gridId, sideQuests) {
   sectionEl.hidden = sideQuests.length === 0;
   gridEl.innerHTML = sideQuests.map(sideQuestCardHtml).join("");
   bindSideQuestActions(gridEl);
+  enableDragSort(gridEl, persistSideQuestOrder);
 }
 
 function renderSideQuests() {

@@ -1,5 +1,6 @@
 import { TIERS, STATUSES, STATUS_LABEL } from "./constants.js";
 import { escapeHtml } from "./utils.js";
+import { enableDragSort } from "./dragSort.js";
 
 var allTags = [];
 var activeFilter = "all";
@@ -64,7 +65,7 @@ export function cardHtml(q) {
   }).join("");
 
   return (
-    '<div class="card">' +
+    '<div class="card" data-drag-id="' + q.id + '">' +
     '<div class="card-head">' +
     '<h3 class="card-title">' + escapeHtml(q.title) + '</h3>' +
     '<div class="card-actions">' +
@@ -164,6 +165,15 @@ function renderBoard(quests) {
   boardEl.innerHTML = html || '<div class="empty-state">No quests match this filter.</div>';
 
   bindQuestActions(boardEl);
+
+  // Each tier sorts independently, so drag-sorting is scoped to one tier's grid.
+  boardEl.querySelectorAll(".grid").forEach(function (grid) {
+    enableDragSort(grid, persistQuestOrder);
+  });
+}
+
+function persistQuestOrder(ids) {
+  window.questLog.reorderQuests(ids).then(refetchQuests).catch(function () {});
 }
 
 function ingest(docs) {
