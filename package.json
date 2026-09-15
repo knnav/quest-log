@@ -8,6 +8,7 @@
   "scripts": {
     "start": "electron .",
     "package:win": "electron-builder --win zip",
+    "package:mac": "electron-builder --mac zip",
     "test": "node --test"
   },
   "devDependencies": {
@@ -32,6 +33,10 @@
     ],
     "win": {
       "target": ["zip"]
+    },
+    "mac": {
+      "target": ["zip"],
+      "category": "public.app-category.productivity"
     }
   }
 }
