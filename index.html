@@ -15,7 +15,8 @@
     <p class="motd" id="motd"></p>
     <div class="header-actions">
       <button class="btn icon-only" id="themeToggleBtn" title="Toggle theme">☾</button>
-      <button class="btn primary" id="addQuestBtn">+ Add Quest</button>
+      <button class="btn" id="addSideQuestBtn">+ Create Side Quest</button>
+      <button class="btn primary" id="addQuestBtn">+ Create Quest</button>
     </div>
   </header>
 
@@ -24,13 +25,30 @@
   <section class="tier progress-tier">
     <div class="tier-head"><h2 class="tier-title">IN PROGRESS</h2></div>
     <p class="tier-desc">What's actually moving right now — pinned repos, plus anything active on the backlog.</p>
+
+    <div class="subsection" id="progressSideQuests" hidden>
+      <h3 class="subsection-title">Side quests</h3>
+      <div class="grid" id="progressSideQuestsGrid"></div>
+    </div>
+
     <div class="grid" id="progressGrid"></div>
   </section>
+
+  <div class="subsection" id="backlogSideQuests" hidden>
+    <h3 class="subsection-title">Side quests</h3>
+    <div class="grid" id="backlogSideQuestsGrid"></div>
+  </div>
 
   <div class="filters" id="filters"></div>
   <div id="board">
     <div class="loading">loading quest log…</div>
   </div>
+
+  <section class="tier" id="hallOfFame" hidden>
+    <div class="tier-head"><h2 class="tier-title">HALL OF FAME</h2></div>
+    <p class="tier-desc">Side quests you actually finished.</p>
+    <div class="grid" id="hallOfFameGrid"></div>
+  </section>
 
   <footer class="note">
     Shamelessly vibe-coded by Kurt Norenbergs
@@ -54,7 +72,7 @@
         <select id="questTier">
           <option value="weekend">Tier 1 — Weekend shippable</option>
           <option value="medium">Tier 2 — 1–2 week build</option>
-          <option value="ongoing">Tier 3 — Ongoing side-quests</option>
+          <option value="ongoing">Tier 3 — Ongoing quests</option>
         </select>
       </div>
       <div class="field">
@@ -67,6 +85,26 @@
       </div>
       <div class="modal-actions">
         <button type="button" class="btn" id="questCancelBtn">Cancel</button>
+        <button type="submit" class="btn primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="sideQuestModalOverlay" hidden>
+  <div class="modal">
+    <h2 id="sideQuestModalTitle">Create Side Quest</h2>
+    <form id="sideQuestForm">
+      <div class="field">
+        <label for="sideQuestTitle">Title</label>
+        <input id="sideQuestTitle" required>
+      </div>
+      <div class="field">
+        <label for="sideQuestNote">Note</label>
+        <textarea id="sideQuestNote"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="sideQuestCancelBtn">Cancel</button>
         <button type="submit" class="btn primary">Save</button>
       </div>
     </form>

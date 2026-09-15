@@ -13,9 +13,11 @@ Everything lives in one JSON file on your machine. No account, no sync, no serve
 **Tiers, so you stop lying to yourself about scope**
 - **Tier 1 — Weekend Shippable:** 1–3 days. Small enough to finish before the idea gets boring.
 - **Tier 2 — 1–2 Week Build:** Still capped, just more surface area. Cut features before cutting the deadline.
-- **Tier 3 — Ongoing Side-Quests:** The recurring drops for weeks when nothing else gets finished.
+- **Tier 3 — Ongoing Quests:** The recurring drops for weeks when nothing else gets finished.
 
 **Definition of Done on every card.** Every quest needs a DoD before it gets a first commit. That's the whole anti-scope-creep trick and it's non-negotiable — the form won't let you skip it.
+
+**Side quests, for the small stuff.** Not every task is a project. Side quests are the little day-to-day things — just a title and an optional note, no tier, no DoD, because "water the plants" doesn't need a Definition of Done. They cycle Backlog → In Progress → **Done**, and they get their own slots: in-progress ones sit at the top of the In Progress section, backlog ones sit above the board, and finished ones drop into the **Hall of Fame** at the bottom so you can see what you actually knocked out.
 
 **Status pills.** Click to cycle Backlog → In Progress → Shipped. Anything marked In Progress gets pulled up into its own section at the top so you can see what you're actually supposed to be doing right now.
 
@@ -23,7 +25,7 @@ Everything lives in one JSON file on your machine. No account, no sync, no serve
 
 **Stats bar.** A running count of Backlog / In Progress / Shipped, mostly so the Shipped number can make you feel something.
 
-**Full CRUD.** Add, edit, and delete quests straight from the UI. Delete asks first.
+**Full CRUD.** Add, edit, and delete quests and side quests straight from the UI. Delete asks first.
 
 **Dark and light themes.** There's a toggle in the header. It remembers your choice and otherwise follows whatever your OS is doing.
 
@@ -125,7 +127,7 @@ index.html         Markup
 assets/css/        Styles
 assets/motd.json   Message-of-the-day pool
 fonts/             Self-hosted JetBrains Mono + Press Start 2P
-js/                Renderer modules (app, quests, pinned, theme, titlebar, motd)
+js/                Renderer modules (app, quests, sideQuests, pinned, theme, titlebar, motd)
 test/              Tests
 ```
 

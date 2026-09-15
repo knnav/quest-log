@@ -297,6 +297,20 @@ section.tier { margin-bottom: 34px; }
   gap: 14px;
 }
 
+.subsection { margin-bottom: 20px; }
+
+.subsection-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  margin: 0 0 8px;
+}
+
+.side-quest-card {
+  border-left: 3px solid var(--status-progress);
+}
+
 .card {
   background: var(--panel);
   border: 1px solid var(--panel-border);
@@ -418,6 +432,7 @@ section.tier { margin-bottom: 34px; }
 .status-btn.on.backlog { background: var(--status-backlog-bg); color: var(--status-backlog); border-color: var(--status-backlog); box-shadow: 0 0 8px -2px var(--status-backlog); }
 .status-btn.on.in_progress { background: var(--status-progress-bg); color: var(--status-progress); border-color: var(--status-progress); box-shadow: 0 0 8px -2px var(--status-progress); }
 .status-btn.on.shipped { background: var(--status-shipped-bg); color: var(--status-shipped); border-color: var(--status-shipped); box-shadow: 0 0 8px -2px var(--status-shipped); }
+.status-btn.on.done { background: var(--status-shipped-bg); color: var(--status-shipped); border-color: var(--status-shipped); box-shadow: 0 0 8px -2px var(--status-shipped); }
 
 .empty-state, .loading {
   color: var(--text-dim);

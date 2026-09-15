@@ -30,6 +30,11 @@ function registerIpcHandlers() {
   ipcMain.handle("quest-log:create-quest", (event, data) => store.createQuest(data));
   ipcMain.handle("quest-log:update-quest", (event, id, data) => store.updateQuest(id, data));
   ipcMain.handle("quest-log:delete-quest", (event, id) => store.deleteQuest(id));
+  ipcMain.handle("quest-log:list-side-quests", () => store.getSideQuests());
+  ipcMain.handle("quest-log:create-side-quest", (event, data) => store.createSideQuest(data));
+  ipcMain.handle("quest-log:update-side-quest", (event, id, data) => store.updateSideQuest(id, data));
+  ipcMain.handle("quest-log:delete-side-quest", (event, id) => store.deleteSideQuest(id));
+
   ipcMain.handle("quest-log:list-pinned", () => store.getPinned());
   ipcMain.handle("quest-log:update-pinned", (event, id, data) => store.updatePinned(id, data));
 

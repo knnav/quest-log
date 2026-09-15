@@ -13,11 +13,11 @@ function tempStorePath() {
 // Bypasses the "welcome" tutorial seed for tests that care about a clean slate.
 function emptyStorePath() {
   const storePath = tempStorePath();
-  fs.writeFileSync(storePath, JSON.stringify({ quests: [], pinned: [] }));
+  fs.writeFileSync(storePath, JSON.stringify({ quests: [], sideQuests: [], pinned: [] }));
   return storePath;
 }
 
-test("seeds a welcome tutorial quest and an empty pinned list on first read", () => {
+test("seeds a welcome tutorial quest and empty side-quest/pinned lists on first read", () => {
   const store = createStore(tempStorePath());
 
   const quests = store.getQuests();
@@ -25,7 +25,16 @@ test("seeds a welcome tutorial quest and an empty pinned list on first read", ()
   assert.equal(quests[0].id, "welcome");
   assert.equal(quests[0].status, "backlog");
 
+  assert.deepEqual(store.getSideQuests(), []);
   assert.deepEqual(store.getPinned(), []);
+});
+
+test("backfills a missing sideQuests array for stores written before side quests existed", () => {
+  const storePath = tempStorePath();
+  fs.writeFileSync(storePath, JSON.stringify({ quests: [], pinned: [] }));
+
+  const store = createStore(storePath);
+  assert.deepEqual(store.getSideQuests(), []);
 });
 
 test("createQuest assigns an id, defaults, and order 1 for the first quest", () => {
@@ -68,6 +77,58 @@ test("deleteQuest removes the quest", () => {
   store.deleteQuest(quest.id);
 
   assert.deepEqual(store.getQuests(), []);
+});
+
+test("createSideQuest assigns an id, defaults to backlog, and increments order", () => {
+  const store = createStore(emptyStorePath());
+  const first = store.createSideQuest({ title: "Water the plants", note: "The balcony one too" });
+  const second = store.createSideQuest({ title: "Reply to Tom" });
+
+  assert.ok(first.id);
+  assert.equal(first.title, "Water the plants");
+  assert.equal(first.note, "The balcony one too");
+  assert.equal(first.status, "backlog");
+  assert.equal(first.order, 1);
+  assert.equal(second.order, 2);
+});
+
+test("createSideQuest defaults note to an empty string when omitted", () => {
+  const store = createStore(emptyStorePath());
+  const sideQuest = store.createSideQuest({ title: "Take out bins" });
+
+  assert.equal(sideQuest.note, "");
+});
+
+test("updateSideQuest merges fields without changing the id", () => {
+  const store = createStore(emptyStorePath());
+  const sideQuest = store.createSideQuest({ title: "Original" });
+  const updated = store.updateSideQuest(sideQuest.id, { title: "Updated", status: "done" });
+
+  assert.equal(updated.id, sideQuest.id);
+  assert.equal(updated.title, "Updated");
+  assert.equal(updated.status, "done");
+});
+
+test("updateSideQuest throws for an unknown id", () => {
+  const store = createStore(emptyStorePath());
+  assert.throws(() => store.updateSideQuest("nope", {}), /Side quest not found/);
+});
+
+test("deleteSideQuest removes the side quest", () => {
+  const store = createStore(emptyStorePath());
+  const sideQuest = store.createSideQuest({ title: "To delete" });
+  store.deleteSideQuest(sideQuest.id);
+
+  assert.deepEqual(store.getSideQuests(), []);
+});
+
+test("side quests persist across separate store instances", () => {
+  const storePath = emptyStorePath();
+  const store = createStore(storePath);
+  store.createSideQuest({ title: "Survives a restart" });
+
+  const reopened = createStore(storePath);
+  assert.deepEqual(reopened.getSideQuests().map((s) => s.title), ["Survives a restart"]);
 });
 
 test("updatePinned merges fields and persists across separate store instances", () => {
