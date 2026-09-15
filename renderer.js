@@ -18,6 +18,40 @@
   var boardEl, statsEl, filtersEl, progressGridEl;
   var addQuestBtn, questModalOverlay, questForm, questModalTitle, questCancelBtn;
   var pinnedModalOverlay, pinnedForm, pinnedCancelBtn;
+  var themeToggleBtn;
+
+  var THEME_KEY = "quest-log-theme";
+
+  function getStoredTheme() {
+    try { return localStorage.getItem(THEME_KEY); } catch (e) { return null; }
+  }
+
+  function setStoredTheme(theme) {
+    try {
+      if (theme) localStorage.setItem(THEME_KEY, theme);
+      else localStorage.removeItem(THEME_KEY);
+    } catch (e) {}
+  }
+
+  function systemPrefersDark() {
+    return !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  }
+
+  function effectiveTheme() {
+    return getStoredTheme() || (systemPrefersDark() ? "dark" : "light");
+  }
+
+  function applyTheme(theme) {
+    if (theme) document.documentElement.setAttribute("data-theme", theme);
+    else document.documentElement.removeAttribute("data-theme");
+    if (themeToggleBtn) {
+      var isDark = effectiveTheme() === "dark";
+      themeToggleBtn.textContent = isDark ? "☀" : "☾";
+      themeToggleBtn.title = isDark ? "Switch to light mode" : "Switch to dark mode";
+    }
+  }
+
+  applyTheme(getStoredTheme());
 
   document.addEventListener("DOMContentLoaded", init);
 
@@ -36,6 +70,14 @@
     pinnedModalOverlay = document.getElementById("pinnedModalOverlay");
     pinnedForm = document.getElementById("pinnedForm");
     pinnedCancelBtn = document.getElementById("pinnedCancelBtn");
+
+    themeToggleBtn = document.getElementById("themeToggleBtn");
+    applyTheme(getStoredTheme());
+    themeToggleBtn.addEventListener("click", function () {
+      var next = effectiveTheme() === "dark" ? "light" : "dark";
+      setStoredTheme(next);
+      applyTheme(next);
+    });
 
     addQuestBtn.addEventListener("click", function () { openQuestModal(null); });
     questCancelBtn.addEventListener("click", closeQuestModal);
