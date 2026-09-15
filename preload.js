@@ -8,3 +8,13 @@ contextBridge.exposeInMainWorld("questLog", {
   listPinned: () => ipcRenderer.invoke("quest-log:list-pinned"),
   updatePinned: (id, data) => ipcRenderer.invoke("quest-log:update-pinned", id, data),
 });
+
+contextBridge.exposeInMainWorld("windowControls", {
+  minimize: () => ipcRenderer.send("window:minimize"),
+  toggleMaximize: () => ipcRenderer.send("window:toggle-maximize"),
+  close: () => ipcRenderer.send("window:close"),
+  isMaximized: () => ipcRenderer.invoke("window:is-maximized"),
+  onMaximizedChange: (callback) => {
+    ipcRenderer.on("window:maximized-changed", (event, isMaximized) => callback(isMaximized));
+  },
+});
