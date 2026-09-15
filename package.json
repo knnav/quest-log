@@ -24,7 +24,7 @@
       "preload.js",
       "store.js",
       "index.html",
-      "renderer.js",
+      "js/**/*",
       "css/**/*",
       "fonts/**/*"
     ],
