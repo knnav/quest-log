@@ -10,18 +10,26 @@ function tempStorePath() {
   return path.join(dir, "quest-log.json");
 }
 
-test("seeds default pinned repos and an empty quest list on first read", () => {
-  const store = createStore(tempStorePath());
-  assert.deepEqual(store.getQuests(), []);
+// Bypasses the "welcome" tutorial seed for tests that care about a clean slate.
+function emptyStorePath() {
+  const storePath = tempStorePath();
+  fs.writeFileSync(storePath, JSON.stringify({ quests: [], pinned: [] }));
+  return storePath;
+}
 
-  const pinned = store.getPinned();
-  assert.equal(pinned.length, 2);
-  assert.equal(pinned[0].id, "gb-emulator");
-  assert.equal(pinned[1].id, "elixir-in-airflow");
+test("seeds a welcome tutorial quest and an empty pinned list on first read", () => {
+  const store = createStore(tempStorePath());
+
+  const quests = store.getQuests();
+  assert.equal(quests.length, 1);
+  assert.equal(quests[0].id, "welcome");
+  assert.equal(quests[0].status, "backlog");
+
+  assert.deepEqual(store.getPinned(), []);
 });
 
 test("createQuest assigns an id, defaults, and order 1 for the first quest", () => {
-  const store = createStore(tempStorePath());
+  const store = createStore(emptyStorePath());
   const quest = store.createQuest({ title: "Test Quest", hook: "h", tier: "weekend", tags: ["a"], dod: "done" });
 
   assert.ok(quest.id);
@@ -31,7 +39,7 @@ test("createQuest assigns an id, defaults, and order 1 for the first quest", () 
 });
 
 test("createQuest increments order across successive quests", () => {
-  const store = createStore(tempStorePath());
+  const store = createStore(emptyStorePath());
   const a = store.createQuest({ title: "A" });
   const b = store.createQuest({ title: "B" });
 
@@ -55,7 +63,7 @@ test("updateQuest throws for an unknown id", () => {
 });
 
 test("deleteQuest removes the quest", () => {
-  const store = createStore(tempStorePath());
+  const store = createStore(emptyStorePath());
   const quest = store.createQuest({ title: "To delete" });
   store.deleteQuest(quest.id);
 
@@ -64,6 +72,11 @@ test("deleteQuest removes the quest", () => {
 
 test("updatePinned merges fields and persists across separate store instances", () => {
   const storePath = tempStorePath();
+  fs.writeFileSync(storePath, JSON.stringify({
+    quests: [],
+    pinned: [{ id: "gb-emulator", title: "GB Emulator", status: "old", next: "", todo: "", state: "in_progress", order: 1 }],
+  }));
+
   const store = createStore(storePath);
   const updated = store.updatePinned("gb-emulator", { status: "shipped", next: "polish UI" });
 

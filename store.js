@@ -3,27 +3,19 @@ const path = require("path");
 const crypto = require("crypto");
 
 const DEFAULT_STORE = {
-  quests: [],
-  pinned: [
+  quests: [
     {
-      id: "gb-emulator",
-      title: "GB Emulator",
-      status: "Pinned on GitHub — already active, outside this backlog.",
-      next: "",
-      todo: "",
-      state: "in_progress",
+      id: "welcome",
+      title: "Welcome to Quest Log",
+      hook: "Scoped drops for a green graph — this board is for side-project ideas small enough to actually ship. Each quest gets a Definition of Done before it gets a first commit.",
+      tier: "weekend",
+      tags: ["Tutorial"],
+      dod: "Click a status pill below to cycle Backlog → In Progress → Shipped, then use + Add Quest up top to create your first real idea. Edit or delete this card any time from its header.",
+      status: "backlog",
       order: 1,
     },
-    {
-      id: "elixir-in-airflow",
-      title: "elixir-in-airflow",
-      status: "Pinned on GitHub — already active, outside this backlog.",
-      next: "",
-      todo: "",
-      state: "in_progress",
-      order: 2,
-    },
   ],
+  pinned: [],
 };
 
 function nextOrder(list) {

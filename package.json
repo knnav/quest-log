@@ -27,7 +27,7 @@
       "store.js",
       "index.html",
       "js/**/*",
-      "css/**/*",
+      "assets/**/*",
       "fonts/**/*"
     ],
     "win": {
