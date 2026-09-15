@@ -9,6 +9,10 @@ contextBridge.exposeInMainWorld("questLog", {
   updatePinned: (id, data) => ipcRenderer.invoke("quest-log:update-pinned", id, data),
 });
 
+contextBridge.exposeInMainWorld("motd", {
+  list: () => ipcRenderer.invoke("motd:list"),
+});
+
 contextBridge.exposeInMainWorld("windowControls", {
   minimize: () => ipcRenderer.send("window:minimize"),
   toggleMaximize: () => ipcRenderer.send("window:toggle-maximize"),

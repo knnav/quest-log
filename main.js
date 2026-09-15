@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain, nativeTheme } = require("electron");
+const fs = require("fs");
 const path = require("path");
 const store = require("./store");
 
@@ -31,6 +32,12 @@ function registerIpcHandlers() {
   ipcMain.handle("quest-log:delete-quest", (event, id) => store.deleteQuest(id));
   ipcMain.handle("quest-log:list-pinned", () => store.getPinned());
   ipcMain.handle("quest-log:update-pinned", (event, id, data) => store.updatePinned(id, data));
+
+  ipcMain.handle("motd:list", () => {
+    const motdPath = path.join(__dirname, "assets", "motd.json");
+    const raw = fs.readFileSync(motdPath, "utf-8");
+    return JSON.parse(raw);
+  });
 
   ipcMain.on("window:minimize", (event) => {
     const win = BrowserWindow.fromWebContents(event.sender);

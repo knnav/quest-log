@@ -1,5 +1,6 @@
 import { initTheme } from "./theme.js";
 import { initTitlebar } from "./titlebar.js";
+import { initMotd } from "./motd.js";
 import { initQuests, loadQuests, cardHtml, bindQuestActions, getInProgressQuests } from "./quests.js";
 import { initPinned, loadPinned, pinnedCardHtml, bindPinnedActions, getPinnedList } from "./pinned.js";
 
@@ -15,6 +16,7 @@ function renderProgress() {
 
 initTheme();
 initTitlebar();
+initMotd();
 initQuests(renderProgress);
 initPinned(renderProgress);
 

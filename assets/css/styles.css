@@ -141,12 +141,13 @@ header.top {
   margin-bottom: 22px;
 }
 
-.subtitle {
+.motd {
   color: var(--text-dim);
   font-size: 13px;
   max-width: 62ch;
   line-height: 1.6;
-  margin: 0;
+  margin: 0 auto;
+  text-align: center;
 }
 
 .active-repos {
