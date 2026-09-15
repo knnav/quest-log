@@ -7,11 +7,13 @@
   "private": true,
   "scripts": {
     "start": "electron .",
-    "package:win": "electron-builder --win zip"
+    "package:win": "electron-builder --win zip",
+    "test": "node --test"
   },
   "devDependencies": {
     "electron": "^44.3.0",
-    "electron-builder": "^26.15.3"
+    "electron-builder": "^26.15.3",
+    "jsdom": "^30.0.1"
   },
   "build": {
     "appId": "com.questlog.app",
