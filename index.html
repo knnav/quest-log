@@ -1,0 +1,539 @@
+<title>Side Quest Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --bg: #f3f6ee;
+    --panel: #ffffff;
+    --panel-border: #d7ddca;
+    --text: #1a2415;
+    --text-dim: #5b6b52;
+    --accent: #43611c;
+    --accent-bright: #5d7f2a;
+    --accent-glow: rgba(67, 97, 28, 0.14);
+    --status-backlog: #8a8f7f;
+    --status-backlog-bg: #eceee5;
+    --status-progress: #9a6a10;
+    --status-progress-bg: #f6ecd6;
+    --status-shipped: #3d6b1f;
+    --status-shipped-bg: #e3edd6;
+    --chip-bg: #eef1e6;
+    --chip-bg-active: #43611c;
+    --chip-text-active: #f3f6ee;
+    --shadow: 0 1px 2px rgba(20, 30, 10, 0.06), 0 1px 1px rgba(20,30,10,0.04);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0d1209;
+      --panel: #161d10;
+      --panel-border: #2b3620;
+      --text: #dde8d0;
+      --text-dim: #8aa07a;
+      --accent: #9bbc0f;
+      --accent-bright: #c4e05a;
+      --accent-glow: rgba(155, 188, 15, 0.16);
+      --status-backlog: #7c8a6e;
+      --status-backlog-bg: #1e2517;
+      --status-progress: #e0a458;
+      --status-progress-bg: #2e2414;
+      --status-shipped: #9bbc0f;
+      --status-shipped-bg: #1c2a12;
+      --chip-bg: #1b2314;
+      --chip-bg-active: #9bbc0f;
+      --chip-text-active: #0d1209;
+      --shadow: 0 1px 2px rgba(0,0,0,0.4), 0 1px 1px rgba(0,0,0,0.3);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #0d1209;
+    --panel: #161d10;
+    --panel-border: #2b3620;
+    --text: #dde8d0;
+    --text-dim: #8aa07a;
+    --accent: #9bbc0f;
+    --accent-bright: #c4e05a;
+    --accent-glow: rgba(155, 188, 15, 0.16);
+    --status-backlog: #7c8a6e;
+    --status-backlog-bg: #1e2517;
+    --status-progress: #e0a458;
+    --status-progress-bg: #2e2414;
+    --status-shipped: #9bbc0f;
+    --status-shipped-bg: #1c2a12;
+    --chip-bg: #1b2314;
+    --chip-bg-active: #9bbc0f;
+    --chip-text-active: #0d1209;
+    --shadow: 0 1px 2px rgba(0,0,0,0.4), 0 1px 1px rgba(0,0,0,0.3);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "JetBrains Mono", ui-monospace, "SF Mono", Consolas, monospace;
+    padding: 28px 20px 64px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1080px; margin: 0 auto; }
+
+  header.top {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid var(--panel-border);
+    margin-bottom: 22px;
+  }
+
+  .pixel-title {
+    font-family: "Press Start 2P", "JetBrains Mono", monospace;
+    font-size: clamp(15px, 3vw, 22px);
+    line-height: 1.6;
+    color: var(--accent);
+    text-shadow: 0 0 14px var(--accent-glow);
+    letter-spacing: 1px;
+    margin: 0;
+  }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 13px;
+    max-width: 62ch;
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  .active-repos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+  }
+
+  .header-actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .btn {
+    font-family: inherit;
+    font-size: 12px;
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--panel-border);
+    background: var(--panel);
+    color: var(--text);
+    cursor: pointer;
+    transition: border-color 0.12s ease, background 0.12s ease;
+  }
+
+  .btn:hover { border-color: var(--accent); }
+
+  .btn.primary {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+  }
+
+  .btn.primary:hover { background: var(--accent-bright); border-color: var(--accent-bright); }
+
+  .progress-tier .tier-title { color: var(--accent); }
+
+  .pinned-card {
+    border-left: 3px solid var(--accent);
+  }
+
+  .pinned-tag {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--accent-glow);
+  }
+
+  .stats-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .stat {
+    flex: 1 1 120px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    box-shadow: var(--shadow);
+  }
+
+  .stat .n {
+    font-size: 22px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stat .l {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  .stat.backlog .n { color: var(--status-backlog); }
+  .stat.progress .n { color: var(--status-progress); }
+  .stat.shipped .n { color: var(--status-shipped); }
+
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-bottom: 26px;
+  }
+
+  .chip {
+    font-family: inherit;
+    font-size: 11px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--panel-border);
+    background: var(--chip-bg);
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease, transform 0.05s ease;
+  }
+
+  .chip:hover { transform: translateY(-1px); }
+
+  .chip.active {
+    background: var(--chip-bg-active);
+    color: var(--chip-text-active);
+    border-color: transparent;
+  }
+
+  section.tier { margin-bottom: 34px; }
+
+  .tier-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+
+  .tier-title {
+    font-family: "Press Start 2P", monospace;
+    font-size: 12px;
+    color: var(--text);
+    margin: 0;
+  }
+
+  .tier-desc {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin: 0 0 14px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .card-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  .card-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .icon-btn {
+    font-family: inherit;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 3px 7px;
+    border-radius: 5px;
+    border: 1px solid var(--panel-border);
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+
+  .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .icon-btn.danger:hover { border-color: #b3432f; color: #b3432f; }
+
+  .card-hook {
+    font-size: 12.5px;
+    color: var(--text-dim);
+    line-height: 1.55;
+    margin: 0;
+  }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .tag {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--chip-bg);
+    color: var(--text-dim);
+    border: 1px solid var(--panel-border);
+  }
+
+  .dod {
+    font-size: 11.5px;
+    line-height: 1.5;
+    color: var(--text);
+    border-left: 2px solid var(--accent);
+    padding-left: 9px;
+  }
+
+  .dod b {
+    color: var(--accent-bright);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .status-row {
+    display: flex;
+    gap: 5px;
+    margin-top: auto;
+    padding-top: 4px;
+  }
+
+  .status-btn {
+    flex: 1;
+    font-family: inherit;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 7px 4px;
+    border-radius: 6px;
+    border: 1px solid var(--panel-border);
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+
+  .status-btn:hover { border-color: var(--accent); }
+
+  .status-btn.on.backlog { background: var(--status-backlog-bg); color: var(--status-backlog); border-color: var(--status-backlog); }
+  .status-btn.on.in_progress { background: var(--status-progress-bg); color: var(--status-progress); border-color: var(--status-progress); }
+  .status-btn.on.shipped { background: var(--status-shipped-bg); color: var(--status-shipped); border-color: var(--status-shipped); }
+
+  .empty-state, .loading {
+    color: var(--text-dim);
+    font-size: 12.5px;
+    padding: 30px 0;
+    text-align: center;
+  }
+
+  footer.note {
+    margin-top: 30px;
+    font-size: 11px;
+    color: var(--text-dim);
+    border-top: 1px solid var(--panel-border);
+    padding-top: 14px;
+    line-height: 1.6;
+  }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 100;
+  }
+
+  .modal-overlay[hidden] { display: none; }
+
+  .modal {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 22px;
+    width: 100%;
+    max-width: 440px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow);
+  }
+
+  .modal h2 {
+    font-family: "Press Start 2P", monospace;
+    font-size: 12px;
+    color: var(--accent);
+    margin: 0 0 16px;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 14px;
+  }
+
+  .field label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+  }
+
+  .field input, .field select, .field textarea {
+    font-family: inherit;
+    font-size: 12.5px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--panel-border);
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  .field textarea { resize: vertical; min-height: 60px; }
+
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 18px;
+  }
+
+  @media (max-width: 480px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <h1 class="pixel-title">SIDE QUEST LOG</h1>
+    <p class="subtitle">
+      Scoped drops for a green graph. Each entry has a Definition of Done
+      before it has a first commit — that's the whole anti-scope-creep
+      trick. Pick one, ship the DoD, mark it, move on.
+    </p>
+    <div class="header-actions">
+      <button class="btn primary" id="addQuestBtn">+ Add Quest</button>
+    </div>
+  </header>
+
+  <div class="stats-bar" id="stats"></div>
+
+  <section class="tier progress-tier">
+    <div class="tier-head"><h2 class="tier-title">IN PROGRESS</h2></div>
+    <p class="tier-desc">What's actually moving right now — pinned repos, plus anything active on the backlog.</p>
+    <div class="grid" id="progressGrid"></div>
+  </section>
+
+  <div class="filters" id="filters"></div>
+  <div id="board">
+    <div class="loading">loading quest log…</div>
+  </div>
+
+  <footer class="note">
+    Status persists to this page for anyone who opens it — click a status
+    pill on a card to cycle Backlog → In Progress → Shipped. Filters above
+    are just for this view and reset on reload.
+  </footer>
+</div>
+
+<div class="modal-overlay" id="questModalOverlay" hidden>
+  <div class="modal">
+    <h2 id="questModalTitle">Add Quest</h2>
+    <form id="questForm">
+      <div class="field">
+        <label for="questTitle">Title</label>
+        <input id="questTitle" required>
+      </div>
+      <div class="field">
+        <label for="questHook">Hook</label>
+        <textarea id="questHook" required></textarea>
+      </div>
+      <div class="field">
+        <label for="questTier">Tier</label>
+        <select id="questTier">
+          <option value="weekend">Tier 1 — Weekend shippable</option>
+          <option value="medium">Tier 2 — 1–2 week build</option>
+          <option value="ongoing">Tier 3 — Ongoing side-quests</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="questTags">Tags (comma-separated)</label>
+        <input id="questTags">
+      </div>
+      <div class="field">
+        <label for="questDod">Definition of done</label>
+        <textarea id="questDod" required></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="questCancelBtn">Cancel</button>
+        <button type="submit" class="btn primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="pinnedModalOverlay" hidden>
+  <div class="modal">
+    <h2>Edit Pinned Repo</h2>
+    <form id="pinnedForm">
+      <div class="field">
+        <label for="pinnedStatus">Status</label>
+        <input id="pinnedStatus">
+      </div>
+      <div class="field">
+        <label for="pinnedNext">Next</label>
+        <input id="pinnedNext">
+      </div>
+      <div class="field">
+        <label for="pinnedTodo">To-do</label>
+        <textarea id="pinnedTodo"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="pinnedCancelBtn">Cancel</button>
+        <button type="submit" class="btn primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="renderer.js"></script>
