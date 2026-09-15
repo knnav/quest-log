@@ -19,6 +19,10 @@ export function initPinned(onPinnedChanged) {
     if (e.target === pinnedModalOverlay) closePinnedModal();
   });
   pinnedForm.addEventListener("submit", onPinnedFormSubmit);
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !pinnedModalOverlay.hidden) closePinnedModal();
+  });
 }
 
 export function loadPinned() {

@@ -1,9 +1,9 @@
 import { initTheme } from "./theme.js";
 import { initTitlebar } from "./titlebar.js";
 import { initMotd } from "./motd.js";
-import { initQuests, loadQuests, cardHtml, bindQuestActions, getInProgressQuests } from "./quests.js";
+import { initQuests, loadQuests, cardHtml, bindQuestActions, getInProgressQuests, openCreateQuest } from "./quests.js";
 import { initPinned, loadPinned, pinnedCardHtml, bindPinnedActions, getPinnedList } from "./pinned.js";
-import { initSideQuests, loadSideQuests, sideQuestCardHtml, bindSideQuestActions, getSideQuestsByStatus } from "./sideQuests.js";
+import { initSideQuests, loadSideQuests, sideQuestCardHtml, bindSideQuestActions, getSideQuestsByStatus, openCreateSideQuest } from "./sideQuests.js";
 
 function renderProgress() {
   var progressGridEl = document.getElementById("progressGrid");
@@ -30,9 +30,24 @@ function renderSideQuests() {
   renderSideQuestSection("hallOfFame", "hallOfFameGrid", getSideQuestsByStatus("done"));
 }
 
+function anyModalOpen() {
+  return !!document.querySelector(".modal-overlay:not([hidden])");
+}
+
+function initShortcuts() {
+  document.addEventListener("keydown", function (e) {
+    if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== "n") return;
+    if (anyModalOpen()) return;
+    e.preventDefault();
+    if (e.shiftKey) openCreateSideQuest();
+    else openCreateQuest();
+  });
+}
+
 initTheme();
 initTitlebar();
 initMotd();
+initShortcuts();
 initQuests(renderProgress);
 initPinned(renderProgress);
 initSideQuests(renderSideQuests);

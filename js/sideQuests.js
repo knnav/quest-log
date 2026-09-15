@@ -22,6 +22,14 @@ export function initSideQuests(onSideQuestsChanged) {
     if (e.target === sideQuestModalOverlay) closeSideQuestModal();
   });
   sideQuestForm.addEventListener("submit", onSideQuestFormSubmit);
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !sideQuestModalOverlay.hidden) closeSideQuestModal();
+  });
+}
+
+export function openCreateSideQuest() {
+  openSideQuestModal(null);
 }
 
 export function loadSideQuests() {

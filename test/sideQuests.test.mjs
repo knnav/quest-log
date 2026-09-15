@@ -177,6 +177,41 @@ test("edit click prefills the modal with the existing title and note", async () 
   assert.equal(doc.getElementById("sideQuestNote").value, "Balcony one too");
 });
 
+test("openCreateSideQuest opens the modal in create mode", async () => {
+  const questLogMock = { listSideQuests: () => Promise.resolve([]) };
+
+  const dom = new JSDOM(FIXTURE_HTML, { url: "http://localhost/" });
+  installGlobals(dom, questLogMock);
+
+  const sideQuests = await freshSideQuestsModule();
+  sideQuests.initSideQuests(() => {});
+
+  sideQuests.openCreateSideQuest();
+
+  const doc = dom.window.document;
+  assert.equal(doc.getElementById("sideQuestModalOverlay").hidden, false);
+  assert.equal(doc.getElementById("sideQuestModalTitle").textContent, "Create Side Quest");
+  assert.equal(doc.getElementById("sideQuestTitle").value, "");
+});
+
+test("Escape closes an open side quest modal", async () => {
+  const questLogMock = { listSideQuests: () => Promise.resolve([]) };
+
+  const dom = new JSDOM(FIXTURE_HTML, { url: "http://localhost/" });
+  installGlobals(dom, questLogMock);
+
+  const sideQuests = await freshSideQuestsModule();
+  sideQuests.initSideQuests(() => {});
+  sideQuests.openCreateSideQuest();
+
+  const doc = dom.window.document;
+  assert.equal(doc.getElementById("sideQuestModalOverlay").hidden, false);
+
+  doc.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+
+  assert.equal(doc.getElementById("sideQuestModalOverlay").hidden, true);
+});
+
 test("submitting the create form calls questLog.createSideQuest with title and note", async () => {
   const calls = [];
   const questLogMock = {

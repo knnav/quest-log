@@ -163,6 +163,41 @@ test("loadQuests renders fetched quests and edit click prefills the modal", asyn
   assert.equal(doc.getElementById("questTags").value, "Tag1");
 });
 
+test("openCreateQuest opens the modal in create mode", async () => {
+  const questLogMock = { listQuests: () => Promise.resolve([]) };
+
+  const dom = new JSDOM(FIXTURE_HTML, { url: "http://localhost/" });
+  installGlobals(dom, questLogMock);
+
+  const quests = await freshQuestsModule();
+  quests.initQuests(() => {});
+
+  quests.openCreateQuest();
+
+  const doc = dom.window.document;
+  assert.equal(doc.getElementById("questModalOverlay").hidden, false);
+  assert.equal(doc.getElementById("questModalTitle").textContent, "Add Quest");
+  assert.equal(doc.getElementById("questTitle").value, "");
+});
+
+test("Escape closes an open quest modal", async () => {
+  const questLogMock = { listQuests: () => Promise.resolve([]) };
+
+  const dom = new JSDOM(FIXTURE_HTML, { url: "http://localhost/" });
+  installGlobals(dom, questLogMock);
+
+  const quests = await freshQuestsModule();
+  quests.initQuests(() => {});
+  quests.openCreateQuest();
+
+  const doc = dom.window.document;
+  assert.equal(doc.getElementById("questModalOverlay").hidden, false);
+
+  doc.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+
+  assert.equal(doc.getElementById("questModalOverlay").hidden, true);
+});
+
 test("submitting the Add Quest form calls questLog.createQuest with parsed fields", async () => {
   const calls = [];
   const questLogMock = {

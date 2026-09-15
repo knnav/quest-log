@@ -29,6 +29,14 @@ export function initQuests(onQuestsChanged) {
     if (e.target === questModalOverlay) closeQuestModal();
   });
   questForm.addEventListener("submit", onQuestFormSubmit);
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !questModalOverlay.hidden) closeQuestModal();
+  });
+}
+
+export function openCreateQuest() {
+  openQuestModal(null);
 }
 
 export function loadQuests() {
