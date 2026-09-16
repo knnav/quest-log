@@ -6,10 +6,10 @@ import {
   openCreateQuest, getAllQuests, getStatusCounts as questCounts
 } from "./quests.js";
 import {
-  initSideQuests, loadSideQuests, sideQuestCardHtml, bindSideQuestActions,
-  getSideQuestsByStatus, openCreateSideQuest, persistSideQuestOrder,
-  getAllSideQuests, getStatusCounts as sideQuestCounts
-} from "./sideQuests.js";
+  initTasks, loadTasks, taskCardHtml, bindTaskActions,
+  getTasksByStatus, openCreateTask, persistTaskOrder,
+  getAllTasks, getStatusCounts as taskCounts
+} from "./tasks.js";
 import { enableDragSort } from "./dragSort.js";
 import { initDetail } from "./detail.js";
 import { initTabs, showTab } from "./tabs.js";
@@ -27,31 +27,31 @@ function renderProgress() {
   renderHome();
 }
 
-function renderSideQuestSection(sectionId, gridId, sideQuests) {
+function renderTaskSection(sectionId, gridId, tasks) {
   var sectionEl = document.getElementById(sectionId);
   var gridEl = document.getElementById(gridId);
 
-  sectionEl.hidden = sideQuests.length === 0;
-  gridEl.innerHTML = sideQuests.map(sideQuestCardHtml).join("");
-  bindSideQuestActions(gridEl);
-  enableDragSort(gridEl, persistSideQuestOrder);
+  sectionEl.hidden = tasks.length === 0;
+  gridEl.innerHTML = tasks.map(taskCardHtml).join("");
+  bindTaskActions(gridEl);
+  enableDragSort(gridEl, persistTaskOrder);
 }
 
-function renderSideQuests() {
-  renderSideQuestSection("progressSideQuests", "progressSideQuestsGrid", getSideQuestsByStatus("in_progress"));
-  renderSideQuestSection("backlogSideQuests", "backlogSideQuestsGrid", getSideQuestsByStatus("backlog"));
-  renderSideQuestSection("hallOfFame", "hallOfFameGrid", getSideQuestsByStatus("done"));
+function renderTasks() {
+  renderTaskSection("progressTasks", "progressTasksGrid", getTasksByStatus("in_progress"));
+  renderTaskSection("backlogTasks", "backlogTasksGrid", getTasksByStatus("backlog"));
+  renderTaskSection("tasksHallOfFame", "tasksHallOfFameGrid", getTasksByStatus("done"));
 
-  document.getElementById("sideQuestsEmpty").hidden = getAllSideQuests().length > 0;
+  document.getElementById("tasksEmpty").hidden = getAllTasks().length > 0;
   renderHome();
 }
 
 function homeData() {
   return {
     quests: getAllQuests(),
-    sideQuests: getAllSideQuests(),
+    tasks: getAllTasks(),
     questCounts: questCounts(),
-    sideQuestCounts: sideQuestCounts()
+    taskCounts: taskCounts()
   };
 }
 
@@ -68,8 +68,8 @@ function initShortcuts() {
     // New items land in a backlog, so send the user to the tab that will
     // actually show what they just created.
     if (e.shiftKey) {
-      showTab("sideQuests");
-      openCreateSideQuest();
+      showTab("tasks");
+      openCreateTask();
     } else {
       showTab("quests");
       openCreateQuest();
@@ -84,16 +84,16 @@ initShortcuts();
 // Only the create button for the tab you're looking at is shown — two of them
 // plus the tab bar does not fit the 380px minimum window width.
 function syncCreateButton(tab) {
-  document.getElementById("addQuestBtn").hidden = tab === "sideQuests";
-  document.getElementById("addSideQuestBtn").hidden = tab !== "sideQuests";
+  document.getElementById("addQuestBtn").hidden = tab === "tasks";
+  document.getElementById("addTaskBtn").hidden = tab !== "tasks";
 }
 
 initTabs(syncCreateButton);
 initDetail();
 initHome(homeData);
 initQuests(renderProgress);
-initSideQuests(renderSideQuests);
+initTasks(renderTasks);
 
-Promise.all([loadQuests(), loadSideQuests()]).catch(function () {
+Promise.all([loadQuests(), loadTasks()]).catch(function () {
   document.getElementById("board").innerHTML = '<div class="empty-state">Could not load the quest log right now.</div>';
 });

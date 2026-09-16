@@ -585,7 +585,7 @@ section.tier { margin-bottom: 34px; }
   gap: 14px;
 }
 
-.side-quest-card {
+.task-card {
   border-left: 3px solid var(--status-progress);
 }
 

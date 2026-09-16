@@ -6,11 +6,11 @@ contextBridge.exposeInMainWorld("questLog", {
   updateQuest: (id, data) => ipcRenderer.invoke("quest-log:update-quest", id, data),
   deleteQuest: (id) => ipcRenderer.invoke("quest-log:delete-quest", id),
   reorderQuests: (ids) => ipcRenderer.invoke("quest-log:reorder-quests", ids),
-  listSideQuests: () => ipcRenderer.invoke("quest-log:list-side-quests"),
-  createSideQuest: (data) => ipcRenderer.invoke("quest-log:create-side-quest", data),
-  updateSideQuest: (id, data) => ipcRenderer.invoke("quest-log:update-side-quest", id, data),
-  deleteSideQuest: (id) => ipcRenderer.invoke("quest-log:delete-side-quest", id),
-  reorderSideQuests: (ids) => ipcRenderer.invoke("quest-log:reorder-side-quests", ids),
+  listTasks: () => ipcRenderer.invoke("quest-log:list-tasks"),
+  createTask: (data) => ipcRenderer.invoke("quest-log:create-task", data),
+  updateTask: (id, data) => ipcRenderer.invoke("quest-log:update-task", id, data),
+  deleteTask: (id) => ipcRenderer.invoke("quest-log:delete-task", id),
+  reorderTasks: (ids) => ipcRenderer.invoke("quest-log:reorder-tasks", ids),
 });
 
 contextBridge.exposeInMainWorld("motd", {

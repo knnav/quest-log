@@ -15,7 +15,7 @@ const DEFAULT_STORE = {
       order: 1,
     },
   ],
-  sideQuests: [],
+  tasks: [],
 };
 
 function nextOrder(list) {
@@ -57,7 +57,7 @@ function createStore(storePath) {
     try {
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed.quests)) parsed.quests = [];
-      if (!Array.isArray(parsed.sideQuests)) parsed.sideQuests = [];
+      if (!Array.isArray(parsed.tasks)) parsed.tasks = [];
       return parsed;
     } catch (err) {
       return JSON.parse(JSON.stringify(DEFAULT_STORE));
@@ -117,47 +117,47 @@ function createStore(storePath) {
     return store.quests;
   }
 
-  function getSideQuests() {
-    return readStore().sideQuests;
+  function getTasks() {
+    return readStore().tasks;
   }
 
-  function createSideQuest(data) {
+  function createTask(data) {
     const store = readStore();
-    const sideQuest = {
+    const task = {
       id: crypto.randomUUID(),
       title: data.title || "",
       note: data.note || "",
       status: data.status || "backlog",
       completedAt: completionStamp(null, { status: data.status || "backlog" }, "done"),
-      order: nextOrder(store.sideQuests),
+      order: nextOrder(store.tasks),
     };
-    store.sideQuests.push(sideQuest);
+    store.tasks.push(task);
     writeStore(store);
-    return sideQuest;
+    return task;
   }
 
-  function updateSideQuest(id, data) {
+  function updateTask(id, data) {
     const store = readStore();
-    const idx = store.sideQuests.findIndex((s) => s.id === id);
-    if (idx === -1) throw new Error(`Side quest not found: ${id}`);
-    const merged = Object.assign({}, store.sideQuests[idx], data, { id });
-    merged.completedAt = completionStamp(store.sideQuests[idx], merged, "done");
-    store.sideQuests[idx] = merged;
+    const idx = store.tasks.findIndex((s) => s.id === id);
+    if (idx === -1) throw new Error(`Task not found: ${id}`);
+    const merged = Object.assign({}, store.tasks[idx], data, { id });
+    merged.completedAt = completionStamp(store.tasks[idx], merged, "done");
+    store.tasks[idx] = merged;
     writeStore(store);
     return merged;
   }
 
-  function deleteSideQuest(id) {
+  function deleteTask(id) {
     const store = readStore();
-    store.sideQuests = store.sideQuests.filter((s) => s.id !== id);
+    store.tasks = store.tasks.filter((s) => s.id !== id);
     writeStore(store);
   }
 
-  function reorderSideQuests(orderedIds) {
+  function reorderTasks(orderedIds) {
     const store = readStore();
-    applyOrder(store.sideQuests, orderedIds);
+    applyOrder(store.tasks, orderedIds);
     writeStore(store);
-    return store.sideQuests;
+    return store.tasks;
   }
 
   return {
@@ -166,11 +166,11 @@ function createStore(storePath) {
     updateQuest,
     deleteQuest,
     reorderQuests,
-    getSideQuests,
-    createSideQuest,
-    updateSideQuest,
-    deleteSideQuest,
-    reorderSideQuests,
+    getTasks,
+    createTask,
+    updateTask,
+    deleteTask,
+    reorderTasks,
   };
 }
 
@@ -191,9 +191,9 @@ module.exports = {
   updateQuest: (...args) => getDefaultStore().updateQuest(...args),
   deleteQuest: (...args) => getDefaultStore().deleteQuest(...args),
   reorderQuests: (...args) => getDefaultStore().reorderQuests(...args),
-  getSideQuests: (...args) => getDefaultStore().getSideQuests(...args),
-  createSideQuest: (...args) => getDefaultStore().createSideQuest(...args),
-  updateSideQuest: (...args) => getDefaultStore().updateSideQuest(...args),
-  deleteSideQuest: (...args) => getDefaultStore().deleteSideQuest(...args),
-  reorderSideQuests: (...args) => getDefaultStore().reorderSideQuests(...args),
+  getTasks: (...args) => getDefaultStore().getTasks(...args),
+  createTask: (...args) => getDefaultStore().createTask(...args),
+  updateTask: (...args) => getDefaultStore().updateTask(...args),
+  deleteTask: (...args) => getDefaultStore().deleteTask(...args),
+  reorderTasks: (...args) => getDefaultStore().reorderTasks(...args),
 };

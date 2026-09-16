@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   fuelFor, stageFor, completionEntries, lastCompletedAt, elapsedLabel,
-  DECAY_DAYS, QUEST_WEIGHT, SIDE_QUEST_WEIGHT, STAGE_LABELS, STAGE_THRESHOLDS
+  DECAY_DAYS, QUEST_WEIGHT, TASK_WEIGHT, STAGE_LABELS, STAGE_THRESHOLDS
 } from "../js/fire.js";
 
 const NOW = new Date("2026-09-16T12:00:00.000Z");
@@ -42,13 +42,13 @@ test("a completion stamped in the future counts as just-now, never as extra fuel
 test("fuel sums across entries", () => {
   const entries = [
     { completedAt: ago(0), weight: QUEST_WEIGHT },
-    { completedAt: ago(0), weight: SIDE_QUEST_WEIGHT },
+    { completedAt: ago(0), weight: TASK_WEIGHT },
   ];
-  assert.equal(fuelFor(entries, NOW), QUEST_WEIGHT + SIDE_QUEST_WEIGHT);
+  assert.equal(fuelFor(entries, NOW), QUEST_WEIGHT + TASK_WEIGHT);
 });
 
-test("a quest is worth more fuel than a side quest", () => {
-  assert.ok(QUEST_WEIGHT > SIDE_QUEST_WEIGHT);
+test("a quest is worth more fuel than a task", () => {
+  assert.ok(QUEST_WEIGHT > TASK_WEIGHT);
 });
 
 test("stageFor walks the thresholds and never goes below embers", () => {
@@ -80,15 +80,15 @@ test("completionEntries uses each type's own done status", () => {
     { status: "done", completedAt: ago(0) },     // not a quest status
     { status: "shipped", completedAt: null },     // legacy, undated
   ];
-  const sideQuests = [
+  const tasks = [
     { status: "done", completedAt: ago(0) },
-    { status: "shipped", completedAt: ago(0) },   // not a side quest status
+    { status: "shipped", completedAt: ago(0) },   // not a task status
     { status: "backlog", completedAt: ago(0) },
   ];
 
-  const entries = completionEntries(quests, sideQuests);
+  const entries = completionEntries(quests, tasks);
 
-  assert.deepEqual(entries.map((e) => e.weight), [QUEST_WEIGHT, SIDE_QUEST_WEIGHT]);
+  assert.deepEqual(entries.map((e) => e.weight), [QUEST_WEIGHT, TASK_WEIGHT]);
 });
 
 test("lastCompletedAt finds the most recent stamp", () => {

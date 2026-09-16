@@ -6,12 +6,12 @@ const FIXTURE_HTML = `<!doctype html><html><body>
   <nav class="tabs" id="tabs">
     <button class="tab" data-tab="home"><svg></svg><span class="sr-only">Home</span></button>
     <button class="tab" data-tab="quests">Quests</button>
-    <button class="tab" data-tab="sideQuests">Side Quests</button>
+    <button class="tab" data-tab="tasks">Tasks</button>
   </nav>
   <main class="app-scroll">
     <section class="screen" id="homeScreen"></section>
     <section class="screen" id="questsScreen" hidden></section>
-    <section class="screen" id="sideQuestsScreen" hidden></section>
+    <section class="screen" id="tasksScreen" hidden></section>
   </main>
 </body></html>`;
 
@@ -65,11 +65,11 @@ test("clicking a tab swaps the visible screen", async () => {
   tabs.initTabs();
 
   const doc = dom.window.document;
-  doc.querySelector('.tab[data-tab="sideQuests"]')
+  doc.querySelector('.tab[data-tab="tasks"]')
     .dispatchEvent(new dom.window.Event("click", { bubbles: true }));
 
-  assert.equal(tabs.activeTab(), "sideQuests");
-  assert.deepEqual(visibleScreen(doc), ["sideQuestsScreen"]);
+  assert.equal(tabs.activeTab(), "tasks");
+  assert.deepEqual(visibleScreen(doc), ["tasksScreen"]);
 });
 
 test("clicking the label inside a tab still selects it", async () => {
@@ -114,11 +114,11 @@ test("onChange fires with the new tab so the chrome can follow it", async () => 
   const tabs = await freshTabsModule();
   tabs.initTabs((id) => seen.push(id));
 
-  tabs.showTab("sideQuests");
+  tabs.showTab("tasks");
   tabs.showTab("quests");
   tabs.showTab("quests"); // already active, should not re-fire
 
-  assert.deepEqual(seen, ["home", "sideQuests", "quests"]);
+  assert.deepEqual(seen, ["home", "tasks", "quests"]);
 });
 
 test("showTab ignores a tab that does not exist", async () => {

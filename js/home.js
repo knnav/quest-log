@@ -5,7 +5,7 @@ import {
 
 var bonfireEl, stageLabelEl, stageNoteEl;
 var sinceValueEl, sinceLabelEl, clockEl;
-var questStatsEl, sideQuestStatsEl;
+var questStatsEl, taskStatsEl;
 var getData = null;
 var tickTimer = null;
 
@@ -19,7 +19,7 @@ export function initHome(dataSource) {
   sinceLabelEl = document.getElementById("sinceLabel");
   clockEl = document.getElementById("clock");
   questStatsEl = document.getElementById("questStats");
-  sideQuestStatsEl = document.getElementById("sideQuestStats");
+  taskStatsEl = document.getElementById("taskStats");
 
   if (!bonfireEl) return;
 
@@ -48,13 +48,13 @@ export function renderHome() {
     ["Shipped", data.questCounts.shipped]
   ]);
 
-  renderStats(sideQuestStatsEl, [
-    ["Backlog", data.sideQuestCounts.backlog],
-    ["In progress", data.sideQuestCounts.in_progress],
-    ["Done", data.sideQuestCounts.done]
+  renderStats(taskStatsEl, [
+    ["Backlog", data.taskCounts.backlog],
+    ["In progress", data.taskCounts.in_progress],
+    ["Done", data.taskCounts.done]
   ]);
 
-  var entries = completionEntries(data.quests, data.sideQuests);
+  var entries = completionEntries(data.quests, data.tasks);
   var stage = stageFor(fuelFor(entries, now));
 
   bonfireEl.setAttribute("data-stage", String(stage));

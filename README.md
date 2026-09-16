@@ -10,22 +10,30 @@ Everything lives in one JSON file on your machine. No account, no sync, no serve
 
 ## What it does
 
-**Tiers, so you stop lying to yourself about scope**
-- **Tier 1 — Weekend Shippable:** 1–3 days. Small enough to finish before the idea gets boring.
-- **Tier 2 — 1–2 Week Build:** Still capped, just more surface area. Cut features before cutting the deadline.
-- **Tier 3 — Ongoing Quests:** The recurring drops for weeks when nothing else gets finished.
+**Two kinds of thing, named honestly**
 
-**Definition of Done on every card.** Every quest needs a DoD before it gets a first commit. That's the whole anti-scope-creep trick and it's non-negotiable — the form won't let you skip it.
+A **quest** is a side project. It has a hook, a scope, tags, and a Definition of Done, and it ends when you **ship** it.
 
-**Side quests, for the small stuff.** Not every task is a project. Side quests are the little day-to-day things — just a title and an optional note, no tier, no DoD, because "water the plants" doesn't need a Definition of Done. They cycle Backlog → In Progress → **Done**, and they get their own tab, split into In Progress, Backlog, and the **Hall of Fame** for the ones you actually knocked out.
+A **task** is everything else — "water the plants", "reply to Tom". A title and an optional note, and it ends when it's **done**.
 
-**Status pills.** Click to cycle Backlog → In Progress → Shipped. Anything marked In Progress gets pulled up into its own block at the top of the Quests tab — and drops out of its tier section below, so nothing is ever on screen twice.
+They're not two sizes of the same thing, so they don't share a name. A task is too small to deserve a Definition of Done; that's the whole line between them.
 
-**Three tabs.** Home, Quests, Side Quests. The app remembers which one you were on.
+**Scopes, so you stop lying to yourself**
+- **Weekend:** 1–3 days. Small enough to finish before the idea gets boring.
+- **Fortnight:** Still capped, just more surface area. Cut features before cutting the deadline.
+- **Ongoing:** The recurring drops for weeks when nothing else gets finished.
+
+The headings say `Weekend`, `Fortnight`, `Ongoing` and nothing else — "Tier 2" never told you anything the word didn't.
+
+**Definition of Done on every quest.** Every quest needs a DoD before it gets a first commit. That's the whole anti-scope-creep trick and it's non-negotiable — the form won't let you skip it.
+
+**Status pills.** Click to cycle Backlog → In Progress → Shipped. Each item is in exactly one place: in-progress work sits in its own block at the top, the backlog sits under its scope heading, and finished work goes to the **Hall of Fame** — quests and tasks both. Nothing is ever on screen twice.
+
+**Three tabs.** Home, Quests, Tasks. Each tab holds In Progress, then the backlog, then the Hall of Fame. The app remembers which one you were on.
 
 **The bonfire.** The home screen is a point of rest: counts for both kinds of work, how long it's been since you last finished something, the time, and a fire in the middle.
 
-The fire burns on what you've finished in the last three days. A shipped quest is worth three logs, a done side quest one, and each contribution fades as it ages — so the flame reads your recent past rather than your all-time total. It climbs through five stages, Embers to Roaring.
+The fire burns on what you've finished in the last three days. A shipped quest is worth three logs, a done task one, and each contribution fades as it ages — so the flame reads your recent past rather than your all-time total. It climbs through five stages, Embers to Roaring.
 
 Nothing resets at midnight and **the fire never goes out.** A quiet day dims it; a quiet fortnight takes it down to embers and leaves it there. You relight a bonfire, you don't fail it. Toggling a status pill back and forth won't farm it either — the completion stamp is cleared the moment a task leaves its done state, so the flame is a reading of where things actually stand.
 
@@ -135,7 +143,7 @@ index.html         Markup
 assets/css/        Styles
 assets/motd.json   Message-of-the-day pool
 fonts/             Self-hosted JetBrains Mono + Press Start 2P
-js/                Renderer modules (app, tabs, home, fire, quests, sideQuests,
+js/                Renderer modules (app, tabs, home, fire, quests, tasks,
                    detail, dragSort, theme, titlebar, motd)
 test/              Tests
 ```

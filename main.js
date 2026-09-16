@@ -32,11 +32,11 @@ function registerIpcHandlers() {
   ipcMain.handle("quest-log:delete-quest", (event, id) => store.deleteQuest(id));
   ipcMain.handle("quest-log:reorder-quests", (event, ids) => store.reorderQuests(ids));
 
-  ipcMain.handle("quest-log:list-side-quests", () => store.getSideQuests());
-  ipcMain.handle("quest-log:create-side-quest", (event, data) => store.createSideQuest(data));
-  ipcMain.handle("quest-log:update-side-quest", (event, id, data) => store.updateSideQuest(id, data));
-  ipcMain.handle("quest-log:delete-side-quest", (event, id) => store.deleteSideQuest(id));
-  ipcMain.handle("quest-log:reorder-side-quests", (event, ids) => store.reorderSideQuests(ids));
+  ipcMain.handle("quest-log:list-tasks", () => store.getTasks());
+  ipcMain.handle("quest-log:create-task", (event, data) => store.createTask(data));
+  ipcMain.handle("quest-log:update-task", (event, id, data) => store.updateTask(id, data));
+  ipcMain.handle("quest-log:delete-task", (event, id) => store.deleteTask(id));
+  ipcMain.handle("quest-log:reorder-tasks", (event, ids) => store.reorderTasks(ids));
 
   ipcMain.handle("motd:list", () => {
     const motdPath = path.join(__dirname, "assets", "motd.json");

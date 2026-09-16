@@ -1,6 +1,6 @@
 const TAB_KEY = "quest-log-tab";
 
-export const TABS = ["home", "quests", "sideQuests"];
+export const TABS = ["home", "quests", "tasks"];
 
 var tabsEl, onChange = null;
 var active = "home";

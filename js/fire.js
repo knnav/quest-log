@@ -9,7 +9,7 @@ export const DECAY_DAYS = 3;
 
 // A two-week build and "water the plants" should not be worth the same log.
 export const QUEST_WEIGHT = 3;
-export const SIDE_QUEST_WEIGHT = 1;
+export const TASK_WEIGHT = 1;
 
 // Fuel needed to reach stages 1..4. Stage 0 is embers, and is always reachable.
 export const STAGE_THRESHOLDS = [1, 3, 6, 10];
@@ -56,17 +56,17 @@ export function stageFor(fuel) {
 }
 
 // Collects the fields the fuel model needs from both item types, applying each
-// type's own done-status — quests ship, side quests are done.
-export function completionEntries(quests, sideQuests) {
+// type's own done-status — quests ship, tasks are done.
+export function completionEntries(quests, tasks) {
   var fromQuests = (quests || [])
     .filter(function (q) { return q.status === "shipped" && q.completedAt; })
     .map(function (q) { return { completedAt: q.completedAt, weight: QUEST_WEIGHT }; });
 
-  var fromSideQuests = (sideQuests || [])
+  var fromTasks = (tasks || [])
     .filter(function (s) { return s.status === "done" && s.completedAt; })
-    .map(function (s) { return { completedAt: s.completedAt, weight: SIDE_QUEST_WEIGHT }; });
+    .map(function (s) { return { completedAt: s.completedAt, weight: TASK_WEIGHT }; });
 
-  return fromQuests.concat(fromSideQuests);
+  return fromQuests.concat(fromTasks);
 }
 
 export function lastCompletedAt(entries) {

@@ -13,11 +13,11 @@ function tempStorePath() {
 // Bypasses the "welcome" tutorial seed for tests that care about a clean slate.
 function emptyStorePath() {
   const storePath = tempStorePath();
-  fs.writeFileSync(storePath, JSON.stringify({ quests: [], sideQuests: [] }));
+  fs.writeFileSync(storePath, JSON.stringify({ quests: [], tasks: [] }));
   return storePath;
 }
 
-test("seeds a welcome tutorial quest and an empty side-quest list on first read", () => {
+test("seeds a welcome tutorial quest and an empty task list on first read", () => {
   const store = createStore(tempStorePath());
 
   const quests = store.getQuests();
@@ -25,15 +25,15 @@ test("seeds a welcome tutorial quest and an empty side-quest list on first read"
   assert.equal(quests[0].id, "welcome");
   assert.equal(quests[0].status, "backlog");
 
-  assert.deepEqual(store.getSideQuests(), []);
+  assert.deepEqual(store.getTasks(), []);
 });
 
-test("backfills a missing sideQuests array for stores written before side quests existed", () => {
+test("backfills a missing tasks array for stores written before tasks existed", () => {
   const storePath = tempStorePath();
   fs.writeFileSync(storePath, JSON.stringify({ quests: [] }));
 
   const store = createStore(storePath);
-  assert.deepEqual(store.getSideQuests(), []);
+  assert.deepEqual(store.getTasks(), []);
 });
 
 test("createQuest assigns an id, defaults, and order 1 for the first quest", () => {
@@ -78,10 +78,10 @@ test("deleteQuest removes the quest", () => {
   assert.deepEqual(store.getQuests(), []);
 });
 
-test("createSideQuest assigns an id, defaults to backlog, and increments order", () => {
+test("createTask assigns an id, defaults to backlog, and increments order", () => {
   const store = createStore(emptyStorePath());
-  const first = store.createSideQuest({ title: "Water the plants", note: "The balcony one too" });
-  const second = store.createSideQuest({ title: "Reply to Tom" });
+  const first = store.createTask({ title: "Water the plants", note: "The balcony one too" });
+  const second = store.createTask({ title: "Reply to Tom" });
 
   assert.ok(first.id);
   assert.equal(first.title, "Water the plants");
@@ -91,43 +91,43 @@ test("createSideQuest assigns an id, defaults to backlog, and increments order",
   assert.equal(second.order, 2);
 });
 
-test("createSideQuest defaults note to an empty string when omitted", () => {
+test("createTask defaults note to an empty string when omitted", () => {
   const store = createStore(emptyStorePath());
-  const sideQuest = store.createSideQuest({ title: "Take out bins" });
+  const task = store.createTask({ title: "Take out bins" });
 
-  assert.equal(sideQuest.note, "");
+  assert.equal(task.note, "");
 });
 
-test("updateSideQuest merges fields without changing the id", () => {
+test("updateTask merges fields without changing the id", () => {
   const store = createStore(emptyStorePath());
-  const sideQuest = store.createSideQuest({ title: "Original" });
-  const updated = store.updateSideQuest(sideQuest.id, { title: "Updated", status: "done" });
+  const task = store.createTask({ title: "Original" });
+  const updated = store.updateTask(task.id, { title: "Updated", status: "done" });
 
-  assert.equal(updated.id, sideQuest.id);
+  assert.equal(updated.id, task.id);
   assert.equal(updated.title, "Updated");
   assert.equal(updated.status, "done");
 });
 
-test("updateSideQuest throws for an unknown id", () => {
+test("updateTask throws for an unknown id", () => {
   const store = createStore(emptyStorePath());
-  assert.throws(() => store.updateSideQuest("nope", {}), /Side quest not found/);
+  assert.throws(() => store.updateTask("nope", {}), /Task not found/);
 });
 
-test("deleteSideQuest removes the side quest", () => {
+test("deleteTask removes the task", () => {
   const store = createStore(emptyStorePath());
-  const sideQuest = store.createSideQuest({ title: "To delete" });
-  store.deleteSideQuest(sideQuest.id);
+  const task = store.createTask({ title: "To delete" });
+  store.deleteTask(task.id);
 
-  assert.deepEqual(store.getSideQuests(), []);
+  assert.deepEqual(store.getTasks(), []);
 });
 
-test("side quests persist across separate store instances", () => {
+test("tasks persist across separate store instances", () => {
   const storePath = emptyStorePath();
   const store = createStore(storePath);
-  store.createSideQuest({ title: "Survives a restart" });
+  store.createTask({ title: "Survives a restart" });
 
   const reopened = createStore(storePath);
-  assert.deepEqual(reopened.getSideQuests().map((s) => s.title), ["Survives a restart"]);
+  assert.deepEqual(reopened.getTasks().map((s) => s.title), ["Survives a restart"]);
 });
 
 test("reorderQuests renumbers order to match the given id sequence", () => {
@@ -167,16 +167,16 @@ test("reorderQuests ignores unknown ids", () => {
   assert.equal(store.getQuests()[0].order, 2);
 });
 
-test("reorderSideQuests renumbers order and persists", () => {
+test("reorderTasks renumbers order and persists", () => {
   const storePath = emptyStorePath();
   const store = createStore(storePath);
-  const a = store.createSideQuest({ title: "A" });
-  const b = store.createSideQuest({ title: "B" });
+  const a = store.createTask({ title: "A" });
+  const b = store.createTask({ title: "B" });
 
-  store.reorderSideQuests([b.id, a.id]);
+  store.reorderTasks([b.id, a.id]);
 
   const reopened = createStore(storePath);
-  const byId = Object.fromEntries(reopened.getSideQuests().map((s) => [s.id, s.order]));
+  const byId = Object.fromEntries(reopened.getTasks().map((s) => [s.id, s.order]));
   assert.equal(byId[b.id], 1);
   assert.equal(byId[a.id], 2);
 });
@@ -187,7 +187,7 @@ test("a leftover pinned array from an older version survives a write", () => {
   const storePath = tempStorePath();
   fs.writeFileSync(storePath, JSON.stringify({
     quests: [],
-    sideQuests: [],
+    tasks: [],
     pinned: [{ id: "gb-emulator", title: "GB Emulator", state: "in_progress", order: 1 }],
   }));
 
@@ -226,7 +226,7 @@ test("a quest shipped before completedAt existed is not backfilled", () => {
   const storePath = tempStorePath();
   fs.writeFileSync(storePath, JSON.stringify({
     quests: [{ id: "old", title: "Ancient", status: "shipped", order: 1 }],
-    sideQuests: [],
+    tasks: [],
   }));
 
   const store = createStore(storePath);
@@ -235,15 +235,15 @@ test("a quest shipped before completedAt existed is not backfilled", () => {
   assert.equal(edited.completedAt, null);
 });
 
-test("side quests stamp on done rather than shipped", () => {
+test("tasks stamp on done rather than shipped", () => {
   const store = createStore(emptyStorePath());
-  const sideQuest = store.createSideQuest({ title: "Water the plants" });
+  const task = store.createTask({ title: "Water the plants" });
 
-  assert.equal(store.updateSideQuest(sideQuest.id, { status: "shipped" }).completedAt, null,
-    "shipped is not a side quest's done state");
+  assert.equal(store.updateTask(task.id, { status: "shipped" }).completedAt, null,
+    "shipped is not a task's done state");
 
-  assert.ok(store.updateSideQuest(sideQuest.id, { status: "done" }).completedAt);
-  assert.equal(store.updateSideQuest(sideQuest.id, { status: "in_progress" }).completedAt, null);
+  assert.ok(store.updateTask(task.id, { status: "done" }).completedAt);
+  assert.equal(store.updateTask(task.id, { status: "in_progress" }).completedAt, null);
 });
 
 test("completedAt survives a round trip to disk", () => {

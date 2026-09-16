@@ -57,7 +57,7 @@ function matchesFilter(q) {
 export function getInProgressQuests() {
   return latestDocs
     .filter(function (q) { return q.status === "in_progress" && matchesFilter(q); })
-    .sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+    .sort(byOrder);
 }
 
 export function getAllQuests() {
@@ -140,29 +140,43 @@ function renderFilters() {
   });
 }
 
+function byOrder(a, b) {
+  return (a.order || 0) - (b.order || 0);
+}
+
+function tierSection(title, quests) {
+  return '<section class="tier">' +
+    '<div class="tier-head"><h2 class="tier-title">' + escapeHtml(title) + '</h2></div>' +
+    '<div class="grid">' + quests.map(cardHtml).join("") + '</div>' +
+    '</section>';
+}
+
 function renderBoard(quests) {
   if (!quests.length) {
     boardEl.innerHTML = '<div class="empty-state">Quest log is empty.</div>';
     return;
   }
 
-  // In-progress quests have their own block above the board. Excluding them
-  // here is the point: without it the same card renders twice on one screen.
-  var filtered = quests.filter(function (q) {
-    return q.status !== "in_progress" && matchesFilter(q);
-  });
+  var visible = quests.filter(matchesFilter);
 
+  // Each quest lands in exactly one of three places: the In Progress block
+  // above the board, a timebox section here, or the Hall of Fame. The board
+  // therefore shows the backlog only — anything else double-renders a card.
   var html = "";
   TIERS.forEach(function (tier) {
-    var inTier = filtered.filter(function (q) { return q.tier === tier.key; })
-      .sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+    var inTier = visible
+      .filter(function (q) { return q.status === "backlog" && q.tier === tier.key; })
+      .sort(byOrder);
     if (!inTier.length) return;
-    html +=
-      '<section class="tier">' +
-      '<div class="tier-head"><h2 class="tier-title">' + tier.title + '</h2></div>' +
-      '<div class="grid">' + inTier.map(cardHtml).join("") + '</div>' +
-      '</section>';
+    html += tierSection(tier.title, inTier);
   });
+
+  // Shipped quests get the same trophy case the tasks have. It was odd that
+  // watering the plants earned a monument and shipping a build didn't.
+  var shipped = visible
+    .filter(function (q) { return q.status === "shipped"; })
+    .sort(byOrder);
+  if (shipped.length) html += tierSection("Hall of Fame", shipped);
 
   if (!html) {
     html = activeFilter === "all"

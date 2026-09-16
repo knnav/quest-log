@@ -22,7 +22,7 @@ function memoryStorage() {
   };
 }
 
-function boot(quests, sideQuests) {
+function boot(quests, tasks) {
   const dom = new JSDOM(`<!doctype html><html><body>${INDEX_HTML}</body></html>`, {
     url: "http://localhost/",
   });
@@ -30,9 +30,9 @@ function boot(quests, sideQuests) {
   const win = dom.window;
   win.questLog = {
     listQuests: () => Promise.resolve(quests),
-    listSideQuests: () => Promise.resolve(sideQuests),
+    listTasks: () => Promise.resolve(tasks),
     updateQuest: () => Promise.resolve({}),
-    updateSideQuest: () => Promise.resolve({}),
+    updateTask: () => Promise.resolve({}),
   };
   win.motd = { list: () => Promise.resolve(["a line"]) };
   win.matchMedia = () => ({ matches: false, addEventListener() {} });
@@ -43,7 +43,7 @@ function boot(quests, sideQuests) {
 
   moduleCounter += 1;
   return import(`../js/app.js?instance=${moduleCounter}`).then(() => {
-    // Let the loadQuests/loadSideQuests promises settle.
+    // Let the loadQuests/loadTasks promises settle.
     return new Promise((resolve) => setTimeout(() => resolve(dom), 0));
   });
 }
@@ -65,22 +65,22 @@ test("the app boots on the home screen with both stat columns filled", async () 
 
   assert.equal(doc.getElementById("homeScreen").hidden, false);
   assert.equal(doc.getElementById("questsScreen").hidden, true);
-  assert.equal(doc.getElementById("sideQuestsScreen").hidden, true);
+  assert.equal(doc.getElementById("tasksScreen").hidden, true);
 
   assert.match(doc.getElementById("questStats").textContent, /Backlog1/);
   assert.match(doc.getElementById("questStats").textContent, /In progress1/);
   assert.match(doc.getElementById("questStats").textContent, /Shipped1/);
-  assert.match(doc.getElementById("sideQuestStats").textContent, /Done1/);
+  assert.match(doc.getElementById("taskStats").textContent, /Done1/);
 });
 
 test("the bonfire lights from recent completions and names its stage", async () => {
   const dom = await boot(QUESTS, SIDE_QUESTS);
   const doc = dom.window.document;
 
-  // A quest shipped 2h ago (3 × ~0.97) plus a side quest done yesterday
+  // A quest shipped 2h ago (3 × ~0.97) plus a task done yesterday
   // (1 × ~0.67) is ~3.6 fuel, which clears the stage-2 threshold of 3.
   const stage = Number(doc.getElementById("bonfire").getAttribute("data-stage"));
-  assert.equal(stage, 2, "a quest and a side quest inside the decay window");
+  assert.equal(stage, 2, "a quest and a task inside the decay window");
   assert.equal(doc.getElementById("bonfireStage").textContent, "Burning");
   assert.ok(doc.getElementById("bonfireNote").textContent.length > 0);
 });
@@ -117,6 +117,37 @@ test("an in-progress quest appears once, in its own block and not on the board",
   assert.deepEqual(boardTitles.sort(), ["Shipped one", "Waiting"]);
 });
 
+test("the board is split into timeboxes and a Hall of Fame", async () => {
+  const dom = await boot(QUESTS, SIDE_QUESTS);
+  const doc = dom.window.document;
+
+  // The only backlog quest here is the Fortnight one; the Weekend quests are
+  // in progress and shipped, so they live elsewhere.
+  const headings = Array.from(doc.querySelectorAll("#board .tier-title")).map((el) => el.textContent);
+  assert.deepEqual(headings, ["Fortnight", "Hall of Fame"],
+    "backlog quests sit under their timebox, shipped ones under the trophy case");
+
+  const sections = Array.from(doc.querySelectorAll("#board .tier"));
+  const inHall = sections[sections.length - 1];
+  assert.deepEqual(
+    Array.from(inHall.querySelectorAll(".card-title")).map((el) => el.textContent),
+    ["Shipped one"]
+  );
+});
+
+test("timebox headings drop the word Tier", async () => {
+  const quests = [
+    { id: "a", title: "A", hook: "h", tier: "weekend", tags: [], dod: "d", status: "backlog", order: 1 },
+    { id: "b", title: "B", hook: "h", tier: "medium", tags: [], dod: "d", status: "backlog", order: 2 },
+    { id: "c", title: "C", hook: "h", tier: "ongoing", tags: [], dod: "d", status: "backlog", order: 3 },
+  ];
+  const dom = await boot(quests, []);
+
+  const headings = Array.from(dom.window.document.querySelectorAll("#board .tier-title"))
+    .map((el) => el.textContent);
+  assert.deepEqual(headings, ["Weekend", "Fortnight", "Ongoing"]);
+});
+
 test("a tag filter covers the whole tab, In Progress block included", async () => {
   const quests = [
     { id: "q1", title: "Tagged doing", hook: "h", tier: "weekend", tags: ["elixir"], dod: "d", status: "in_progress", order: 1 },
@@ -150,25 +181,25 @@ test("the filter row sits above everything it filters", async () => {
   assert.ok(order.indexOf("board") > order.indexOf("questsInProgress"));
 });
 
-test("side quests split across their three sections", async () => {
+test("tasks split across their three sections", async () => {
   const dom = await boot(QUESTS, SIDE_QUESTS);
   const doc = dom.window.document;
 
-  assert.equal(doc.getElementById("progressSideQuests").hidden, true, "nothing in progress");
-  assert.equal(doc.getElementById("backlogSideQuests").hidden, false);
-  assert.equal(doc.getElementById("hallOfFame").hidden, false);
-  assert.equal(doc.getElementById("hallOfFameGrid").querySelector(".card-title").textContent, "Plants");
-  assert.equal(doc.getElementById("sideQuestsEmpty").hidden, true);
+  assert.equal(doc.getElementById("progressTasks").hidden, true, "nothing in progress");
+  assert.equal(doc.getElementById("backlogTasks").hidden, false);
+  assert.equal(doc.getElementById("tasksHallOfFame").hidden, false);
+  assert.equal(doc.getElementById("tasksHallOfFameGrid").querySelector(".card-title").textContent, "Plants");
+  assert.equal(doc.getElementById("tasksEmpty").hidden, true);
 });
 
-test("with no side quests at all, the tab shows one empty state", async () => {
+test("with no tasks at all, the tab shows one empty state", async () => {
   const dom = await boot(QUESTS, []);
   const doc = dom.window.document;
 
-  assert.equal(doc.getElementById("sideQuestsEmpty").hidden, false);
-  assert.equal(doc.getElementById("progressSideQuests").hidden, true);
-  assert.equal(doc.getElementById("backlogSideQuests").hidden, true);
-  assert.equal(doc.getElementById("hallOfFame").hidden, true);
+  assert.equal(doc.getElementById("tasksEmpty").hidden, false);
+  assert.equal(doc.getElementById("progressTasks").hidden, true);
+  assert.equal(doc.getElementById("backlogTasks").hidden, true);
+  assert.equal(doc.getElementById("tasksHallOfFame").hidden, true);
 });
 
 test("the create button follows the active tab", async () => {
@@ -176,13 +207,13 @@ test("the create button follows the active tab", async () => {
   const doc = dom.window.document;
 
   assert.equal(doc.getElementById("addQuestBtn").hidden, false, "home offers + Quest");
-  assert.equal(doc.getElementById("addSideQuestBtn").hidden, true);
+  assert.equal(doc.getElementById("addTaskBtn").hidden, true);
 
-  doc.querySelector('.tab[data-tab="sideQuests"]')
+  doc.querySelector('.tab[data-tab="tasks"]')
     .dispatchEvent(new dom.window.Event("click", { bubbles: true }));
 
   assert.equal(doc.getElementById("addQuestBtn").hidden, true);
-  assert.equal(doc.getElementById("addSideQuestBtn").hidden, false);
+  assert.equal(doc.getElementById("addTaskBtn").hidden, false);
 });
 
 test("Ctrl+N switches to the tab that will show the new item", async () => {
@@ -196,6 +227,6 @@ test("Ctrl+N switches to the tab that will show the new item", async () => {
   doc.getElementById("questCancelBtn").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
 
   doc.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "N", ctrlKey: true, shiftKey: true, bubbles: true }));
-  assert.equal(doc.getElementById("sideQuestsScreen").hidden, false);
-  assert.equal(doc.getElementById("sideQuestModalOverlay").hidden, false);
+  assert.equal(doc.getElementById("tasksScreen").hidden, false);
+  assert.equal(doc.getElementById("taskModalOverlay").hidden, false);
 });
