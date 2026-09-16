@@ -17,15 +17,23 @@ Everything lives in one JSON file on your machine. No account, no sync, no serve
 
 **Definition of Done on every card.** Every quest needs a DoD before it gets a first commit. That's the whole anti-scope-creep trick and it's non-negotiable — the form won't let you skip it.
 
-**Side quests, for the small stuff.** Not every task is a project. Side quests are the little day-to-day things — just a title and an optional note, no tier, no DoD, because "water the plants" doesn't need a Definition of Done. They cycle Backlog → In Progress → **Done**, and they get their own slots: in-progress ones sit at the top of the In Progress section, backlog ones sit above the board, and finished ones drop into the **Hall of Fame** at the bottom so you can see what you actually knocked out.
+**Side quests, for the small stuff.** Not every task is a project. Side quests are the little day-to-day things — just a title and an optional note, no tier, no DoD, because "water the plants" doesn't need a Definition of Done. They cycle Backlog → In Progress → **Done**, and they get their own tab, split into In Progress, Backlog, and the **Hall of Fame** for the ones you actually knocked out.
 
-**Status pills.** Click to cycle Backlog → In Progress → Shipped. Anything marked In Progress gets pulled up into its own section at the top so you can see what you're actually supposed to be doing right now.
+**Status pills.** Click to cycle Backlog → In Progress → Shipped. Anything marked In Progress gets pulled up into its own block at the top of the Quests tab — and drops out of its tier section below, so nothing is ever on screen twice.
 
-**Tag filters.** Tag quests however you like (`Elixir`, `Gaming`, `Cursed`) and filter the board down to one at a time.
+**Three tabs.** Home, Quests, Side Quests. The app remembers which one you were on.
 
-**Stats bar.** A running count of Backlog / In Progress / Shipped, mostly so the Shipped number can make you feel something.
+**The bonfire.** The home screen is a point of rest: counts for both kinds of work, how long it's been since you last finished something, the time, and a fire in the middle.
 
-**Full CRUD.** Add, edit, and delete quests and side quests straight from the UI. Delete asks first.
+The fire burns on what you've finished in the last three days. A shipped quest is worth three logs, a done side quest one, and each contribution fades as it ages — so the flame reads your recent past rather than your all-time total. It climbs through five stages, Embers to Roaring.
+
+Nothing resets at midnight and **the fire never goes out.** A quiet day dims it; a quiet fortnight takes it down to embers and leaves it there. You relight a bonfire, you don't fail it. Toggling a status pill back and forth won't farm it either — the completion stamp is cleared the moment a task leaves its done state, so the flame is a reading of where things actually stand.
+
+It's drawn in CSS — three logs, coals burning in the notch between them, and three flame layers on desynced cycles. It takes its colours from whichever theme you're on (the Matrix fire is green, the Game Boy fire is olive), it pauses when the window loses focus, and it holds still if you've asked your OS for reduced motion.
+
+**Tag filters.** Tag quests however you like (`Elixir`, `Gaming`, `Cursed`) and filter one at a time. The chips sit at the top of the Quests tab and filter everything in it, In Progress included.
+
+**Full CRUD.** Cards carry a title, tags and status pills — nothing else. Click one to open it: the hook, the Definition of Done, and the Edit and Delete buttons all live in there, so the destructive action isn't sitting on every row of the list. Delete asks first.
 
 **Dark and light themes.** There's a toggle in the header. It remembers your choice and otherwise follows whatever your OS is doing.
 
@@ -111,7 +119,7 @@ Back it up, edit it by hand, sync it with whatever you want — it's your file. 
 npm test
 ```
 
-Node's built-in test runner, no framework. Covers the storage layer (CRUD, ordering, atomic writes) and the renderer modules (card rendering, the edit/delete/status wiring, theme toggling) via jsdom.
+Node's built-in test runner, no framework. Covers the storage layer (CRUD, ordering, atomic writes, completion stamping), the bonfire's fuel maths as pure functions, and the renderer modules via jsdom — card rendering, the detail modal, delete and status wiring, tab switching and persistence, and theme toggling. `test/app.test.mjs` boots the real `index.html` through the real `app.js`, so a renamed element id fails there rather than in front of you.
 
 ---
 
@@ -127,7 +135,8 @@ index.html         Markup
 assets/css/        Styles
 assets/motd.json   Message-of-the-day pool
 fonts/             Self-hosted JetBrains Mono + Press Start 2P
-js/                Renderer modules (app, quests, sideQuests, detail, theme, titlebar, motd)
+js/                Renderer modules (app, tabs, home, fire, quests, sideQuests,
+                   detail, dragSort, theme, titlebar, motd)
 test/              Tests
 ```
 

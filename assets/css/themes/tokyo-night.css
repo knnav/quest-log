@@ -17,6 +17,14 @@
   --chip-bg-active: #7aa2f7;
   --chip-text-active: #1a1b26;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 20px rgba(122, 162, 247, 0.15);
+  --fire-core: #ffd9bd;
+  --fire-mid: #ff9e64;
+  --fire-outer: #7aa2f7;
+  --fire-glow: rgba(122, 162, 247, 0.45);
+  --fire-ember: #3d5a99;
+  --danger: #f7768e;
+  --danger-border: rgba(247, 118, 142, 0.42);
+  --danger-bg: rgba(247, 118, 142, 0.12);
 }
 
 .theme-swatch[data-swatch="tokyo-night"] { background: #7aa2f7; }

@@ -10,56 +10,109 @@
   </div>
 </div>
 
+<header class="chrome">
+  <nav class="tabs" id="tabs" role="tablist">
+    <button class="tab tab-home" data-tab="home" role="tab" aria-selected="true" title="Home">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 2.5c2.6 3.4 1 5.4.2 6.3-1 1.1-1.7 2-1.7 3.2a2.8 2.8 0 0 0 5.6 0c0-.7-.2-1.3-.5-1.9 2.2 1.4 3.4 3.5 3.4 6A7 7 0 0 1 5 16.1C5 11 9.6 9.4 12 2.5z"/>
+      </svg>
+      <span class="sr-only">Home</span>
+    </button>
+    <button class="tab" data-tab="quests" role="tab" aria-selected="false">Quests</button>
+    <button class="tab" data-tab="sideQuests" role="tab" aria-selected="false">Side Quests</button>
+  </nav>
+  <div class="chrome-actions">
+    <button class="btn primary" id="addQuestBtn" title="Create a quest (Ctrl+N)">+ Quest</button>
+    <button class="btn primary" id="addSideQuestBtn" title="Create a side quest (Ctrl+Shift+N)" hidden>+ Side</button>
+    <div class="theme-picker">
+      <button class="btn icon-only" id="themeMenuBtn" title="Theme" aria-haspopup="true" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18.4 2.6a2 2 0 0 1 2.8 2.8l-8 8-3.6.8.8-3.6 8-8z"/>
+          <path d="M6 14c-1.7 0-3 1.3-3 3 0 1.3-.5 2-1 2.5 1 .8 2.3 1.5 4 1.5 2.2 0 4-1.8 4-4 0-1.7-1.3-3-3-3z"/>
+        </svg>
+      </button>
+      <div class="theme-menu" id="themeMenu" hidden></div>
+    </div>
+  </div>
+</header>
+
 <main class="app-scroll">
 <div class="wrap">
-  <header class="top">
-    <p class="motd" id="motd"></p>
-    <div class="header-actions">
-      <button class="btn" id="addSideQuestBtn" title="Create a side quest (Ctrl+Shift+N)">+ Side Quest</button>
-      <button class="btn primary" id="addQuestBtn" title="Create a quest (Ctrl+N)">+ Quest</button>
-      <div class="theme-picker">
-        <button class="btn icon-only" id="themeMenuBtn" title="Theme" aria-haspopup="true" aria-expanded="false">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18.4 2.6a2 2 0 0 1 2.8 2.8l-8 8-3.6.8.8-3.6 8-8z"/>
-            <path d="M6 14c-1.7 0-3 1.3-3 3 0 1.3-.5 2-1 2.5 1 .8 2.3 1.5 4 1.5 2.2 0 4-1.8 4-4 0-1.7-1.3-3-3-3z"/>
-          </svg>
-        </button>
-        <div class="theme-menu" id="themeMenu" hidden></div>
+
+  <section class="screen home" id="homeScreen">
+    <div class="home-stats">
+      <div class="stat-col">
+        <h2 class="stat-col-title">Quests</h2>
+        <div id="questStats"></div>
+      </div>
+      <div class="stat-col">
+        <h2 class="stat-col-title">Side quests</h2>
+        <div id="sideQuestStats"></div>
       </div>
     </div>
-  </header>
 
-  <div class="stats-bar" id="stats"></div>
-
-  <section class="tier progress-tier">
-    <div class="tier-head"><h2 class="tier-title">IN PROGRESS</h2></div>
-
-    <div class="subsection" id="progressSideQuests" hidden>
-      <h3 class="subsection-title">Side quests</h3>
-      <div class="grid" id="progressSideQuestsGrid"></div>
+    <div class="hearth">
+      <!-- Painted back to front: halo, ash bed, the back log, two crossed logs,
+           the coals burning between them, then the flame from outer to hottest. -->
+      <div class="bonfire" id="bonfire" data-stage="0" aria-hidden="true">
+        <span class="fire-glow"></span>
+        <span class="fire-ash"></span>
+        <span class="fire-log log-back"></span>
+        <span class="fire-log log-l"></span>
+        <span class="fire-log log-r"></span>
+        <span class="fire-coals"></span>
+        <span class="fire-flame flame-a"></span>
+        <span class="fire-flame flame-b"></span>
+        <span class="fire-flame flame-c"></span>
+        <span class="fire-core"></span>
+      </div>
+      <p class="hearth-stage" id="bonfireStage">Embers</p>
+      <p class="hearth-note" id="bonfireNote"></p>
     </div>
 
-    <div class="grid" id="progressGrid"></div>
+    <div class="since">
+      <div class="since-value" id="sinceValue">—</div>
+      <div class="since-label" id="sinceLabel">nothing finished yet</div>
+      <div class="clock" id="clock">--:--</div>
+    </div>
+
+    <p class="motd" id="motd"></p>
   </section>
 
-  <div class="subsection" id="backlogSideQuests" hidden>
-    <h3 class="subsection-title">Side quests</h3>
-    <div class="grid" id="backlogSideQuestsGrid"></div>
-  </div>
+  <section class="screen" id="questsScreen" hidden>
+    <!-- Above everything it filters, rather than stranded mid-page looking
+         like it only applies to whichever block it happens to sit next to. -->
+    <div class="filters" id="filters"></div>
 
-  <div class="filters" id="filters"></div>
-  <div id="board">
-    <div class="loading">loading quest log…</div>
-  </div>
+    <section class="tier" id="questsInProgress" hidden>
+      <div class="tier-head"><h2 class="tier-title">In Progress</h2></div>
+      <div class="grid" id="progressGrid"></div>
+    </section>
 
-  <section class="tier" id="hallOfFame" hidden>
-    <div class="tier-head"><h2 class="tier-title">HALL OF FAME</h2></div>
-    <div class="grid" id="hallOfFameGrid"></div>
+    <div id="board">
+      <div class="loading">loading quest log…</div>
+    </div>
   </section>
 
-  <footer class="note">
-    Shamelessly vibe-coded by Kurt Norenbergs
-  </footer>
+  <section class="screen" id="sideQuestsScreen" hidden>
+    <section class="tier" id="progressSideQuests" hidden>
+      <div class="tier-head"><h2 class="tier-title">In Progress</h2></div>
+      <div class="grid" id="progressSideQuestsGrid"></div>
+    </section>
+
+    <section class="tier" id="backlogSideQuests" hidden>
+      <div class="tier-head"><h2 class="tier-title">Backlog</h2></div>
+      <div class="grid" id="backlogSideQuestsGrid"></div>
+    </section>
+
+    <section class="tier" id="hallOfFame" hidden>
+      <div class="tier-head"><h2 class="tier-title">Hall of Fame</h2></div>
+      <div class="grid" id="hallOfFameGrid"></div>
+    </section>
+
+    <div class="empty-state" id="sideQuestsEmpty" hidden>No side quests yet.</div>
+  </section>
+
 </div>
 </main>
 
@@ -69,7 +122,9 @@
     <div class="tags" id="detailTags" hidden></div>
     <p class="detail-text" id="detailText" hidden></p>
     <div class="detail-rows" id="detailRows"></div>
-    <div class="modal-actions">
+    <div class="modal-actions detail-actions">
+      <button type="button" class="btn danger" id="detailDeleteBtn">Delete</button>
+      <span class="modal-actions-gap"></span>
       <button type="button" class="btn" id="detailCloseBtn">Close</button>
       <button type="button" class="btn primary" id="detailEditBtn">Edit</button>
     </div>

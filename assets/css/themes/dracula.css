@@ -17,6 +17,14 @@
   --chip-bg-active: #bd93f9;
   --chip-text-active: #282a36;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 20px rgba(189, 147, 249, 0.15);
+  --fire-core: #fff6c9;
+  --fire-mid: #f1fa8c;
+  --fire-outer: #bd93f9;
+  --fire-glow: rgba(189, 147, 249, 0.50);
+  --fire-ember: #6d28d9;
+  --danger: #ff5555;
+  --danger-border: rgba(255, 85, 85, 0.42);
+  --danger-bg: rgba(255, 85, 85, 0.12);
 }
 
 .theme-swatch[data-swatch="dracula"] { background: #bd93f9; }

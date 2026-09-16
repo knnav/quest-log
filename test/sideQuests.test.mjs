@@ -89,31 +89,37 @@ test("bindSideQuestActions wires a status click to questLog.updateSideQuest", as
 
 test("bindSideQuestActions wires delete to confirm() + questLog.deleteSideQuest", async () => {
   const calls = [];
+  const sideQuest = { id: "s1", title: "T", note: "", status: "backlog", order: 1 };
   const questLogMock = {
     deleteSideQuest: (id) => { calls.push(id); return Promise.resolve(); },
-    listSideQuests: () => Promise.resolve([]),
+    listSideQuests: () => Promise.resolve([sideQuest]),
   };
 
   const dom = new JSDOM(FIXTURE_HTML, { url: "http://localhost/" });
   installGlobals(dom, questLogMock);
 
   const sideQuests = await freshSideQuestsModule();
+  initDetail();
   sideQuests.initSideQuests(() => {});
+  await sideQuests.loadSideQuests();
 
-  const grid = dom.window.document.getElementById("sideQuestGrid");
-  grid.innerHTML = sideQuests.sideQuestCardHtml({ id: "s1", title: "T", status: "backlog" });
+  const doc = dom.window.document;
+  const grid = doc.getElementById("sideQuestGrid");
+  grid.innerHTML = sideQuests.getSideQuestsByStatus("backlog").map(sideQuests.sideQuestCardHtml).join("");
   sideQuests.bindSideQuestActions(grid);
 
-  grid.querySelector(".side-quest-delete-btn").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  grid.querySelector(".side-quest-card").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  doc.getElementById("detailDeleteBtn").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
 
   assert.deepEqual(calls, ["s1"]);
 });
 
 test("bindSideQuestActions skips deleteSideQuest when confirm() is cancelled", async () => {
   const calls = [];
+  const sideQuest = { id: "s1", title: "T", note: "", status: "backlog", order: 1 };
   const questLogMock = {
     deleteSideQuest: (id) => { calls.push(id); return Promise.resolve(); },
-    listSideQuests: () => Promise.resolve([]),
+    listSideQuests: () => Promise.resolve([sideQuest]),
   };
 
   const dom = new JSDOM(FIXTURE_HTML, { url: "http://localhost/" });
@@ -121,13 +127,17 @@ test("bindSideQuestActions skips deleteSideQuest when confirm() is cancelled", a
   dom.window.confirm = () => false;
 
   const sideQuests = await freshSideQuestsModule();
+  initDetail();
   sideQuests.initSideQuests(() => {});
+  await sideQuests.loadSideQuests();
 
-  const grid = dom.window.document.getElementById("sideQuestGrid");
-  grid.innerHTML = sideQuests.sideQuestCardHtml({ id: "s1", title: "T", status: "backlog" });
+  const doc = dom.window.document;
+  const grid = doc.getElementById("sideQuestGrid");
+  grid.innerHTML = sideQuests.getSideQuestsByStatus("backlog").map(sideQuests.sideQuestCardHtml).join("");
   sideQuests.bindSideQuestActions(grid);
 
-  grid.querySelector(".side-quest-delete-btn").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  grid.querySelector(".side-quest-card").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  doc.getElementById("detailDeleteBtn").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
 
   assert.deepEqual(calls, []);
 });
@@ -223,7 +233,9 @@ test("the detail modal's Edit button prefills the form with the existing title a
   grid.innerHTML = sideQuests.getSideQuestsByStatus("backlog").map(sideQuests.sideQuestCardHtml).join("");
   sideQuests.bindSideQuestActions(grid);
 
-  assert.equal(grid.querySelector(".icon-btn:not(.danger)"), null, "no edit button on the card");
+  const buttons = Array.from(grid.querySelectorAll(".side-quest-card button"));
+  assert.ok(buttons.every((b) => b.classList.contains("status-btn")),
+    "the only buttons left on a card are its status pills");
 
   grid.querySelector(".side-quest-card").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
   doc.getElementById("detailEditBtn").dispatchEvent(new dom.window.Event("click", { bubbles: true }));

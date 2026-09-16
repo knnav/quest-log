@@ -6,6 +6,7 @@ export const DETAIL_MODAL_HTML = `
       <div class="tags" id="detailTags" hidden></div>
       <p class="detail-text" id="detailText" hidden></p>
       <div class="detail-rows" id="detailRows"></div>
+      <button type="button" id="detailDeleteBtn">Delete</button>
       <button type="button" id="detailCloseBtn">Close</button>
       <button type="button" id="detailEditBtn">Edit</button>
     </div>

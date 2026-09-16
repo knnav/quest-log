@@ -17,6 +17,14 @@
   --chip-bg-active: #22d3ee;
   --chip-text-active: #06121a;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 20px rgba(34, 211, 238, 0.15);
+  --fire-core: #ddfdff;
+  --fire-mid: #67e8f9;
+  --fire-outer: #22d3ee;
+  --fire-glow: rgba(34, 211, 238, 0.50);
+  --fire-ember: #0e7490;
+  --danger: #ff4d6d;
+  --danger-border: rgba(255, 77, 109, 0.42);
+  --danger-bg: rgba(255, 77, 109, 0.12);
 }
 
 .theme-swatch[data-swatch="cyber-terminal"] { background: #22d3ee; }

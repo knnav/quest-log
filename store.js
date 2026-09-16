@@ -22,6 +22,20 @@ function nextOrder(list) {
   return list.reduce((max, item) => Math.max(max, item.order || 0), 0) + 1;
 }
 
+// The bonfire burns on recently finished work, so completion is stamped here
+// rather than in the renderer: set on the way into the done state, cleared on
+// the way out. That makes completedAt a pure function of current status, so
+// re-clicking a status pill can't farm fuel.
+//
+// An item already sitting in the done state keeps whatever it had — including
+// nothing. Quests finished before this existed stay undated instead of being
+// backfilled to now and lighting a fire nobody earned.
+function completionStamp(before, after, doneStatus) {
+  if (after.status !== doneStatus) return null;
+  if (before && before.status === doneStatus) return before.completedAt || null;
+  return new Date().toISOString();
+}
+
 function applyOrder(list, orderedIds) {
   orderedIds.forEach((id, index) => {
     const item = list.find((entry) => entry.id === id);
@@ -71,6 +85,7 @@ function createStore(storePath) {
       tags: Array.isArray(data.tags) ? data.tags : [],
       dod: data.dod || "",
       status: data.status || "backlog",
+      completedAt: completionStamp(null, { status: data.status || "backlog" }, "shipped"),
       order: nextOrder(store.quests),
     };
     store.quests.push(quest);
@@ -82,9 +97,11 @@ function createStore(storePath) {
     const store = readStore();
     const idx = store.quests.findIndex((q) => q.id === id);
     if (idx === -1) throw new Error(`Quest not found: ${id}`);
-    store.quests[idx] = Object.assign({}, store.quests[idx], data, { id });
+    const merged = Object.assign({}, store.quests[idx], data, { id });
+    merged.completedAt = completionStamp(store.quests[idx], merged, "shipped");
+    store.quests[idx] = merged;
     writeStore(store);
-    return store.quests[idx];
+    return merged;
   }
 
   function deleteQuest(id) {
@@ -111,6 +128,7 @@ function createStore(storePath) {
       title: data.title || "",
       note: data.note || "",
       status: data.status || "backlog",
+      completedAt: completionStamp(null, { status: data.status || "backlog" }, "done"),
       order: nextOrder(store.sideQuests),
     };
     store.sideQuests.push(sideQuest);
@@ -122,9 +140,11 @@ function createStore(storePath) {
     const store = readStore();
     const idx = store.sideQuests.findIndex((s) => s.id === id);
     if (idx === -1) throw new Error(`Side quest not found: ${id}`);
-    store.sideQuests[idx] = Object.assign({}, store.sideQuests[idx], data, { id });
+    const merged = Object.assign({}, store.sideQuests[idx], data, { id });
+    merged.completedAt = completionStamp(store.sideQuests[idx], merged, "done");
+    store.sideQuests[idx] = merged;
     writeStore(store);
-    return store.sideQuests[idx];
+    return merged;
   }
 
   function deleteSideQuest(id) {

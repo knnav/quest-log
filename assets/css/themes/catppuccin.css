@@ -17,6 +17,14 @@
   --chip-bg-active: #89b4fa;
   --chip-text-active: #1e1e2e;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 20px rgba(137, 180, 250, 0.15);
+  --fire-core: #fdf0e0;
+  --fire-mid: #fab387;
+  --fire-outer: #eba0ac;
+  --fire-glow: rgba(250, 179, 135, 0.45);
+  --fire-ember: #8a4f3d;
+  --danger: #f38ba8;
+  --danger-border: rgba(243, 139, 168, 0.42);
+  --danger-bg: rgba(243, 139, 168, 0.12);
 }
 
 .theme-swatch[data-swatch="catppuccin"] { background: #89b4fa; }

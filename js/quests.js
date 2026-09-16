@@ -9,14 +9,13 @@ var latestDocs = [];
 var editingQuestId = null;
 var onChange = null;
 
-var boardEl, statsEl, filtersEl;
+var boardEl, filtersEl;
 var addQuestBtn, questModalOverlay, questForm, questModalTitle, questCancelBtn;
 
 export function initQuests(onQuestsChanged) {
   onChange = onQuestsChanged;
 
   boardEl = document.getElementById("board");
-  statsEl = document.getElementById("stats");
   filtersEl = document.getElementById("filters");
 
   addQuestBtn = document.getElementById("addQuestBtn");
@@ -49,10 +48,26 @@ export function refetchQuests() {
   return window.questLog.listQuests().then(ingest);
 }
 
+// The tag chips sit above the whole tab, so they filter the whole tab —
+// the In Progress block included, not just the board underneath it.
+function matchesFilter(q) {
+  return activeFilter === "all" || (q.tags || []).indexOf(activeFilter) !== -1;
+}
+
 export function getInProgressQuests() {
   return latestDocs
-    .filter(function (q) { return q.status === "in_progress"; })
+    .filter(function (q) { return q.status === "in_progress" && matchesFilter(q); })
     .sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+}
+
+export function getAllQuests() {
+  return latestDocs;
+}
+
+export function getStatusCounts() {
+  var counts = { backlog: 0, in_progress: 0, shipped: 0 };
+  latestDocs.forEach(function (q) { counts[q.status] = (counts[q.status] || 0) + 1; });
+  return counts;
 }
 
 export function cardHtml(q) {
@@ -69,9 +84,6 @@ export function cardHtml(q) {
     '<div class="card quest-card" data-id="' + q.id + '" data-drag-id="' + q.id + '">' +
     '<div class="card-head">' +
     '<h3 class="card-title">' + escapeHtml(q.title) + '</h3>' +
-    '<div class="card-actions">' +
-    '<button class="icon-btn danger quest-delete-btn" data-id="' + q.id + '">Delete</button>' +
-    '</div>' +
     '</div>' +
     '<div class="tags">' + tags + '</div>' +
     '<div class="status-row">' + statusBtns + '</div>' +
@@ -86,12 +98,6 @@ export function bindQuestActions(container) {
     });
   });
 
-  container.querySelectorAll(".quest-delete-btn").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      onDeleteQuest(btn.getAttribute("data-id"));
-    });
-  });
-
   bindCardDetail(container, ".quest-card", function (id) {
     var quest = latestDocs.filter(function (q) { return q.id === id; })[0];
     if (!quest) return null;
@@ -100,7 +106,8 @@ export function bindQuestActions(container) {
       tags: quest.tags || [],
       text: quest.hook,
       rows: [{ label: "Done when", value: quest.dod }],
-      onEdit: function () { openQuestModal(quest); }
+      onEdit: function () { openQuestModal(quest); },
+      onDelete: function () { return onDeleteQuest(quest.id); }
     };
   });
 }
@@ -110,17 +117,9 @@ function setStatus(id, status) {
 }
 
 function onDeleteQuest(id) {
-  if (!window.confirm("Delete this quest? This cannot be undone.")) return;
+  if (!window.confirm("Delete this quest? This cannot be undone.")) return false;
   window.questLog.deleteQuest(id).then(refetchQuests).catch(function () {});
-}
-
-function renderStats(quests) {
-  var counts = { backlog: 0, in_progress: 0, shipped: 0 };
-  quests.forEach(function (q) { counts[q.status] = (counts[q.status] || 0) + 1; });
-  statsEl.innerHTML =
-    '<div class="stat backlog"><div class="n">' + counts.backlog + '</div><div class="l">Backlog</div></div>' +
-    '<div class="stat progress"><div class="n">' + counts.in_progress + '</div><div class="l">In Progress</div></div>' +
-    '<div class="stat shipped"><div class="n">' + counts.shipped + '</div><div class="l">Shipped</div></div>';
+  return true;
 }
 
 function renderFilters() {
@@ -134,6 +133,8 @@ function renderFilters() {
       activeFilter = tag;
       renderFilters();
       renderBoard(latestDocs);
+      // Re-renders the In Progress block, which the filter now covers too.
+      if (onChange) onChange();
     });
     filtersEl.appendChild(btn);
   });
@@ -145,11 +146,11 @@ function renderBoard(quests) {
     return;
   }
 
-  renderStats(quests);
-
-  var filtered = activeFilter === "all"
-    ? quests
-    : quests.filter(function (q) { return (q.tags || []).indexOf(activeFilter) !== -1; });
+  // In-progress quests have their own block above the board. Excluding them
+  // here is the point: without it the same card renders twice on one screen.
+  var filtered = quests.filter(function (q) {
+    return q.status !== "in_progress" && matchesFilter(q);
+  });
 
   var html = "";
   TIERS.forEach(function (tier) {
@@ -163,7 +164,12 @@ function renderBoard(quests) {
       '</section>';
   });
 
-  boardEl.innerHTML = html || '<div class="empty-state">No quests match this filter.</div>';
+  if (!html) {
+    html = activeFilter === "all"
+      ? '<div class="empty-state">Everything you have is in progress. Nothing left on the board.</div>'
+      : '<div class="empty-state">No quests match this filter.</div>';
+  }
+  boardEl.innerHTML = html;
 
   bindQuestActions(boardEl);
 

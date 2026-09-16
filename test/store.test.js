@@ -198,6 +198,64 @@ test("a leftover pinned array from an older version survives a write", () => {
   assert.deepEqual(onDisk.pinned, [{ id: "gb-emulator", title: "GB Emulator", state: "in_progress", order: 1 }]);
 });
 
+test("completedAt is stamped when a quest ships and cleared when it un-ships", () => {
+  const store = createStore(emptyStorePath());
+  const quest = store.createQuest({ title: "Ship me" });
+  assert.equal(quest.completedAt, null, "a new backlog quest is undated");
+
+  const shipped = store.updateQuest(quest.id, { status: "shipped" });
+  assert.ok(shipped.completedAt, "shipping stamps a completion time");
+  assert.ok(!Number.isNaN(Date.parse(shipped.completedAt)), "and it parses as a date");
+
+  const backlogged = store.updateQuest(quest.id, { status: "backlog" });
+  assert.equal(backlogged.completedAt, null, "moving back out clears the stamp");
+});
+
+test("re-saving an already-shipped quest keeps its original completion time", () => {
+  const store = createStore(emptyStorePath());
+  const quest = store.createQuest({ title: "Ship me" });
+  const first = store.updateQuest(quest.id, { status: "shipped" }).completedAt;
+
+  const renamed = store.updateQuest(quest.id, { title: "Shipped it" });
+
+  assert.equal(renamed.completedAt, first, "an unrelated edit must not re-stamp");
+});
+
+// Otherwise every quest you ever shipped would light the bonfire at once.
+test("a quest shipped before completedAt existed is not backfilled", () => {
+  const storePath = tempStorePath();
+  fs.writeFileSync(storePath, JSON.stringify({
+    quests: [{ id: "old", title: "Ancient", status: "shipped", order: 1 }],
+    sideQuests: [],
+  }));
+
+  const store = createStore(storePath);
+  const edited = store.updateQuest("old", { title: "Ancient, renamed" });
+
+  assert.equal(edited.completedAt, null);
+});
+
+test("side quests stamp on done rather than shipped", () => {
+  const store = createStore(emptyStorePath());
+  const sideQuest = store.createSideQuest({ title: "Water the plants" });
+
+  assert.equal(store.updateSideQuest(sideQuest.id, { status: "shipped" }).completedAt, null,
+    "shipped is not a side quest's done state");
+
+  assert.ok(store.updateSideQuest(sideQuest.id, { status: "done" }).completedAt);
+  assert.equal(store.updateSideQuest(sideQuest.id, { status: "in_progress" }).completedAt, null);
+});
+
+test("completedAt survives a round trip to disk", () => {
+  const storePath = emptyStorePath();
+  const store = createStore(storePath);
+  const quest = store.createQuest({ title: "Ship me" });
+  const stamped = store.updateQuest(quest.id, { status: "shipped" }).completedAt;
+
+  const reopened = createStore(storePath);
+  assert.equal(reopened.getQuests().find((q) => q.id === quest.id).completedAt, stamped);
+});
+
 test("writes are atomic: no leftover .tmp file after a write", () => {
   const storePath = tempStorePath();
   const store = createStore(storePath);

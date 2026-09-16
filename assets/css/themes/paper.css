@@ -17,6 +17,14 @@
   --chip-bg-active: #9c5a2d;
   --chip-text-active: #fbf6ea;
   --shadow: 0 1px 2px rgba(59, 50, 40, 0.10), 0 6px 16px rgba(59, 50, 40, 0.08);
+  --fire-core: #f6c98a;
+  --fire-mid: #c8722f;
+  --fire-outer: #a33d1a;
+  --fire-glow: rgba(163, 61, 26, 0.28);
+  --fire-ember: #6b2d12;
+  --danger: #9c2b1f;
+  --danger-border: rgba(156, 43, 31, 0.42);
+  --danger-bg: rgba(156, 43, 31, 0.12);
 }
 
 .theme-swatch[data-swatch="paper"] { background: #9c5a2d; }

@@ -17,6 +17,14 @@
   --chip-bg-active: #fabd2f;
   --chip-text-active: #282828;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 20px rgba(250, 189, 47, 0.12);
+  --fire-core: #fff3c4;
+  --fire-mid: #fabd2f;
+  --fire-outer: #fe8019;
+  --fire-glow: rgba(254, 128, 25, 0.50);
+  --fire-ember: #af3a03;
+  --danger: #fb4934;
+  --danger-border: rgba(251, 73, 52, 0.42);
+  --danger-bg: rgba(251, 73, 52, 0.12);
 }
 
 .theme-swatch[data-swatch="gruvbox"] { background: #fabd2f; }

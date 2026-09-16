@@ -1,7 +1,8 @@
 import { escapeHtml } from "./utils.js";
 
-var overlay, titleEl, tagsEl, textEl, rowsEl, closeBtn, editBtn;
+var overlay, titleEl, tagsEl, textEl, rowsEl, closeBtn, editBtn, deleteBtn;
 var pendingEdit = null;
+var pendingDelete = null;
 
 export function initDetail() {
   overlay = document.getElementById("detailModalOverlay");
@@ -13,6 +14,7 @@ export function initDetail() {
   rowsEl = document.getElementById("detailRows");
   closeBtn = document.getElementById("detailCloseBtn");
   editBtn = document.getElementById("detailEditBtn");
+  deleteBtn = document.getElementById("detailDeleteBtn");
 
   closeBtn.addEventListener("click", closeDetail);
   overlay.addEventListener("click", function (e) {
@@ -25,16 +27,23 @@ export function initDetail() {
     if (edit) edit();
   });
 
+  // Delete confirms for itself, so the modal only closes if it actually went
+  // through — a cancelled delete leaves you where you were.
+  deleteBtn.addEventListener("click", function () {
+    if (pendingDelete && pendingDelete()) closeDetail();
+  });
+
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape" && !overlay.hidden) closeDetail();
   });
 }
 
-// detail: { title, tags, text, rows: [{ label, value }], onEdit }
+// detail: { title, tags, text, rows: [{ label, value }], onEdit, onDelete }
 export function showDetail(detail) {
   if (!overlay) return;
 
   pendingEdit = detail.onEdit || null;
+  pendingDelete = detail.onDelete || null;
 
   titleEl.textContent = detail.title || "";
 
@@ -59,6 +68,7 @@ export function showDetail(detail) {
   }
 
   editBtn.hidden = !pendingEdit;
+  deleteBtn.hidden = !pendingDelete;
   overlay.hidden = false;
 }
 
@@ -66,6 +76,7 @@ export function closeDetail() {
   if (!overlay) return;
   overlay.hidden = true;
   pendingEdit = null;
+  pendingDelete = null;
 }
 
 // Cards are clickable except on their own buttons, which have their own handlers.

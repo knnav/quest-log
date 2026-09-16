@@ -17,6 +17,14 @@
   --chip-bg-active: #ff8a4c;
   --chip-text-active: #150e0a;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 20px rgba(255, 138, 76, 0.15);
+  --fire-core: #ffe9c9;
+  --fire-mid: #ffab7a;
+  --fire-outer: #ff6b2c;
+  --fire-glow: rgba(255, 107, 44, 0.55);
+  --fire-ember: #a83a10;
+  --danger: #ff5c5c;
+  --danger-border: rgba(255, 92, 92, 0.42);
+  --danger-bg: rgba(255, 92, 92, 0.12);
 }
 
 .theme-swatch[data-swatch="sunset-cabinet"] { background: #ff8a4c; }

@@ -102,9 +102,10 @@ test("bindQuestActions wires a status button click to questLog.updateQuest", asy
 
 test("bindQuestActions wires delete to confirm() + questLog.deleteQuest", async () => {
   const calls = [];
+  const quest = { id: "q1", title: "T", hook: "H", tier: "weekend", tags: [], dod: "D", status: "backlog", order: 1 };
   const questLogMock = {
     deleteQuest: (id) => { calls.push(id); return Promise.resolve(); },
-    listQuests: () => Promise.resolve([]),
+    listQuests: () => Promise.resolve([quest]),
   };
 
   const dom = new JSDOM(FIXTURE_HTML, { url: "http://localhost/" });
@@ -113,23 +114,25 @@ test("bindQuestActions wires delete to confirm() + questLog.deleteQuest", async 
   dom.window.confirm = () => { confirmCalled = true; return true; };
 
   const quests = await freshQuestsModule();
+  initDetail();
   quests.initQuests(() => {});
+  await quests.loadQuests();
 
-  const boardEl = dom.window.document.getElementById("board");
-  boardEl.innerHTML = quests.cardHtml({ id: "q1", title: "T", hook: "H", dod: "D", status: "backlog" });
-  quests.bindQuestActions(boardEl);
-
-  boardEl.querySelector(".quest-delete-btn").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  const doc = dom.window.document;
+  doc.querySelector("#board .quest-card").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  doc.getElementById("detailDeleteBtn").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
 
   assert.ok(confirmCalled);
   assert.deepEqual(calls, ["q1"]);
+  assert.equal(doc.getElementById("detailModalOverlay").hidden, true, "a confirmed delete closes the modal");
 });
 
 test("bindQuestActions skips deleteQuest when confirm() is cancelled", async () => {
   const calls = [];
+  const quest = { id: "q1", title: "T", hook: "H", tier: "weekend", tags: [], dod: "D", status: "backlog", order: 1 };
   const questLogMock = {
     deleteQuest: (id) => { calls.push(id); return Promise.resolve(); },
-    listQuests: () => Promise.resolve([]),
+    listQuests: () => Promise.resolve([quest]),
   };
 
   const dom = new JSDOM(FIXTURE_HTML, { url: "http://localhost/" });
@@ -137,19 +140,20 @@ test("bindQuestActions skips deleteQuest when confirm() is cancelled", async () 
   dom.window.confirm = () => false;
 
   const quests = await freshQuestsModule();
+  initDetail();
   quests.initQuests(() => {});
+  await quests.loadQuests();
 
-  const boardEl = dom.window.document.getElementById("board");
-  boardEl.innerHTML = quests.cardHtml({ id: "q1", title: "T", hook: "H", dod: "D", status: "backlog" });
-  quests.bindQuestActions(boardEl);
-
-  boardEl.querySelector(".quest-delete-btn").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  const doc = dom.window.document;
+  doc.querySelector("#board .quest-card").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  doc.getElementById("detailDeleteBtn").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
 
   assert.deepEqual(calls, []);
+  assert.equal(doc.getElementById("detailModalOverlay").hidden, false, "a cancelled delete leaves you where you were");
 });
 
-test("cards carry no edit button — editing goes through the detail modal", async () => {
-  const quest = { id: "q1", title: "Existing Quest", hook: "h", tier: "weekend", tags: [], dod: "d", status: "backlog", order: 1 };
+test("cards carry no buttons at all — edit and delete live in the detail modal", async () => {
+  const quest = { id: "q1", title: "Existing Quest", hook: "h", tier: "weekend", tags: ["Tag1"], dod: "d", status: "backlog", order: 1 };
   const questLogMock = { listQuests: () => Promise.resolve([quest]) };
 
   const dom = new JSDOM(FIXTURE_HTML, { url: "http://localhost/" });
@@ -159,9 +163,15 @@ test("cards carry no edit button — editing goes through the detail modal", asy
   quests.initQuests(() => {});
   await quests.loadQuests();
 
-  const doc = dom.window.document;
-  assert.equal(doc.querySelector("#board .quest-card .icon-btn:not(.danger)"), null);
-  assert.ok(doc.querySelector("#board .quest-delete-btn"), "delete should stay on the card");
+  const card = dom.window.document.querySelector("#board .quest-card");
+  assert.ok(card, "expected a card to render");
+  assert.equal(card.querySelector(".card-actions"), null);
+
+  // Status pills are the only buttons a card should still carry.
+  const buttons = Array.from(card.querySelectorAll("button"));
+  assert.ok(buttons.length > 0);
+  assert.ok(buttons.every((b) => b.classList.contains("status-btn")),
+    "the only buttons left on a card are its status pills");
 });
 
 test("clicking a quest card opens the detail modal, and its Edit button opens the form", async () => {

@@ -119,38 +119,162 @@ body {
 .titlebar-btn:hover { background: var(--chip-bg); color: var(--text); }
 .titlebar-btn.close:hover { background: #e5484d; color: #ffffff; }
 
-.wrap { max-width: 1080px; margin: 0 auto; padding: 28px 20px 64px; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 20px 20px 56px; }
 
-header.top {
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---- chrome: tab bar + actions, pinned under the titlebar ---- */
+
+.chrome {
+  flex: none;
+  position: relative;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 12px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.tabs { display: flex; gap: 2px; min-width: 0; }
+
+.tab {
+  font-family: inherit;
+  font-size: 11.5px;
+  white-space: nowrap;
+  padding: 11px 12px 9px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+
+.tab:hover { color: var(--text); }
+
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.tab-home { display: flex; align-items: center; padding-inline: 10px; }
+.tab-home svg { display: block; }
+
+.chrome-actions { display: flex; align-items: center; gap: 6px; padding: 5px 0; }
+
+.chrome-actions .btn { font-size: 11px; padding: 7px 11px; }
+
+.screen { display: flex; flex-direction: column; }
+.screen[hidden] { display: none; }
+
+/* ---- home ---- */
+
+.home { gap: 30px; padding-top: 12px; }
+
+.home-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 20px;
+}
+
+.stat-col-title {
+  font-size: 12px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: var(--text);
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 12px;
+  line-height: 1.9;
+  color: var(--text-dim);
+}
+
+.stat-value {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+/* ---- the hearth ---- */
+
+.hearth {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding-bottom: 20px;
-  border-bottom: 2px solid var(--panel-border);
-  margin-bottom: 22px;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 0 4px;
+}
+
+.hearth-stage {
+  font-family: "Press Start 2P", monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--fire-outer);
+  margin: 10px 0 0;
+  text-align: center;
+}
+
+.hearth-note {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  margin: 0;
+  text-align: center;
+  max-width: 34ch;
+  line-height: 1.6;
+}
+
+/* ---- since / clock ---- */
+
+.since {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.since-value {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.since-label {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+
+.clock {
+  margin-top: 10px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
 }
 
 .motd {
   color: var(--text-dim);
-  font-size: 13px;
-  max-width: 62ch;
-  line-height: 1.6;
+  font-size: 12.5px;
+  max-width: 46ch;
+  line-height: 1.7;
   margin: 0 auto;
   text-align: center;
-}
-
-.active-repos {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 6px;
-}
-
-.header-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
+  font-style: italic;
 }
 
 .btn.icon-only {
@@ -243,41 +367,172 @@ header.top {
   box-shadow: 0 2px 16px var(--accent-glow), 0 0 0 3px var(--accent-glow);
 }
 
-.progress-tier .tier-title { color: var(--accent); }
+/* ---- bonfire ----------------------------------------------------------
+   A point of rest. Fuel comes from work finished in the last few days, so
+   the flame is a reading of the recent past, not a streak you can break.
+   Stage 0 keeps the coals alive: this thing dims, it never dies.
+   Every colour is a per-theme token, so the fire belongs to its palette. */
 
-.stats-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 18px;
+.bonfire {
+  position: relative;
+  width: 220px;
+  /* Tall enough for a roaring fire and no taller — the box has to fit stage 4,
+     so lower stages keep some headroom above the flame by design. */
+  height: 204px;
+  /* --base is the coal line: every flame's visible foot sits on it. */
+  --base: 32px;
+  --flame: 0px;
+  --flame-opacity: 0;
+  --glow: 88px;
+  --glow-opacity: 0.2;
 }
 
-.stat {
-  flex: 1 1 120px;
-  background: var(--panel);
-  border: 1px solid var(--panel-border);
-  border-radius: 8px;
-  padding: 10px 14px;
-  box-shadow: var(--shadow);
+.bonfire[data-stage="1"] { --flame: 46px; --flame-opacity: 0.84; --glow: 118px; --glow-opacity: 0.32; }
+.bonfire[data-stage="2"] { --flame: 64px; --flame-opacity: 0.9;  --glow: 150px; --glow-opacity: 0.44; }
+.bonfire[data-stage="3"] { --flame: 82px; --flame-opacity: 0.95; --glow: 182px; --glow-opacity: 0.56; }
+.bonfire[data-stage="4"] { --flame: 92px; --flame-opacity: 1;    --glow: 206px; --glow-opacity: 0.7; }
+
+.bonfire > span {
+  position: absolute;
+  left: 50%;
+  display: block;
 }
 
-.stat .n {
-  font-size: 22px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
+.fire-glow {
+  bottom: 18px;
+  width: var(--glow);
+  height: var(--glow);
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--fire-glow) 0%, transparent 70%);
+  opacity: var(--glow-opacity);
+  transition: width 0.9s ease, height 0.9s ease, opacity 0.9s ease;
+  animation: breathe 5.5s ease-in-out infinite;
 }
 
-.stat .l {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-dim);
-  margin-top: 2px;
+.fire-ash {
+  bottom: 12px;
+  width: 150px;
+  height: 22px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(ellipse, var(--panel-border) 0%, transparent 72%);
+  opacity: 0.85;
 }
 
-.stat.backlog .n { color: var(--status-backlog); }
-.stat.progress .n { color: var(--status-progress); }
-.stat.shipped .n { color: var(--status-shipped); }
+/* Three logs: one laid across the back, two crossed in front of it, with the
+   coals burning in the notch between them. Kept dark so they read as wood
+   against the light rather than glowing along with it. */
+.fire-log {
+  bottom: 20px;
+  width: 96px;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--fire-ember);
+  filter: brightness(0.55);
+}
+
+.log-back {
+  bottom: 30px;
+  width: 104px;
+  height: 11px;
+  transform: translateX(-50%) rotate(-3deg);
+  filter: brightness(0.38);
+}
+
+.log-l { transform: translateX(-52%) rotate(-21deg); }
+.log-r { transform: translateX(-48%) rotate(20deg); }
+
+.fire-coals {
+  bottom: 24px;
+  width: 58px;
+  height: 14px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: var(--fire-mid);
+  box-shadow: 0 0 18px 5px var(--fire-glow);
+  animation: ember-breathe 3.7s ease-in-out infinite;
+}
+
+/* A square teardrop (sharp corner top-left) rotated 45deg points straight up.
+   scaleY sits to the LEFT of rotate so it applies after it, in the parent's
+   space — stretching the flame vertically instead of skewing it into a
+   lozenge. Without that stretch all three layers read as concentric circles.
+   The 0.42 offset cancels the height the scale adds below the box. */
+.fire-flame {
+  bottom: calc(var(--base) + var(--w) * 0.42);
+  width: var(--w);
+  height: var(--w);
+  opacity: var(--flame-opacity);
+  border-radius: 0 50% 50% 50%;
+  transform: translateX(-50%) scaleY(1.3) rotate(45deg);
+  transition: width 0.9s ease, height 0.9s ease, opacity 0.9s ease, bottom 0.9s ease;
+}
+
+.flame-a {
+  --w: var(--flame);
+  background: var(--fire-outer);
+  filter: blur(5px);
+  animation: flicker 2.6s ease-in-out infinite;
+}
+
+.flame-b {
+  --w: calc(var(--flame) * 0.62);
+  background: var(--fire-mid);
+  filter: blur(3px);
+  animation: flicker 1.9s ease-in-out infinite reverse;
+}
+
+.flame-c {
+  --w: calc(var(--flame) * 0.32);
+  background: var(--fire-core);
+  filter: blur(1.5px);
+  animation: flicker 1.4s ease-in-out infinite;
+}
+
+.fire-core {
+  bottom: calc(var(--base) - 4px);
+  width: calc(var(--flame) * 0.62);
+  height: calc(var(--flame) * 0.26);
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: var(--fire-core);
+  opacity: calc(var(--flame-opacity) * 0.75);
+  filter: blur(6px);
+  transition: width 0.9s ease, height 0.9s ease, opacity 0.9s ease;
+}
+
+/* Low amplitude on purpose — a strobing fire is a photosensitivity problem,
+   and this window can sit open all day. Every keyframe repeats the base
+   transform, so scaleY has to stay in front of rotate here too. */
+@keyframes flicker {
+  0%, 100% { transform: translateX(-50%) scaleY(1.30) rotate(45deg) scale(1.00, 1); }
+  25%      { transform: translateX(-52%) scaleY(1.38) rotate(45deg) scale(0.94, 1); }
+  50%      { transform: translateX(-48%) scaleY(1.24) rotate(45deg) scale(1.05, 1); }
+  75%      { transform: translateX(-51%) scaleY(1.33) rotate(45deg) scale(0.97, 1); }
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: var(--glow-opacity); }
+  50%      { opacity: calc(var(--glow-opacity) * 0.72); }
+}
+
+/* The coals keep their own rhythm: they're what's left at stage 0, so they
+   must never fade with the halo or embers would read as an empty hearth. */
+@keyframes ember-breathe {
+  0%, 100% { opacity: 0.92; }
+  50%      { opacity: 0.66; }
+}
+
+/* An idle Electron window shouldn't animate a fire into someone's battery. */
+body.is-idle .bonfire *,
+body.is-idle .bonfire {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bonfire *, .bonfire { animation: none !important; transition: none !important; }
+}
 
 .filters {
   display: flex;
@@ -318,7 +573,8 @@ section.tier { margin-bottom: 34px; }
 
 .tier-title {
   font-family: "Press Start 2P", monospace;
-  font-size: 12px;
+  font-size: 11px;
+  line-height: 1.6;
   color: var(--text);
   margin: 0;
 }
@@ -327,16 +583,6 @@ section.tier { margin-bottom: 34px; }
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 14px;
-}
-
-.subsection { margin-bottom: 20px; }
-
-.subsection-title {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-dim);
-  margin: 0 0 8px;
 }
 
 .side-quest-card {
@@ -388,29 +634,6 @@ section.tier { margin-bottom: 34px; }
   margin: 0;
   line-height: 1.4;
 }
-
-.card-actions {
-  display: flex;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-.icon-btn {
-  font-family: inherit;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  padding: 3px 7px;
-  border-radius: 5px;
-  border: 1px solid var(--panel-border);
-  background: transparent;
-  color: var(--text-dim);
-  cursor: pointer;
-  transition: all 0.12s ease;
-}
-
-.icon-btn:hover { border-color: var(--accent); color: var(--accent); }
-.icon-btn.danger:hover { border-color: #b3432f; color: #b3432f; }
 
 .card-hook {
   font-size: 12.5px;
@@ -486,16 +709,6 @@ section.tier { margin-bottom: 34px; }
   color: var(--text-dim);
   font-size: 12.5px;
   padding: 30px 0;
-  text-align: center;
-}
-
-footer.note {
-  margin-top: 30px;
-  font-size: 11px;
-  color: var(--text-dim);
-  border-top: 1px solid var(--panel-border);
-  padding-top: 14px;
-  line-height: 1.6;
   text-align: center;
 }
 
@@ -586,6 +799,23 @@ footer.note {
   gap: 8px;
   margin-top: 18px;
 }
+
+/* Delete sits on the far left, a gap away from Edit, so the destructive
+   button is never the one next to the one you meant to press. */
+.modal-actions-gap { flex: 1; min-width: 20px; }
+
+.btn.danger {
+  color: var(--danger);
+  border-color: var(--danger-border);
+}
+
+.btn.danger:hover {
+  border-color: var(--danger);
+  background: var(--danger-bg);
+  box-shadow: none;
+}
+
+.btn.danger[hidden] { display: none; }
 
 @media (max-width: 480px) {
   .grid { grid-template-columns: 1fr; }

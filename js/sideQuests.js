@@ -45,6 +45,16 @@ export function refetchSideQuests() {
   return window.questLog.listSideQuests().then(ingest);
 }
 
+export function getAllSideQuests() {
+  return latestSideQuests;
+}
+
+export function getStatusCounts() {
+  var counts = { backlog: 0, in_progress: 0, done: 0 };
+  latestSideQuests.forEach(function (s) { counts[s.status] = (counts[s.status] || 0) + 1; });
+  return counts;
+}
+
 export function getSideQuestsByStatus(status) {
   return latestSideQuests
     .filter(function (s) { return s.status === status; })
@@ -61,9 +71,6 @@ export function sideQuestCardHtml(sideQuest) {
     '<div class="card side-quest-card" data-id="' + sideQuest.id + '" data-drag-id="' + sideQuest.id + '">' +
     '<div class="card-head">' +
     '<h3 class="card-title">' + escapeHtml(sideQuest.title) + '</h3>' +
-    '<div class="card-actions">' +
-    '<button class="icon-btn danger side-quest-delete-btn" data-id="' + sideQuest.id + '">Delete</button>' +
-    '</div>' +
     '</div>' +
     '<div class="status-row">' + statusBtns + '</div>' +
     '</div>'
@@ -77,19 +84,14 @@ export function bindSideQuestActions(container) {
     });
   });
 
-  container.querySelectorAll(".side-quest-delete-btn").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      onDeleteSideQuest(btn.getAttribute("data-id"));
-    });
-  });
-
   bindCardDetail(container, ".side-quest-card", function (id) {
     var sideQuest = latestSideQuests.filter(function (s) { return s.id === id; })[0];
     if (!sideQuest) return null;
     return {
       title: sideQuest.title,
       text: sideQuest.note,
-      onEdit: function () { openSideQuestModal(sideQuest); }
+      onEdit: function () { openSideQuestModal(sideQuest); },
+      onDelete: function () { return onDeleteSideQuest(sideQuest.id); }
     };
   });
 }
@@ -99,8 +101,9 @@ function setSideQuestStatus(id, status) {
 }
 
 function onDeleteSideQuest(id) {
-  if (!window.confirm("Delete this side quest? This cannot be undone.")) return;
+  if (!window.confirm("Delete this side quest? This cannot be undone.")) return false;
   window.questLog.deleteSideQuest(id).then(refetchSideQuests).catch(function () {});
+  return true;
 }
 
 function ingest(sideQuests) {

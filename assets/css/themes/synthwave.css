@@ -17,6 +17,14 @@
   --chip-bg-active: #ff7edb;
   --chip-text-active: #241b2f;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 20px rgba(255, 126, 219, 0.20);
+  --fire-core: #fff0fb;
+  --fire-mid: #ffa8e8;
+  --fire-outer: #ff7edb;
+  --fire-glow: rgba(255, 126, 219, 0.55);
+  --fire-ember: #a52d86;
+  --danger: #fe4450;
+  --danger-border: rgba(254, 68, 80, 0.42);
+  --danger-bg: rgba(254, 68, 80, 0.12);
 }
 
 .theme-swatch[data-swatch="synthwave"] { background: #ff7edb; }
