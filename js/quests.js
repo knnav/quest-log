@@ -75,7 +75,7 @@ export function cardHtml(q) {
     '</div>' +
     '<p class="card-hook">' + escapeHtml(q.hook) + '</p>' +
     '<div class="tags">' + tags + '</div>' +
-    '<div class="dod"><b>Definition of done</b>' + escapeHtml(q.dod) + '</div>' +
+    '<div class="dod"><b>Done when</b>' + escapeHtml(q.dod) + '</div>' +
     '<div class="status-row">' + statusBtns + '</div>' +
     '</div>'
   );
@@ -157,7 +157,6 @@ function renderBoard(quests) {
     html +=
       '<section class="tier">' +
       '<div class="tier-head"><h2 class="tier-title">' + tier.title + '</h2></div>' +
-      '<p class="tier-desc">' + tier.desc + '</p>' +
       '<div class="grid">' + inTier.map(cardHtml).join("") + '</div>' +
       '</section>';
   });

@@ -15,8 +15,8 @@
   <header class="top">
     <p class="motd" id="motd"></p>
     <div class="header-actions">
-      <button class="btn" id="addSideQuestBtn" title="Create a side quest (Ctrl+Shift+N)">+ Create Side Quest</button>
-      <button class="btn primary" id="addQuestBtn" title="Create a quest (Ctrl+N)">+ Create Quest</button>
+      <button class="btn" id="addSideQuestBtn" title="Create a side quest (Ctrl+Shift+N)">+ Side Quest</button>
+      <button class="btn primary" id="addQuestBtn" title="Create a quest (Ctrl+N)">+ Quest</button>
       <div class="theme-picker">
         <button class="btn icon-only" id="themeMenuBtn" title="Theme" aria-haspopup="true" aria-expanded="false">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -33,7 +33,6 @@
 
   <section class="tier progress-tier">
     <div class="tier-head"><h2 class="tier-title">IN PROGRESS</h2></div>
-    <p class="tier-desc">What's actually moving right now — pinned repos, plus anything active on the backlog.</p>
 
     <div class="subsection" id="progressSideQuests" hidden>
       <h3 class="subsection-title">Side quests</h3>
@@ -55,7 +54,6 @@
 
   <section class="tier" id="hallOfFame" hidden>
     <div class="tier-head"><h2 class="tier-title">HALL OF FAME</h2></div>
-    <p class="tier-desc">Side quests you actually finished.</p>
     <div class="grid" id="hallOfFameGrid"></div>
   </section>
 
@@ -90,7 +88,7 @@
         <input id="questTags">
       </div>
       <div class="field">
-        <label for="questDod">Definition of done</label>
+        <label for="questDod">Done when</label>
         <textarea id="questDod" required></textarea>
       </div>
       <div class="modal-actions">

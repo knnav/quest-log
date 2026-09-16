@@ -323,7 +323,7 @@ section.tier { margin-bottom: 34px; }
   display: flex;
   align-items: baseline;
   gap: 10px;
-  margin-bottom: 4px;
+  margin-bottom: 14px;
 }
 
 .tier-title {
@@ -331,12 +331,6 @@ section.tier { margin-bottom: 34px; }
   font-size: 12px;
   color: var(--text);
   margin: 0;
-}
-
-.tier-desc {
-  font-size: 12px;
-  color: var(--text-dim);
-  margin: 0 0 14px;
 }
 
 .grid {
