@@ -2,6 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
 import { cardHtml } from "../js/quests.js";
+import { initDetail } from "../js/detail.js";
+import { DETAIL_MODAL_HTML, rowTexts } from "./detailFixture.mjs";
 
 test("cardHtml escapes text, renders tags, and marks the active status button", () => {
   const html = cardHtml({
@@ -24,6 +26,14 @@ test("cardHtml escapes text, renders tags, and marks the active status button", 
 test("cardHtml renders no tags when the quest has none", () => {
   const html = cardHtml({ id: "q2", title: "T", hook: "H", dod: "D", status: "backlog" });
   assert.ok(html.includes('<div class="tags"></div>'));
+});
+
+test("cardHtml keeps hook and definition of done off the card", () => {
+  const html = cardHtml({ id: "q3", title: "T", hook: "the hook", dod: "the dod", status: "backlog" });
+  assert.ok(!html.includes("the hook"));
+  assert.ok(!html.includes("the dod"));
+  assert.ok(!html.includes("card-hook"));
+  assert.ok(!html.includes('class="dod"'));
 });
 
 const FIXTURE_HTML = `<!doctype html><html><body>
@@ -49,6 +59,7 @@ const FIXTURE_HTML = `<!doctype html><html><body>
       </form>
     </div>
   </div>
+  ${DETAIL_MODAL_HTML}
 </body></html>`;
 
 let moduleCounter = 0;
@@ -137,11 +148,8 @@ test("bindQuestActions skips deleteQuest when confirm() is cancelled", async () 
   assert.deepEqual(calls, []);
 });
 
-test("loadQuests renders fetched quests and edit click prefills the modal", async () => {
-  const quest = {
-    id: "q1", title: "Existing Quest", hook: "hook text", tier: "weekend",
-    tags: ["Tag1"], dod: "dod text", status: "backlog", order: 1,
-  };
+test("cards carry no edit button — editing goes through the detail modal", async () => {
+  const quest = { id: "q1", title: "Existing Quest", hook: "h", tier: "weekend", tags: [], dod: "d", status: "backlog", order: 1 };
   const questLogMock = { listQuests: () => Promise.resolve([quest]) };
 
   const dom = new JSDOM(FIXTURE_HTML, { url: "http://localhost/" });
@@ -152,15 +160,64 @@ test("loadQuests renders fetched quests and edit click prefills the modal", asyn
   await quests.loadQuests();
 
   const doc = dom.window.document;
-  const editBtn = doc.querySelector(".quest-edit-btn");
-  assert.ok(editBtn, "expected an edit button to be rendered");
+  assert.equal(doc.querySelector("#board .quest-card .icon-btn:not(.danger)"), null);
+  assert.ok(doc.querySelector("#board .quest-delete-btn"), "delete should stay on the card");
+});
 
-  editBtn.dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+test("clicking a quest card opens the detail modal, and its Edit button opens the form", async () => {
+  const quest = {
+    id: "q1", title: "Existing Quest", hook: "hook text", tier: "weekend",
+    tags: ["Tag1"], dod: "dod text", status: "backlog", order: 1,
+  };
+  const questLogMock = { listQuests: () => Promise.resolve([quest]) };
 
+  const dom = new JSDOM(FIXTURE_HTML, { url: "http://localhost/" });
+  installGlobals(dom, questLogMock);
+
+  const quests = await freshQuestsModule();
+  initDetail();
+  quests.initQuests(() => {});
+  await quests.loadQuests();
+
+  const doc = dom.window.document;
+  doc.querySelector(".quest-card").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+
+  assert.equal(doc.getElementById("detailModalOverlay").hidden, false);
+  assert.equal(doc.getElementById("detailTitle").textContent, "Existing Quest");
+  assert.equal(doc.getElementById("detailText").textContent, "hook text");
+  assert.deepEqual(rowTexts(doc), ["Done whendod text"]);
+  assert.equal(doc.getElementById("detailTags").textContent, "Tag1");
+
+  doc.getElementById("detailEditBtn").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+
+  assert.equal(doc.getElementById("detailModalOverlay").hidden, true);
   assert.equal(doc.getElementById("questModalOverlay").hidden, false);
   assert.equal(doc.getElementById("questModalTitle").textContent, "Edit Quest");
   assert.equal(doc.getElementById("questTitle").value, "Existing Quest");
   assert.equal(doc.getElementById("questTags").value, "Tag1");
+});
+
+test("clicking a button on a quest card does not open the detail modal", async () => {
+  const questLogMock = {
+    listQuests: () => Promise.resolve([]),
+    updateQuest: () => Promise.resolve({}),
+  };
+
+  const dom = new JSDOM(FIXTURE_HTML, { url: "http://localhost/" });
+  installGlobals(dom, questLogMock);
+
+  const quests = await freshQuestsModule();
+  initDetail();
+  quests.initQuests(() => {});
+
+  const boardEl = dom.window.document.getElementById("board");
+  boardEl.innerHTML = quests.cardHtml({ id: "q1", title: "T", hook: "H", dod: "D", status: "backlog" });
+  quests.bindQuestActions(boardEl);
+
+  boardEl.querySelector('.status-btn[data-status="shipped"]')
+    .dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+
+  assert.equal(dom.window.document.getElementById("detailModalOverlay").hidden, true);
 });
 
 test("openCreateQuest opens the modal in create mode", async () => {

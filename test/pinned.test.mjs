@@ -2,18 +2,15 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
 import { pinnedCardHtml } from "../js/pinned.js";
+import { initDetail } from "../js/detail.js";
+import { DETAIL_MODAL_HTML, rowTexts } from "./detailFixture.mjs";
 
-test("pinnedCardHtml renders status/next/todo rows only when present", () => {
-  const withAll = pinnedCardHtml({ id: "p1", title: "Repo", status: "S", next: "N", todo: "T", state: "shipped" });
-  assert.ok(withAll.includes("<b>Status</b>S"));
-  assert.ok(withAll.includes("<b>Next</b>N"));
-  assert.ok(withAll.includes("<b>To-do</b>T"));
-  assert.match(withAll, /class="status-btn pinned-status-btn on shipped"/);
-
-  const minimal = pinnedCardHtml({ id: "p2", title: "Repo2" });
-  assert.ok(!minimal.includes("<b>Status</b>"));
-  assert.ok(!minimal.includes("<b>Next</b>"));
-  assert.ok(!minimal.includes("<b>To-do</b>"));
+test("pinnedCardHtml keeps status/next/todo off the card", () => {
+  const html = pinnedCardHtml({ id: "p1", title: "Repo", status: "S", next: "N", todo: "T", state: "shipped" });
+  assert.ok(!html.includes("<b>Status</b>"));
+  assert.ok(!html.includes("<b>Next</b>"));
+  assert.ok(!html.includes("<b>To-do</b>"));
+  assert.match(html, /class="status-btn pinned-status-btn on shipped"/);
 });
 
 test("pinnedCardHtml escapes the title and defaults state to in_progress", () => {
@@ -35,6 +32,7 @@ const FIXTURE_HTML = `<!doctype html><html><body>
       </form>
     </div>
   </div>
+  ${DETAIL_MODAL_HTML}
 </body></html>`;
 
 let moduleCounter = 0;
@@ -73,7 +71,7 @@ test("bindPinnedActions wires a status click to questLog.updatePinned", async ()
   assert.deepEqual(calls, [["gb-emulator", { state: "shipped" }]]);
 });
 
-test("loadPinned renders fetched repos and edit click prefills the modal", async () => {
+test("loadPinned reports the fetched repos and renders cards without an edit button", async () => {
   const repo = {
     id: "gb-emulator", title: "GB Emulator", status: "active",
     next: "polish", todo: "fix bug", state: "in_progress", order: 1,
@@ -93,15 +91,63 @@ test("loadPinned renders fetched repos and edit click prefills the modal", async
 
   const grid = dom.window.document.getElementById("progressGrid");
   grid.innerHTML = pinned.getPinnedList().map(pinned.pinnedCardHtml).join("");
-  pinned.bindPinnedActions(grid);
 
-  grid.querySelector(".pinned-edit-btn").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  assert.equal(grid.querySelector(".icon-btn"), null);
+});
+
+test("clicking a pinned card shows status/next/todo in the detail modal", async () => {
+  const repo = {
+    id: "gb-emulator", title: "GB Emulator", status: "active",
+    next: "polish", todo: "fix bug", state: "in_progress", order: 1,
+  };
+  const questLogMock = { listPinned: () => Promise.resolve([repo]) };
+
+  const dom = new JSDOM(FIXTURE_HTML, { url: "http://localhost/" });
+  installGlobals(dom, questLogMock);
+
+  const pinned = await freshPinnedModule();
+  initDetail();
+  pinned.initPinned(() => {});
+  await pinned.loadPinned();
 
   const doc = dom.window.document;
+  const grid = doc.getElementById("progressGrid");
+  grid.innerHTML = pinned.getPinnedList().map(pinned.pinnedCardHtml).join("");
+  pinned.bindPinnedActions(grid);
+
+  grid.querySelector(".pinned-card").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+
+  assert.equal(doc.getElementById("detailModalOverlay").hidden, false);
+  assert.equal(doc.getElementById("detailTitle").textContent, "GB Emulator");
+  assert.deepEqual(rowTexts(doc), ["Statusactive", "Nextpolish", "To-dofix bug"]);
+
+  doc.getElementById("detailEditBtn").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+
+  assert.equal(doc.getElementById("detailModalOverlay").hidden, true);
   assert.equal(doc.getElementById("pinnedModalOverlay").hidden, false);
   assert.equal(doc.getElementById("pinnedStatus").value, "active");
-  assert.equal(doc.getElementById("pinnedNext").value, "polish");
-  assert.equal(doc.getElementById("pinnedTodo").value, "fix bug");
+});
+
+test("a pinned card with only some fields set shows just those rows", async () => {
+  const repo = { id: "gb-emulator", title: "GB Emulator", next: "polish", state: "in_progress", order: 1 };
+  const questLogMock = { listPinned: () => Promise.resolve([repo]) };
+
+  const dom = new JSDOM(FIXTURE_HTML, { url: "http://localhost/" });
+  installGlobals(dom, questLogMock);
+
+  const pinned = await freshPinnedModule();
+  initDetail();
+  pinned.initPinned(() => {});
+  await pinned.loadPinned();
+
+  const doc = dom.window.document;
+  const grid = doc.getElementById("progressGrid");
+  grid.innerHTML = pinned.getPinnedList().map(pinned.pinnedCardHtml).join("");
+  pinned.bindPinnedActions(grid);
+
+  grid.querySelector(".pinned-card").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+
+  assert.deepEqual(rowTexts(doc), ["Nextpolish"]);
 });
 
 test("submitting the pinned form calls questLog.updatePinned with the edited fields", async () => {
@@ -116,6 +162,7 @@ test("submitting the pinned form calls questLog.updatePinned with the edited fie
   installGlobals(dom, questLogMock);
 
   const pinned = await freshPinnedModule();
+  initDetail();
   pinned.initPinned(() => {});
   await pinned.loadPinned();
 
@@ -124,7 +171,8 @@ test("submitting the pinned form calls questLog.updatePinned with the edited fie
   pinned.bindPinnedActions(grid);
 
   const doc = dom.window.document;
-  grid.querySelector(".pinned-edit-btn").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  grid.querySelector(".pinned-card").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  doc.getElementById("detailEditBtn").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
 
   doc.getElementById("pinnedStatus").value = "new status";
   doc.getElementById("pinnedNext").value = "new next";

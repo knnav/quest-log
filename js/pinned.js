@@ -1,5 +1,6 @@
 import { STATUSES, STATUS_LABEL } from "./constants.js";
 import { escapeHtml } from "./utils.js";
+import { bindCardDetail } from "./detail.js";
 
 var latestPinned = [];
 var editingPinnedId = null;
@@ -38,11 +39,6 @@ export function getPinnedList() {
 }
 
 export function pinnedCardHtml(repo) {
-  var rows = "";
-  if (repo.status) rows += '<div class="dod"><b>Status</b>' + escapeHtml(repo.status) + '</div>';
-  if (repo.next) rows += '<div class="dod"><b>Next</b>' + escapeHtml(repo.next) + '</div>';
-  if (repo.todo) rows += '<div class="dod"><b>To-do</b>' + escapeHtml(repo.todo) + '</div>';
-
   var state = repo.state || "in_progress";
   var statusBtns = STATUSES.map(function (s) {
     return '<button class="status-btn pinned-status-btn ' + (state === s ? "on " + s : "") + '" data-id="' + repo.id +
@@ -50,15 +46,11 @@ export function pinnedCardHtml(repo) {
   }).join("");
 
   return (
-    '<div class="card pinned-card">' +
+    '<div class="card pinned-card" data-id="' + repo.id + '">' +
     '<div class="card-head">' +
     '<h3 class="card-title">' + escapeHtml(repo.title) + '</h3>' +
-    '<div class="card-actions">' +
-    '<button class="icon-btn pinned-edit-btn" data-id="' + repo.id + '">Edit</button>' +
-    '</div>' +
     '</div>' +
     '<div class="tags"><span class="tag pinned-tag">Pinned repo</span></div>' +
-    rows +
     '<div class="status-row">' + statusBtns + '</div>' +
     '</div>'
   );
@@ -71,12 +63,19 @@ export function bindPinnedActions(container) {
     });
   });
 
-  container.querySelectorAll(".pinned-edit-btn").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var id = btn.getAttribute("data-id");
-      var repo = latestPinned.filter(function (p) { return p.id === id; })[0];
-      if (repo) openPinnedModal(repo);
-    });
+  bindCardDetail(container, ".pinned-card", function (id) {
+    var repo = latestPinned.filter(function (p) { return p.id === id; })[0];
+    if (!repo) return null;
+    return {
+      title: repo.title,
+      tags: ["Pinned repo"],
+      rows: [
+        { label: "Status", value: repo.status },
+        { label: "Next", value: repo.next },
+        { label: "To-do", value: repo.todo }
+      ],
+      onEdit: function () { openPinnedModal(repo); }
+    };
   });
 }
 

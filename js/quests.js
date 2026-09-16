@@ -1,6 +1,7 @@
 import { TIERS, STATUSES, STATUS_LABEL } from "./constants.js";
 import { escapeHtml } from "./utils.js";
 import { enableDragSort } from "./dragSort.js";
+import { bindCardDetail } from "./detail.js";
 
 var allTags = [];
 var activeFilter = "all";
@@ -65,17 +66,14 @@ export function cardHtml(q) {
   }).join("");
 
   return (
-    '<div class="card" data-drag-id="' + q.id + '">' +
+    '<div class="card quest-card" data-id="' + q.id + '" data-drag-id="' + q.id + '">' +
     '<div class="card-head">' +
     '<h3 class="card-title">' + escapeHtml(q.title) + '</h3>' +
     '<div class="card-actions">' +
-    '<button class="icon-btn quest-edit-btn" data-id="' + q.id + '">Edit</button>' +
     '<button class="icon-btn danger quest-delete-btn" data-id="' + q.id + '">Delete</button>' +
     '</div>' +
     '</div>' +
-    '<p class="card-hook">' + escapeHtml(q.hook) + '</p>' +
     '<div class="tags">' + tags + '</div>' +
-    '<div class="dod"><b>Done when</b>' + escapeHtml(q.dod) + '</div>' +
     '<div class="status-row">' + statusBtns + '</div>' +
     '</div>'
   );
@@ -88,18 +86,22 @@ export function bindQuestActions(container) {
     });
   });
 
-  container.querySelectorAll(".quest-edit-btn").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var id = btn.getAttribute("data-id");
-      var quest = latestDocs.filter(function (q) { return q.id === id; })[0];
-      if (quest) openQuestModal(quest);
-    });
-  });
-
   container.querySelectorAll(".quest-delete-btn").forEach(function (btn) {
     btn.addEventListener("click", function () {
       onDeleteQuest(btn.getAttribute("data-id"));
     });
+  });
+
+  bindCardDetail(container, ".quest-card", function (id) {
+    var quest = latestDocs.filter(function (q) { return q.id === id; })[0];
+    if (!quest) return null;
+    return {
+      title: quest.title,
+      tags: quest.tags || [],
+      text: quest.hook,
+      rows: [{ label: "Done when", value: quest.dod }],
+      onEdit: function () { openQuestModal(quest); }
+    };
   });
 }
 

@@ -2,6 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
 import { sideQuestCardHtml } from "../js/sideQuests.js";
+import { initDetail } from "../js/detail.js";
+import { DETAIL_MODAL_HTML } from "./detailFixture.mjs";
 
 test("sideQuestCardHtml escapes text and marks the active status button", () => {
   const html = sideQuestCardHtml({
@@ -12,7 +14,6 @@ test("sideQuestCardHtml escapes text and marks the active status button", () => 
   });
 
   assert.ok(html.includes("&lt;script&gt;"), "title should be escaped");
-  assert.ok(html.includes("a &amp; b"), "note should be escaped");
   assert.ok(html.includes('data-id="s1"'));
   assert.match(html, /class="status-btn side-quest-status-btn on in_progress"[^>]*data-status="in_progress"/);
   assert.doesNotMatch(html, /side-quest-status-btn on backlog/);
@@ -26,8 +27,9 @@ test("sideQuestCardHtml offers Done rather than Shipped as the third status", ()
   assert.match(html, /class="status-btn side-quest-status-btn on done"/);
 });
 
-test("sideQuestCardHtml omits the note paragraph when there is no note", () => {
-  const html = sideQuestCardHtml({ id: "s3", title: "No note", status: "backlog" });
+test("sideQuestCardHtml keeps the note off the card", () => {
+  const html = sideQuestCardHtml({ id: "s3", title: "Has note", note: "the note", status: "backlog" });
+  assert.ok(!html.includes("the note"));
   assert.ok(!html.includes("card-hook"));
 });
 
@@ -45,6 +47,7 @@ const FIXTURE_HTML = `<!doctype html><html><body>
       </form>
     </div>
   </div>
+  ${DETAIL_MODAL_HTML}
 </body></html>`;
 
 let moduleCounter = 0;
@@ -129,6 +132,56 @@ test("bindSideQuestActions skips deleteSideQuest when confirm() is cancelled", a
   assert.deepEqual(calls, []);
 });
 
+test("clicking a side quest card shows the note in the detail modal", async () => {
+  const questLogMock = {
+    listSideQuests: () => Promise.resolve([{ id: "s1", title: "Fix the thing", note: "a & b", status: "backlog", order: 1 }]),
+  };
+
+  const dom = new JSDOM(FIXTURE_HTML, { url: "http://localhost/" });
+  installGlobals(dom, questLogMock);
+
+  const sideQuests = await freshSideQuestsModule();
+  initDetail();
+  sideQuests.initSideQuests(() => {});
+  await sideQuests.loadSideQuests();
+
+  const doc = dom.window.document;
+  const grid = doc.getElementById("sideQuestGrid");
+  grid.innerHTML = sideQuests.getSideQuestsByStatus("backlog").map(sideQuests.sideQuestCardHtml).join("");
+  sideQuests.bindSideQuestActions(grid);
+
+  grid.querySelector(".side-quest-card").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+
+  assert.equal(doc.getElementById("detailModalOverlay").hidden, false);
+  assert.equal(doc.getElementById("detailTitle").textContent, "Fix the thing");
+  assert.equal(doc.getElementById("detailText").textContent, "a & b");
+  assert.equal(doc.getElementById("detailTags").hidden, true);
+});
+
+test("a side quest with no note still opens a detail modal", async () => {
+  const questLogMock = {
+    listSideQuests: () => Promise.resolve([{ id: "s1", title: "Bare", status: "backlog", order: 1 }]),
+  };
+
+  const dom = new JSDOM(FIXTURE_HTML, { url: "http://localhost/" });
+  installGlobals(dom, questLogMock);
+
+  const sideQuests = await freshSideQuestsModule();
+  initDetail();
+  sideQuests.initSideQuests(() => {});
+  await sideQuests.loadSideQuests();
+
+  const doc = dom.window.document;
+  const grid = doc.getElementById("sideQuestGrid");
+  grid.innerHTML = sideQuests.getSideQuestsByStatus("backlog").map(sideQuests.sideQuestCardHtml).join("");
+  sideQuests.bindSideQuestActions(grid);
+
+  grid.querySelector(".side-quest-card").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+
+  assert.equal(doc.getElementById("detailModalOverlay").hidden, false);
+  assert.equal(doc.getElementById("detailText").textContent, "Nothing written down yet.");
+});
+
 test("getSideQuestsByStatus splits loaded side quests by status, ordered", async () => {
   const questLogMock = {
     listSideQuests: () => Promise.resolve([
@@ -153,7 +206,7 @@ test("getSideQuestsByStatus splits loaded side quests by status, ordered", async
   assert.deepEqual(sideQuests.getSideQuestsByStatus("done").map((s) => s.id), ["d"]);
 });
 
-test("edit click prefills the modal with the existing title and note", async () => {
+test("the detail modal's Edit button prefills the form with the existing title and note", async () => {
   const sideQuest = { id: "s1", title: "Water the plants", note: "Balcony one too", status: "backlog", order: 1 };
   const questLogMock = { listSideQuests: () => Promise.resolve([sideQuest]) };
 
@@ -161,6 +214,7 @@ test("edit click prefills the modal with the existing title and note", async () 
   installGlobals(dom, questLogMock);
 
   const sideQuests = await freshSideQuestsModule();
+  initDetail();
   sideQuests.initSideQuests(() => {});
   await sideQuests.loadSideQuests();
 
@@ -169,7 +223,10 @@ test("edit click prefills the modal with the existing title and note", async () 
   grid.innerHTML = sideQuests.getSideQuestsByStatus("backlog").map(sideQuests.sideQuestCardHtml).join("");
   sideQuests.bindSideQuestActions(grid);
 
-  grid.querySelector(".side-quest-edit-btn").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  assert.equal(grid.querySelector(".icon-btn:not(.danger)"), null, "no edit button on the card");
+
+  grid.querySelector(".side-quest-card").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  doc.getElementById("detailEditBtn").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
 
   assert.equal(doc.getElementById("sideQuestModalOverlay").hidden, false);
   assert.equal(doc.getElementById("sideQuestModalTitle").textContent, "Edit Side Quest");

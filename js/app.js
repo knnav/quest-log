@@ -5,6 +5,7 @@ import { initQuests, loadQuests, cardHtml, bindQuestActions, getInProgressQuests
 import { initPinned, loadPinned, pinnedCardHtml, bindPinnedActions, getPinnedList } from "./pinned.js";
 import { initSideQuests, loadSideQuests, sideQuestCardHtml, bindSideQuestActions, getSideQuestsByStatus, openCreateSideQuest, persistSideQuestOrder } from "./sideQuests.js";
 import { enableDragSort } from "./dragSort.js";
+import { initDetail } from "./detail.js";
 
 function renderProgress() {
   var progressGridEl = document.getElementById("progressGrid");
@@ -50,6 +51,7 @@ initTheme();
 initTitlebar();
 initMotd();
 initShortcuts();
+initDetail();
 initQuests(renderProgress);
 initPinned(renderProgress);
 initSideQuests(renderSideQuests);

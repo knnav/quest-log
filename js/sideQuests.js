@@ -1,5 +1,6 @@
 import { SIDE_QUEST_STATUSES, SIDE_QUEST_STATUS_LABEL } from "./constants.js";
 import { escapeHtml } from "./utils.js";
+import { bindCardDetail } from "./detail.js";
 
 var latestSideQuests = [];
 var editingSideQuestId = null;
@@ -56,20 +57,14 @@ export function sideQuestCardHtml(sideQuest) {
       '" data-id="' + sideQuest.id + '" data-status="' + s + '">' + SIDE_QUEST_STATUS_LABEL[s] + '</button>';
   }).join("");
 
-  var note = sideQuest.note
-    ? '<p class="card-hook">' + escapeHtml(sideQuest.note) + '</p>'
-    : "";
-
   return (
-    '<div class="card side-quest-card" data-drag-id="' + sideQuest.id + '">' +
+    '<div class="card side-quest-card" data-id="' + sideQuest.id + '" data-drag-id="' + sideQuest.id + '">' +
     '<div class="card-head">' +
     '<h3 class="card-title">' + escapeHtml(sideQuest.title) + '</h3>' +
     '<div class="card-actions">' +
-    '<button class="icon-btn side-quest-edit-btn" data-id="' + sideQuest.id + '">Edit</button>' +
     '<button class="icon-btn danger side-quest-delete-btn" data-id="' + sideQuest.id + '">Delete</button>' +
     '</div>' +
     '</div>' +
-    note +
     '<div class="status-row">' + statusBtns + '</div>' +
     '</div>'
   );
@@ -82,18 +77,20 @@ export function bindSideQuestActions(container) {
     });
   });
 
-  container.querySelectorAll(".side-quest-edit-btn").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var id = btn.getAttribute("data-id");
-      var sideQuest = latestSideQuests.filter(function (s) { return s.id === id; })[0];
-      if (sideQuest) openSideQuestModal(sideQuest);
-    });
-  });
-
   container.querySelectorAll(".side-quest-delete-btn").forEach(function (btn) {
     btn.addEventListener("click", function () {
       onDeleteSideQuest(btn.getAttribute("data-id"));
     });
+  });
+
+  bindCardDetail(container, ".side-quest-card", function (id) {
+    var sideQuest = latestSideQuests.filter(function (s) { return s.id === id; })[0];
+    if (!sideQuest) return null;
+    return {
+      title: sideQuest.title,
+      text: sideQuest.note,
+      onEdit: function () { openSideQuestModal(sideQuest); }
+    };
   });
 }
 
