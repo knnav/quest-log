@@ -47,7 +47,7 @@ It's drawn in CSS — three logs, coals burning in the notch between them, and t
 
 **A message of the day.** A random encouraging (or mildly confrontational) line every time you open the app. Don't like them? They're plain text in `assets/motd.json` — write your own.
 
-**Custom window chrome.** Frameless window with a themed title bar, because the default one is ugly.
+**A fixed, phone-shaped window.** 420×880, frameless, not resizable, with a themed title bar. The board doesn't get to sprawl across a monitor: you see a handful of cards at a time, and reaching for more work costs a deliberate scroll. The home screen is sized to fill it exactly — stats at the top, the footer pinned to the bottom, and the bonfire growing into whatever space is left between them.
 
 ---
 
@@ -154,7 +154,7 @@ The renderer never touches the filesystem directly — it goes through `contextB
 
 ## Known quirks
 
-**Running under WSLg?** You'll see a thin white border on three sides of the window. That's WSLg's display forwarding drawing its own chrome around the frameless window — it's not the app, and it doesn't happen on a native Windows or macOS build. Also, frameless windows on Linux lose drag-to-resize from the window edges, since that's normally provided by the OS decorations we're not using.
+**Running under WSLg?** You'll see a thin white border on three sides of the window. That's WSLg's display forwarding drawing its own chrome around the frameless window — it's not the app, and it doesn't happen on a native Windows or macOS build.
 
 ---
 

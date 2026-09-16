@@ -71,10 +71,14 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* The screens need a definite height to push their footer down, so the
+   scroller is itself a column and .wrap grows to fill it. */
 .app-scroll {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .titlebar {
@@ -119,7 +123,15 @@ body {
 .titlebar-btn:hover { background: var(--chip-bg); color: var(--text); }
 .titlebar-btn.close:hover { background: #e5484d; color: #ffffff; }
 
-.wrap { max-width: 1080px; margin: 0 auto; padding: 20px 20px 56px; }
+.wrap {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 20px 20px 28px;
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+}
 
 .sr-only {
   position: absolute;
@@ -171,12 +183,21 @@ body {
 
 .chrome-actions .btn { font-size: 11px; padding: 7px 11px; }
 
-.screen { display: flex; flex-direction: column; }
+.screen { display: flex; flex-direction: column; flex: 1 0 auto; }
 .screen[hidden] { display: none; }
 
 /* ---- home ---- */
 
-.home { gap: 30px; padding-top: 12px; }
+.home { gap: 22px; padding-top: 10px; }
+
+.home-stats { flex: none; }
+
+.home-foot {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
 
 .home-stats {
   display: grid;
@@ -209,10 +230,15 @@ body {
 
 /* ---- the hearth ---- */
 
+/* Takes every pixel the stats and the footer don't, and centres the fire in
+   it — this is what lets the bonfire grow into the window. */
 .hearth {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-height: 0;
   gap: 4px;
   padding: 8px 0 4px;
 }
@@ -373,24 +399,29 @@ body {
    Stage 0 keeps the coals alive: this thing dims, it never dies.
    Every colour is a per-theme token, so the fire belongs to its palette. */
 
+/* Every dimension below is a multiple of --u, so the whole fire scales as one
+   object with the window instead of sitting at a fixed size in a big space.
+   Bounded by height and width both, then clamped so it never gets silly. */
 .bonfire {
+  --u: clamp(2.6px, min(0.72vh, 1.75vw), 7px);
+
   position: relative;
-  width: 220px;
+  width: calc(52 * var(--u));
   /* Tall enough for a roaring fire and no taller — the box has to fit stage 4,
      so lower stages keep some headroom above the flame by design. */
-  height: 204px;
+  height: calc(48 * var(--u));
   /* --base is the coal line: every flame's visible foot sits on it. */
-  --base: 32px;
+  --base: calc(7.5 * var(--u));
   --flame: 0px;
   --flame-opacity: 0;
-  --glow: 88px;
+  --glow: calc(20.8 * var(--u));
   --glow-opacity: 0.2;
 }
 
-.bonfire[data-stage="1"] { --flame: 46px; --flame-opacity: 0.84; --glow: 118px; --glow-opacity: 0.32; }
-.bonfire[data-stage="2"] { --flame: 64px; --flame-opacity: 0.9;  --glow: 150px; --glow-opacity: 0.44; }
-.bonfire[data-stage="3"] { --flame: 82px; --flame-opacity: 0.95; --glow: 182px; --glow-opacity: 0.56; }
-.bonfire[data-stage="4"] { --flame: 92px; --flame-opacity: 1;    --glow: 206px; --glow-opacity: 0.7; }
+.bonfire[data-stage="1"] { --flame: calc(10.9 * var(--u)); --flame-opacity: 0.84; --glow: calc(27.8 * var(--u)); --glow-opacity: 0.32; }
+.bonfire[data-stage="2"] { --flame: calc(15.1 * var(--u)); --flame-opacity: 0.9;  --glow: calc(35.4 * var(--u)); --glow-opacity: 0.44; }
+.bonfire[data-stage="3"] { --flame: calc(19.4 * var(--u)); --flame-opacity: 0.95; --glow: calc(42.9 * var(--u)); --glow-opacity: 0.56; }
+.bonfire[data-stage="4"] { --flame: calc(21.7 * var(--u)); --flame-opacity: 1;    --glow: calc(48.6 * var(--u)); --glow-opacity: 0.7; }
 
 .bonfire > span {
   position: absolute;
@@ -411,9 +442,9 @@ body {
 }
 
 .fire-ash {
-  bottom: 12px;
-  width: 150px;
-  height: 22px;
+  bottom: calc(2.8 * var(--u));
+  width: calc(35.4 * var(--u));
+  height: calc(5.2 * var(--u));
   transform: translateX(-50%);
   border-radius: 50%;
   background: radial-gradient(ellipse, var(--panel-border) 0%, transparent 72%);
@@ -424,18 +455,18 @@ body {
    coals burning in the notch between them. Kept dark so they read as wood
    against the light rather than glowing along with it. */
 .fire-log {
-  bottom: 20px;
-  width: 96px;
-  height: 12px;
-  border-radius: 6px;
+  bottom: calc(4.7 * var(--u));
+  width: calc(22.7 * var(--u));
+  height: calc(2.8 * var(--u));
+  border-radius: calc(1.4 * var(--u));
   background: var(--fire-ember);
   filter: brightness(0.55);
 }
 
 .log-back {
-  bottom: 30px;
-  width: 104px;
-  height: 11px;
+  bottom: calc(7.1 * var(--u));
+  width: calc(24.5 * var(--u));
+  height: calc(2.6 * var(--u));
   transform: translateX(-50%) rotate(-3deg);
   filter: brightness(0.38);
 }
@@ -444,13 +475,13 @@ body {
 .log-r { transform: translateX(-48%) rotate(20deg); }
 
 .fire-coals {
-  bottom: 24px;
-  width: 58px;
-  height: 14px;
+  bottom: calc(5.7 * var(--u));
+  width: calc(13.7 * var(--u));
+  height: calc(3.3 * var(--u));
   transform: translateX(-50%);
   border-radius: 50%;
   background: var(--fire-mid);
-  box-shadow: 0 0 18px 5px var(--fire-glow);
+  box-shadow: 0 0 calc(4.2 * var(--u)) calc(1.2 * var(--u)) var(--fire-glow);
   animation: ember-breathe 3.7s ease-in-out infinite;
 }
 
@@ -472,33 +503,33 @@ body {
 .flame-a {
   --w: var(--flame);
   background: var(--fire-outer);
-  filter: blur(5px);
+  filter: blur(calc(1.2 * var(--u)));
   animation: flicker 2.6s ease-in-out infinite;
 }
 
 .flame-b {
   --w: calc(var(--flame) * 0.62);
   background: var(--fire-mid);
-  filter: blur(3px);
+  filter: blur(calc(0.7 * var(--u)));
   animation: flicker 1.9s ease-in-out infinite reverse;
 }
 
 .flame-c {
   --w: calc(var(--flame) * 0.32);
   background: var(--fire-core);
-  filter: blur(1.5px);
+  filter: blur(calc(0.35 * var(--u)));
   animation: flicker 1.4s ease-in-out infinite;
 }
 
 .fire-core {
-  bottom: calc(var(--base) - 4px);
+  bottom: calc(var(--base) - 0.9 * var(--u));
   width: calc(var(--flame) * 0.62);
   height: calc(var(--flame) * 0.26);
   transform: translateX(-50%);
   border-radius: 50%;
   background: var(--fire-core);
   opacity: calc(var(--flame-opacity) * 0.75);
-  filter: blur(6px);
+  filter: blur(calc(1.4 * var(--u)));
   transition: width 0.9s ease, height 0.9s ease, opacity 0.9s ease;
 }
 

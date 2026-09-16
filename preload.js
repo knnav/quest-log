@@ -19,10 +19,5 @@ contextBridge.exposeInMainWorld("motd", {
 
 contextBridge.exposeInMainWorld("windowControls", {
   minimize: () => ipcRenderer.send("window:minimize"),
-  toggleMaximize: () => ipcRenderer.send("window:toggle-maximize"),
   close: () => ipcRenderer.send("window:close"),
-  isMaximized: () => ipcRenderer.invoke("window:is-maximized"),
-  onMaximizedChange: (callback) => {
-    ipcRenderer.on("window:maximized-changed", (event, isMaximized) => callback(isMaximized));
-  },
 });

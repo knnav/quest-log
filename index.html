@@ -5,7 +5,6 @@
   <span class="titlebar-title">QUEST LOG</span>
   <div class="titlebar-controls">
     <button class="titlebar-btn" id="minimizeBtn" title="Minimize">─</button>
-    <button class="titlebar-btn" id="maximizeBtn" title="Maximize">▢</button>
     <button class="titlebar-btn close" id="closeBtn" title="Close">✕</button>
   </div>
 </div>
@@ -70,13 +69,17 @@
       <p class="hearth-note" id="bonfireNote"></p>
     </div>
 
-    <div class="since">
-      <div class="since-value" id="sinceValue">—</div>
-      <div class="since-label" id="sinceLabel">nothing finished yet</div>
-      <div class="clock" id="clock">--:--</div>
-    </div>
+    <!-- Pinned to the bottom of the screen; the hearth above takes whatever
+         height is left, so the fire grows into the space instead of floating. -->
+    <div class="home-foot">
+      <div class="since">
+        <div class="since-value" id="sinceValue">—</div>
+        <div class="since-label" id="sinceLabel">nothing finished yet</div>
+        <div class="clock" id="clock">--:--</div>
+      </div>
 
-    <p class="motd" id="motd"></p>
+      <p class="motd" id="motd"></p>
+    </div>
   </section>
 
   <section class="screen" id="questsScreen" hidden>

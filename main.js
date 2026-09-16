@@ -4,11 +4,14 @@ const path = require("path");
 const store = require("./store");
 
 function createWindow() {
+  // Fixed and phone-shaped on purpose. The board doesn't get to sprawl, so
+  // reaching for more work costs a scroll — which is the point.
   const win = new BrowserWindow({
-    width: 480,
-    height: 920,
-    minWidth: 380,
-    minHeight: 560,
+    width: 420,
+    height: 880,
+    resizable: false,
+    maximizable: false,
+    fullscreenable: false,
     center: true,
     frame: false,
     backgroundColor: nativeTheme.shouldUseDarkColors ? "#0b0714" : "#f6f3ff",
@@ -18,9 +21,6 @@ function createWindow() {
       nodeIntegration: false,
     },
   });
-
-  win.on("maximize", () => win.webContents.send("window:maximized-changed", true));
-  win.on("unmaximize", () => win.webContents.send("window:maximized-changed", false));
 
   win.loadFile("index.html");
 }
@@ -49,21 +49,9 @@ function registerIpcHandlers() {
     if (win) win.minimize();
   });
 
-  ipcMain.on("window:toggle-maximize", (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender);
-    if (!win) return;
-    if (win.isMaximized()) win.unmaximize();
-    else win.maximize();
-  });
-
   ipcMain.on("window:close", (event) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (win) win.close();
-  });
-
-  ipcMain.handle("window:is-maximized", (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender);
-    return win ? win.isMaximized() : false;
   });
 }
 
