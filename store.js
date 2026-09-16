@@ -16,7 +16,6 @@ const DEFAULT_STORE = {
     },
   ],
   sideQuests: [],
-  pinned: [],
 };
 
 function nextOrder(list) {
@@ -45,7 +44,6 @@ function createStore(storePath) {
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed.quests)) parsed.quests = [];
       if (!Array.isArray(parsed.sideQuests)) parsed.sideQuests = [];
-      if (!Array.isArray(parsed.pinned)) parsed.pinned = DEFAULT_STORE.pinned;
       return parsed;
     } catch (err) {
       return JSON.parse(JSON.stringify(DEFAULT_STORE));
@@ -142,19 +140,6 @@ function createStore(storePath) {
     return store.sideQuests;
   }
 
-  function getPinned() {
-    return readStore().pinned;
-  }
-
-  function updatePinned(id, data) {
-    const store = readStore();
-    const idx = store.pinned.findIndex((p) => p.id === id);
-    if (idx === -1) throw new Error(`Pinned repo not found: ${id}`);
-    store.pinned[idx] = Object.assign({}, store.pinned[idx], data, { id });
-    writeStore(store);
-    return store.pinned[idx];
-  }
-
   return {
     getQuests,
     createQuest,
@@ -166,8 +151,6 @@ function createStore(storePath) {
     updateSideQuest,
     deleteSideQuest,
     reorderSideQuests,
-    getPinned,
-    updatePinned,
   };
 }
 
@@ -193,6 +176,4 @@ module.exports = {
   updateSideQuest: (...args) => getDefaultStore().updateSideQuest(...args),
   deleteSideQuest: (...args) => getDefaultStore().deleteSideQuest(...args),
   reorderSideQuests: (...args) => getDefaultStore().reorderSideQuests(...args),
-  getPinned: (...args) => getDefaultStore().getPinned(...args),
-  updatePinned: (...args) => getDefaultStore().updatePinned(...args),
 };

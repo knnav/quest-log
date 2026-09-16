@@ -80,7 +80,7 @@ export function cardHtml(q) {
 }
 
 export function bindQuestActions(container) {
-  container.querySelectorAll(".status-btn:not(.pinned-status-btn)").forEach(function (btn) {
+  container.querySelectorAll(".quest-card .status-btn").forEach(function (btn) {
     btn.addEventListener("click", function () {
       setStatus(btn.getAttribute("data-id"), btn.getAttribute("data-status"));
     });

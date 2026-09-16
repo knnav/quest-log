@@ -2,18 +2,13 @@ import { initTheme } from "./theme.js";
 import { initTitlebar } from "./titlebar.js";
 import { initMotd } from "./motd.js";
 import { initQuests, loadQuests, cardHtml, bindQuestActions, getInProgressQuests, openCreateQuest } from "./quests.js";
-import { initPinned, loadPinned, pinnedCardHtml, bindPinnedActions, getPinnedList } from "./pinned.js";
 import { initSideQuests, loadSideQuests, sideQuestCardHtml, bindSideQuestActions, getSideQuestsByStatus, openCreateSideQuest, persistSideQuestOrder } from "./sideQuests.js";
 import { enableDragSort } from "./dragSort.js";
 import { initDetail } from "./detail.js";
 
 function renderProgress() {
   var progressGridEl = document.getElementById("progressGrid");
-  progressGridEl.innerHTML =
-    getPinnedList().map(pinnedCardHtml).join("") +
-    getInProgressQuests().map(cardHtml).join("");
-
-  bindPinnedActions(progressGridEl);
+  progressGridEl.innerHTML = getInProgressQuests().map(cardHtml).join("");
   bindQuestActions(progressGridEl);
 }
 
@@ -53,9 +48,8 @@ initMotd();
 initShortcuts();
 initDetail();
 initQuests(renderProgress);
-initPinned(renderProgress);
 initSideQuests(renderSideQuests);
 
-Promise.all([loadQuests(), loadPinned(), loadSideQuests()]).catch(function () {
+Promise.all([loadQuests(), loadSideQuests()]).catch(function () {
   document.getElementById("board").innerHTML = '<div class="empty-state">Could not load the quest log right now.</div>';
 });

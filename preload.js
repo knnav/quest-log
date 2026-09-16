@@ -11,8 +11,6 @@ contextBridge.exposeInMainWorld("questLog", {
   updateSideQuest: (id, data) => ipcRenderer.invoke("quest-log:update-side-quest", id, data),
   deleteSideQuest: (id) => ipcRenderer.invoke("quest-log:delete-side-quest", id),
   reorderSideQuests: (ids) => ipcRenderer.invoke("quest-log:reorder-side-quests", ids),
-  listPinned: () => ipcRenderer.invoke("quest-log:list-pinned"),
-  updatePinned: (id, data) => ipcRenderer.invoke("quest-log:update-pinned", id, data),
 });
 
 contextBridge.exposeInMainWorld("motd", {

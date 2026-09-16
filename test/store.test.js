@@ -13,11 +13,11 @@ function tempStorePath() {
 // Bypasses the "welcome" tutorial seed for tests that care about a clean slate.
 function emptyStorePath() {
   const storePath = tempStorePath();
-  fs.writeFileSync(storePath, JSON.stringify({ quests: [], sideQuests: [], pinned: [] }));
+  fs.writeFileSync(storePath, JSON.stringify({ quests: [], sideQuests: [] }));
   return storePath;
 }
 
-test("seeds a welcome tutorial quest and empty side-quest/pinned lists on first read", () => {
+test("seeds a welcome tutorial quest and an empty side-quest list on first read", () => {
   const store = createStore(tempStorePath());
 
   const quests = store.getQuests();
@@ -26,12 +26,11 @@ test("seeds a welcome tutorial quest and empty side-quest/pinned lists on first 
   assert.equal(quests[0].status, "backlog");
 
   assert.deepEqual(store.getSideQuests(), []);
-  assert.deepEqual(store.getPinned(), []);
 });
 
 test("backfills a missing sideQuests array for stores written before side quests existed", () => {
   const storePath = tempStorePath();
-  fs.writeFileSync(storePath, JSON.stringify({ quests: [], pinned: [] }));
+  fs.writeFileSync(storePath, JSON.stringify({ quests: [] }));
 
   const store = createStore(storePath);
   assert.deepEqual(store.getSideQuests(), []);
@@ -182,28 +181,21 @@ test("reorderSideQuests renumbers order and persists", () => {
   assert.equal(byId[a.id], 2);
 });
 
-test("updatePinned merges fields and persists across separate store instances", () => {
+// Pinned repos were dropped from the app, but an old store file still has the key.
+// Leave it alone rather than rewriting it away, so nothing is destroyed on upgrade.
+test("a leftover pinned array from an older version survives a write", () => {
   const storePath = tempStorePath();
   fs.writeFileSync(storePath, JSON.stringify({
     quests: [],
-    pinned: [{ id: "gb-emulator", title: "GB Emulator", status: "old", next: "", todo: "", state: "in_progress", order: 1 }],
+    sideQuests: [],
+    pinned: [{ id: "gb-emulator", title: "GB Emulator", state: "in_progress", order: 1 }],
   }));
 
   const store = createStore(storePath);
-  const updated = store.updatePinned("gb-emulator", { status: "shipped", next: "polish UI" });
+  store.createQuest({ title: "One" });
 
-  assert.equal(updated.status, "shipped");
-  assert.equal(updated.next, "polish UI");
-
-  const reopened = createStore(storePath);
-  const reread = reopened.getPinned().find((p) => p.id === "gb-emulator");
-  assert.equal(reread.status, "shipped");
-  assert.equal(reread.next, "polish UI");
-});
-
-test("updatePinned throws for an unknown id", () => {
-  const store = createStore(tempStorePath());
-  assert.throws(() => store.updatePinned("nope", {}), /Pinned repo not found/);
+  const onDisk = JSON.parse(fs.readFileSync(storePath, "utf-8"));
+  assert.deepEqual(onDisk.pinned, [{ id: "gb-emulator", title: "GB Emulator", state: "in_progress", order: 1 }]);
 });
 
 test("writes are atomic: no leftover .tmp file after a write", () => {

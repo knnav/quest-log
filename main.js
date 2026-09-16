@@ -38,9 +38,6 @@ function registerIpcHandlers() {
   ipcMain.handle("quest-log:delete-side-quest", (event, id) => store.deleteSideQuest(id));
   ipcMain.handle("quest-log:reorder-side-quests", (event, ids) => store.reorderSideQuests(ids));
 
-  ipcMain.handle("quest-log:list-pinned", () => store.getPinned());
-  ipcMain.handle("quest-log:update-pinned", (event, id, data) => store.updatePinned(id, data));
-
   ipcMain.handle("motd:list", () => {
     const motdPath = path.join(__dirname, "assets", "motd.json");
     const raw = fs.readFileSync(motdPath, "utf-8");

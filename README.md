@@ -127,7 +127,7 @@ index.html         Markup
 assets/css/        Styles
 assets/motd.json   Message-of-the-day pool
 fonts/             Self-hosted JetBrains Mono + Press Start 2P
-js/                Renderer modules (app, quests, sideQuests, pinned, theme, titlebar, motd)
+js/                Renderer modules (app, quests, sideQuests, detail, theme, titlebar, motd)
 test/              Tests
 ```
 

@@ -245,16 +245,6 @@ header.top {
 
 .progress-tier .tier-title { color: var(--accent); }
 
-.pinned-card {
-  border-left: 3px solid var(--accent);
-}
-
-.pinned-tag {
-  color: var(--accent);
-  border-color: var(--accent);
-  background: var(--accent-glow);
-}
-
 .stats-bar {
   display: flex;
   flex-wrap: wrap;
