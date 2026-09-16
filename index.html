@@ -50,6 +50,8 @@
       </div>
     </div>
 
+    <p class="stale-note" id="staleNote" hidden></p>
+
     <div class="hearth">
       <!-- Painted back to front: halo, ash bed, the back log, two crossed logs,
            the coals burning between them, then the flame from outer to hottest. -->
@@ -85,6 +87,7 @@
   <section class="screen" id="questsScreen" hidden>
     <!-- Above everything it filters, rather than stranded mid-page looking
          like it only applies to whichever block it happens to sit next to. -->
+    <input class="search" id="questSearch" type="search" placeholder="Search quests" aria-label="Search quests">
     <div class="filters" id="filters"></div>
 
     <section class="tier" id="questsInProgress" hidden>
@@ -127,9 +130,37 @@
     <div class="detail-rows" id="detailRows"></div>
     <div class="modal-actions detail-actions">
       <button type="button" class="btn danger" id="detailDeleteBtn">Delete</button>
+      <button type="button" class="btn" id="detailLetGoBtn">Let go</button>
       <span class="modal-actions-gap"></span>
       <button type="button" class="btn" id="detailCloseBtn">Close</button>
       <button type="button" class="btn primary" id="detailEditBtn">Edit</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="shipModalOverlay" hidden>
+  <div class="modal">
+    <h2>Did you do it?</h2>
+    <p class="gate-lede">You said this one was done when:</p>
+    <blockquote class="gate-dod" id="shipDod"></blockquote>
+    <p class="gate-subject" id="shipQuestTitle"></p>
+    <div class="modal-actions">
+      <button type="button" class="btn" id="shipCancelBtn">Not yet</button>
+      <button type="button" class="btn primary" id="shipConfirmBtn">Shipped it</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="wipModalOverlay" hidden>
+  <div class="modal">
+    <h2>Already in flight</h2>
+    <p class="gate-lede" id="wipBody"></p>
+    <ul class="gate-list" id="wipList"></ul>
+    <div class="modal-actions">
+      <button type="button" class="btn" id="wipCancelBtn">Cancel</button>
+      <span class="modal-actions-gap"></span>
+      <button type="button" class="btn" id="wipBenchBtn">Bench those</button>
+      <button type="button" class="btn primary" id="wipProceedBtn">Start anyway</button>
     </div>
   </div>
 </div>
@@ -155,6 +186,7 @@
           <option value="medium">Fortnight — 1–2 weeks</option>
           <option value="ongoing">Ongoing — recurring</option>
         </select>
+        <p class="field-note" id="questScopeNote" hidden></p>
       </div>
       <div class="field">
         <label for="questTags">Tags (comma-separated)</label>

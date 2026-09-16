@@ -176,7 +176,8 @@ test("the filter row sits above everything it filters", async () => {
 
   const screen = doc.getElementById("questsScreen");
   const order = Array.from(screen.children).map((el) => el.id);
-  assert.equal(order.indexOf("filters"), 0, "filters come first in the Quests tab");
+  assert.equal(order.indexOf("questSearch"), 0, "search comes first in the Quests tab");
+  assert.equal(order.indexOf("filters"), 1, "then the tag chips");
   assert.ok(order.indexOf("questsInProgress") > 0);
   assert.ok(order.indexOf("board") > order.indexOf("questsInProgress"));
 });
@@ -229,4 +230,39 @@ test("Ctrl+N switches to the tab that will show the new item", async () => {
   doc.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "N", ctrlKey: true, shiftKey: true, bubbles: true }));
   assert.equal(doc.getElementById("tasksScreen").hidden, false);
   assert.equal(doc.getElementById("taskModalOverlay").hidden, false);
+});
+
+
+test("the home screen calls out the longest-waiting quest", async () => {
+  const old = new Date(Date.now() - 94 * DAY).toISOString();
+  const quests = [
+    { id: "a", title: "Presskit", hook: "h", tier: "weekend", tags: [], dod: "d", status: "backlog", order: 1, createdAt: old },
+    { id: "b", title: "Fresh", hook: "h", tier: "weekend", tags: [], dod: "d", status: "backlog", order: 2, createdAt: new Date().toISOString() },
+  ];
+  const dom = await boot(quests, []);
+  const note = dom.window.document.getElementById("staleNote");
+
+  assert.equal(note.hidden, false);
+  assert.match(note.textContent, /Presskit/);
+  assert.match(note.textContent, /94 days/);
+});
+
+test("nothing stale means no line at all", async () => {
+  const quests = [
+    { id: "a", title: "Fresh", hook: "h", tier: "weekend", tags: [], dod: "d", status: "backlog", order: 1, createdAt: new Date().toISOString() },
+  ];
+  const dom = await boot(quests, []);
+
+  assert.equal(dom.window.document.getElementById("staleNote").hidden, true);
+});
+
+test("the Let go count appears only once something has been let go", async () => {
+  const plain = await boot(QUESTS, SIDE_QUESTS);
+  assert.ok(!plain.window.document.getElementById("questStats").textContent.includes("Let go"));
+
+  const withAshes = await boot(
+    QUESTS.concat([{ id: "q4", title: "Gone", hook: "h", tier: "weekend", tags: [], dod: "d", status: "let_go", order: 4, finishedAt: new Date().toISOString() }]),
+    SIDE_QUESTS
+  );
+  assert.match(withAshes.window.document.getElementById("questStats").textContent, /Let go1/);
 });

@@ -14,6 +14,7 @@ import { enableDragSort } from "./dragSort.js";
 import { initDetail } from "./detail.js";
 import { initTabs, showTab } from "./tabs.js";
 import { initHome, renderHome } from "./home.js";
+import { initGates } from "./gates.js";
 
 function renderProgress() {
   var section = document.getElementById("questsInProgress");
@@ -79,7 +80,6 @@ function initShortcuts() {
 
 initTheme();
 initTitlebar();
-initMotd();
 initShortcuts();
 // Only the create button for the tab you're looking at is shown — two of them
 // plus the tab bar does not fit the 380px minimum window width.
@@ -90,9 +90,14 @@ function syncCreateButton(tab) {
 
 initTabs(syncCreateButton);
 initDetail();
+initGates();
 initHome(homeData);
 initQuests(renderProgress);
 initTasks(renderTasks);
+
+// The motd pool has to be in hand before the first home render, or the footer
+// shows blank until something else happens to trigger a repaint.
+initMotd().then(renderHome);
 
 Promise.all([loadQuests(), loadTasks()]).catch(function () {
   document.getElementById("board").innerHTML = '<div class="empty-state">Could not load the quest log right now.</div>';

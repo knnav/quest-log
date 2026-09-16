@@ -1,12 +1,38 @@
-[
-  "Ship the small thing. The big thing was never going to happen anyway.",
-  "A finished task beats a legendary quest still in the backlog.",
-  "Scope it down until it's boring enough to finish.",
-  "Done is a feature. Add it to this one.",
-  "The graph doesn't care how ambitious the idea was — only that it's green.",
-  "Every commit is a vote for finishing. Cast one today.",
-  "Pick the quest you're least afraid of. Start there.",
-  "Perfect is the boss fight you keep avoiding. Skip it — ship instead.",
-  "Small quests, shipped consistently, beat one masterpiece, shipped never.",
-  "You don't need permission to start. You need a Definition of Done."
-]
+{
+  "default": [
+    "Ship the small thing. The big thing was never going to happen anyway.",
+    "A finished task beats a legendary quest still in the backlog.",
+    "Scope it down until it's boring enough to finish.",
+    "Done is a feature. Add it to this one.",
+    "The graph doesn't care how ambitious the idea was — only that it's green.",
+    "Every commit is a vote for finishing. Cast one today.",
+    "Pick the quest you're least afraid of. Start there.",
+    "Perfect is the boss fight you keep avoiding. Skip it — ship instead.",
+    "Small quests, shipped consistently, beat one masterpiece, shipped never.",
+    "You don't need permission to start. You need a Definition of Done."
+  ],
+  "empty": [
+    "Empty log. That is either a fresh start or a very good week.",
+    "Nothing here yet. Write down one idea and what done looks like."
+  ],
+  "idle": [
+    "Nothing in flight. Pick one thing and start it.",
+    "The fire runs on finished work. Nothing is moving right now.",
+    "No quest, no task, no excuse. Choose one."
+  ],
+  "overloaded": [
+    "A lot in flight. Finishing one beats nudging four.",
+    "You have started more than you can hold. Bench something.",
+    "Every open quest is a tab in your head. Close one."
+  ],
+  "cold": [
+    "The fire is down to embers. One small finish relights it.",
+    "Coals only. Ship the smallest thing you have.",
+    "Nothing has burned in days. Start with something you can finish today."
+  ],
+  "roaring": [
+    "Roaring. Go rest — the fire will keep for a while.",
+    "That is what a good week looks like. Do not spend it starting five more.",
+    "Well fed. Sit down at the bonfire for a minute."
+  ]
+}

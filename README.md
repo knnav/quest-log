@@ -27,25 +27,35 @@ The headings say `Weekend`, `Fortnight`, `Ongoing` and nothing else — "Tier 2"
 
 **Definition of Done on every quest.** Every quest needs a DoD before it gets a first commit. That's the whole anti-scope-creep trick and it's non-negotiable — the form won't let you skip it.
 
-**Status pills.** Click to cycle Backlog → In Progress → Shipped. Each item is in exactly one place: in-progress work sits in its own block at the top, the backlog sits under its scope heading, and finished work goes to the **Hall of Fame** — quests and tasks both. Nothing is ever on screen twice.
+**Status pills.** Click to cycle Backlog → In Progress → Shipped. Each item is in exactly one place: in-progress work sits in its own block at the top, the backlog sits under its scope heading, finished work goes to the **Hall of Fame**, and abandoned quests go to **Ashes**. Nothing is ever on screen twice.
+
+**Shipping asks whether you meant it.** Click Shipped and the app shows you the Definition of Done you wrote and asks whether you actually did it. Answer "not yet" and nothing moves. Without that question the DoD is a note you wrote once; with it, it's the contract the app was built around — and every log on the fire is earned.
+
+**Letting go is a real outcome, not a delete.** The pitch is *ship it or admit you won't*, so there's a path for the second half. Let go of a quest and it moves to **Ashes** — and gives the fire a little kindling, because deciding not to do something closes a real loop. It's worth less than finishing and you can bring it back any time. You can only let go of something you already had, so it can't be farmed.
+
+**A nudge when too much is in flight.** Start a fourth quest while three are open and the app asks which one you're actually working on, and offers to bench the rest. It never blocks you — the failure mode this app fights is *starting* things, and a tool that shames you is worse than one that says nothing.
+
+**It knows how long your scopes really take.** Pick a scope in the quest form and it tells you: *"Your Weekend quests have taken 6 days on average (3 shipped)."* Measured from the day you started to the day you finished. Information, not judgement.
+
+**Search and stacking tags.** A search box over titles, hooks, definitions of done and tags. Tag quests however you like (`Elixir`, `Gaming`, `Cursed`); the chips stack, so each one you add narrows further rather than replacing the last. Both sit at the top of the Quests tab and filter everything in it, In Progress included.
+
+**It mentions what's rotting.** One line on the home screen when something has sat in the backlog too long: *"'Presskit' has been waiting 94 days."*
+
+**The message of the day knows where you are.** Nothing in flight, too much in flight, a cold fire, a roaring one — the line changes to match. Still plain text in `assets/motd.json`, now grouped into pools.
 
 **Three tabs.** Home, Quests, Tasks. Each tab holds In Progress, then the backlog, then the Hall of Fame. The app remembers which one you were on.
 
 **The bonfire.** The home screen is a point of rest: counts for both kinds of work, how long it's been since you last finished something, the time, and a fire in the middle.
 
-The fire burns on what you've finished in the last three days. A shipped quest is worth three logs, a done task one, and each contribution fades as it ages — so the flame reads your recent past rather than your all-time total. It climbs through five stages, Embers to Roaring.
+The fire burns on what you've finished in the last three days. A shipped quest is worth three logs, a done task or a quest you let go is worth one, and each contribution fades as it ages — so the flame reads your recent past rather than your all-time total. It climbs through five stages, Embers to Roaring.
 
-Nothing resets at midnight and **the fire never goes out.** A quiet day dims it; a quiet fortnight takes it down to embers and leaves it there. You relight a bonfire, you don't fail it. Toggling a status pill back and forth won't farm it either — the completion stamp is cleared the moment a task leaves its done state, so the flame is a reading of where things actually stand.
+Nothing resets at midnight and **the fire never goes out.** A quiet day dims it; a quiet fortnight takes it down to embers and leaves it there. You relight a bonfire, you don't fail it. Toggling a status pill back and forth won't farm it either — the fuel stamp is cleared the moment something leaves its done state, so the flame is a reading of where things actually stand. A separate record of *when* you finished is kept alongside it and never cleared, so a stray click can't destroy the day you shipped.
 
 It's drawn in CSS — three logs, coals burning in the notch between them, and three flame layers on desynced cycles. It takes its colours from whichever theme you're on (the Matrix fire is green, the Game Boy fire is olive), it pauses when the window loses focus, and it holds still if you've asked your OS for reduced motion.
-
-**Tag filters.** Tag quests however you like (`Elixir`, `Gaming`, `Cursed`) and filter one at a time. The chips sit at the top of the Quests tab and filter everything in it, In Progress included.
 
 **Full CRUD.** Cards carry a title, tags and status pills — nothing else. Click one to open it: the hook, the Definition of Done, and the Edit and Delete buttons all live in there, so the destructive action isn't sitting on every row of the list. Delete asks first.
 
 **Dark and light themes.** There's a toggle in the header. It remembers your choice and otherwise follows whatever your OS is doing.
-
-**A message of the day.** A random encouraging (or mildly confrontational) line every time you open the app. Don't like them? They're plain text in `assets/motd.json` — write your own.
 
 **A fixed, phone-shaped window.** 420×880, frameless, not resizable, with a themed title bar. The board doesn't get to sprawl across a monitor: you see a handful of cards at a time, and reaching for more work costs a deliberate scroll. The home screen is sized to fill it exactly — stats at the top, the footer pinned to the bottom, and the bonfire growing into whatever space is left between them.
 
@@ -127,7 +137,7 @@ Back it up, edit it by hand, sync it with whatever you want — it's your file. 
 npm test
 ```
 
-Node's built-in test runner, no framework. Covers the storage layer (CRUD, ordering, atomic writes, completion stamping), the bonfire's fuel maths as pure functions, and the renderer modules via jsdom — card rendering, the detail modal, delete and status wiring, tab switching and persistence, and theme toggling. `test/app.test.mjs` boots the real `index.html` through the real `app.js`, so a renamed element id fails there rather than in front of you.
+Node's built-in test runner, no framework. Covers the storage layer (CRUD, ordering, atomic writes, the three completion clocks), the bonfire's fuel and scope maths as pure functions, and the renderer modules via jsdom — card rendering, the detail modal, delete and status wiring, tab switching and persistence, and theme toggling. `test/app.test.mjs` boots the real `index.html` through the real `app.js`, so a renamed element id fails there rather than in front of you.
 
 ---
 
@@ -143,7 +153,7 @@ index.html         Markup
 assets/css/        Styles
 assets/motd.json   Message-of-the-day pool
 fonts/             Self-hosted JetBrains Mono + Press Start 2P
-js/                Renderer modules (app, tabs, home, fire, quests, tasks,
+js/                Renderer modules (app, tabs, home, fire, gates, quests, tasks,
                    detail, dragSort, theme, titlebar, motd)
 test/              Tests
 ```

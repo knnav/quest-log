@@ -1,9 +1,11 @@
 import {
   fuelFor, stageFor, completionEntries, lastCompletedAt, elapsedLabel,
-  STAGE_LABELS, STAGE_NOTES
+  oldestWaiting, STAGE_LABELS, STAGE_NOTES
 } from "./fire.js";
+import { pickMotd } from "./motd.js";
+import { WIP_LIMIT, STALE_DAYS } from "./constants.js";
 
-var bonfireEl, stageLabelEl, stageNoteEl;
+var bonfireEl, stageLabelEl, stageNoteEl, staleEl, motdEl;
 var sinceValueEl, sinceLabelEl, clockEl;
 var questStatsEl, taskStatsEl;
 var getData = null;
@@ -20,6 +22,8 @@ export function initHome(dataSource) {
   clockEl = document.getElementById("clock");
   questStatsEl = document.getElementById("questStats");
   taskStatsEl = document.getElementById("taskStats");
+  staleEl = document.getElementById("staleNote");
+  motdEl = document.getElementById("motd");
 
   if (!bonfireEl) return;
 
@@ -42,11 +46,15 @@ export function renderHome() {
   var data = getData();
   var now = new Date();
 
-  renderStats(questStatsEl, [
+  var questRows = [
     ["Backlog", data.questCounts.backlog],
     ["In progress", data.questCounts.in_progress],
     ["Shipped", data.questCounts.shipped]
-  ]);
+  ];
+  // Only once there is an Ashes pile — otherwise it is a row of zero, and
+  // without it the column would quietly stop adding up to your total.
+  if (data.questCounts.let_go) questRows.push(["Let go", data.questCounts.let_go]);
+  renderStats(questStatsEl, questRows);
 
   renderStats(taskStatsEl, [
     ["Backlog", data.taskCounts.backlog],
@@ -73,6 +81,38 @@ export function renderHome() {
   }
 
   clockEl.textContent = formatClock(now);
+
+  renderStale(data, now);
+  if (motdEl) motdEl.textContent = pickMotd(situationOf(data, stage));
+}
+
+// One line, on the screen you actually look at. A quest rotting in the backlog
+// is invisible otherwise — you would have to open every card to notice.
+function renderStale(data, now) {
+  if (!staleEl) return;
+  var oldest = oldestWaiting(data.quests, now);
+
+  if (!oldest || oldest.days < STALE_DAYS) {
+    staleEl.textContent = "";
+    staleEl.hidden = true;
+    return;
+  }
+
+  staleEl.textContent = "\u201c" + oldest.title + "\u201d has been waiting " + oldest.days + " days.";
+  staleEl.hidden = false;
+}
+
+// The message of the day is worth more when it knows where you actually are.
+function situationOf(data, stage) {
+  var q = data.questCounts;
+  var t = data.taskCounts;
+
+  if (!data.quests.length && !data.tasks.length) return "empty";
+  if (q.in_progress >= WIP_LIMIT + 1) return "overloaded";
+  if (q.in_progress === 0 && t.in_progress === 0) return "idle";
+  if (stage === 0) return "cold";
+  if (stage >= 4) return "roaring";
+  return "default";
 }
 
 function renderStats(el, rows) {

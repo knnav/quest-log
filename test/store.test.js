@@ -265,3 +265,62 @@ test("writes are atomic: no leftover .tmp file after a write", () => {
   const leftoverTmp = fs.readdirSync(dir).filter((f) => f.includes(".tmp"));
   assert.deepEqual(leftoverTmp, []);
 });
+
+
+test("createdAt is stamped on every new quest and task", () => {
+  const store = createStore(emptyStorePath());
+  assert.ok(Date.parse(store.createQuest({ title: "Q" }).createdAt));
+  assert.ok(Date.parse(store.createTask({ title: "T" }).createdAt));
+});
+
+test("startedAt records the first time you began, and never moves again", () => {
+  const store = createStore(emptyStorePath());
+  const quest = store.createQuest({ title: "Q" });
+  assert.equal(quest.startedAt, null);
+
+  const started = store.updateQuest(quest.id, { status: "in_progress" }).startedAt;
+  assert.ok(started);
+
+  const parked = store.updateQuest(quest.id, { status: "backlog" });
+  assert.equal(parked.startedAt, started, "parking it does not erase when you began");
+
+  const restarted = store.updateQuest(quest.id, { status: "in_progress" });
+  assert.equal(restarted.startedAt, started, "restarting does not reset the clock");
+});
+
+// The defect this replaced: a stray click used to wipe the ship date forever.
+test("finishedAt survives a stray click that completedAt does not", () => {
+  const store = createStore(emptyStorePath());
+  const quest = store.createQuest({ title: "Q" });
+
+  const shipped = store.updateQuest(quest.id, { status: "shipped" });
+  assert.ok(shipped.completedAt);
+  assert.equal(shipped.finishedAt, shipped.completedAt);
+
+  const oops = store.updateQuest(quest.id, { status: "backlog" });
+  assert.equal(oops.completedAt, null, "fuel stops, as it must");
+  assert.equal(oops.finishedAt, shipped.finishedAt, "but the day you shipped is not destroyed");
+});
+
+test("letting a quest go is a terminal state that stamps like any other finish", () => {
+  const store = createStore(emptyStorePath());
+  const quest = store.createQuest({ title: "Q" });
+
+  const letGo = store.updateQuest(quest.id, { status: "let_go" });
+  assert.ok(letGo.completedAt, "it burns as kindling");
+  assert.ok(letGo.finishedAt);
+
+  const revived = store.updateQuest(quest.id, { status: "backlog" });
+  assert.equal(revived.completedAt, null);
+  assert.equal(revived.finishedAt, letGo.finishedAt);
+});
+
+test("moving straight from shipped to let go keeps the original finish", () => {
+  const store = createStore(emptyStorePath());
+  const quest = store.createQuest({ title: "Q" });
+  const shipped = store.updateQuest(quest.id, { status: "shipped" });
+
+  const letGo = store.updateQuest(quest.id, { status: "let_go" });
+  assert.equal(letGo.completedAt, shipped.completedAt, "terminal to terminal is not a fresh finish");
+  assert.equal(letGo.finishedAt, shipped.finishedAt);
+});

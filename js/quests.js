@@ -1,28 +1,34 @@
-import { TIERS, STATUSES, STATUS_LABEL } from "./constants.js";
+import { TIERS, STATUSES, STATUS_LABEL, WIP_LIMIT } from "./constants.js";
 import { escapeHtml } from "./utils.js";
 import { enableDragSort } from "./dragSort.js";
 import { bindCardDetail } from "./detail.js";
+import { scopeRecord } from "./fire.js";
+import { confirmShip, confirmWip } from "./gates.js";
 
 var allTags = [];
-var activeFilter = "all";
+var activeTags = [];
+var searchTerm = "";
 var latestDocs = [];
 var editingQuestId = null;
 var onChange = null;
 
-var boardEl, filtersEl;
-var addQuestBtn, questModalOverlay, questForm, questModalTitle, questCancelBtn;
+var boardEl, filtersEl, searchEl, scopeNoteEl;
+var addQuestBtn, questModalOverlay, questForm, questModalTitle, questCancelBtn, questTierEl;
 
 export function initQuests(onQuestsChanged) {
   onChange = onQuestsChanged;
 
   boardEl = document.getElementById("board");
   filtersEl = document.getElementById("filters");
+  searchEl = document.getElementById("questSearch");
+  scopeNoteEl = document.getElementById("questScopeNote");
 
   addQuestBtn = document.getElementById("addQuestBtn");
   questModalOverlay = document.getElementById("questModalOverlay");
   questForm = document.getElementById("questForm");
   questModalTitle = document.getElementById("questModalTitle");
   questCancelBtn = document.getElementById("questCancelBtn");
+  questTierEl = document.getElementById("questTier");
 
   addQuestBtn.addEventListener("click", function () { openQuestModal(null); });
   questCancelBtn.addEventListener("click", closeQuestModal);
@@ -30,6 +36,14 @@ export function initQuests(onQuestsChanged) {
     if (e.target === questModalOverlay) closeQuestModal();
   });
   questForm.addEventListener("submit", onQuestFormSubmit);
+  questTierEl.addEventListener("change", renderScopeNote);
+
+  if (searchEl) {
+    searchEl.addEventListener("input", function () {
+      searchTerm = searchEl.value.trim().toLowerCase();
+      rerender();
+    });
+  }
 
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape" && !questModalOverlay.hidden) closeQuestModal();
@@ -48,10 +62,26 @@ export function refetchQuests() {
   return window.questLog.listQuests().then(ingest);
 }
 
-// The tag chips sit above the whole tab, so they filter the whole tab —
-// the In Progress block included, not just the board underneath it.
+// The filter row sits above the whole tab, so it filters the whole tab — the
+// In Progress block included, not just the board underneath it. Tags are AND:
+// each chip you add narrows further, which is the only useful direction.
 function matchesFilter(q) {
-  return activeFilter === "all" || (q.tags || []).indexOf(activeFilter) !== -1;
+  var tags = q.tags || [];
+  var hasAllTags = activeTags.every(function (t) { return tags.indexOf(t) !== -1; });
+  if (!hasAllTags) return false;
+  if (!searchTerm) return true;
+
+  var haystack = [q.title, q.hook, q.dod].concat(tags).join(" ").toLowerCase();
+  return haystack.indexOf(searchTerm) !== -1;
+}
+
+function byOrder(a, b) {
+  return (a.order || 0) - (b.order || 0);
+}
+
+// Most recently finished first: a trophy case reads newest-on-top.
+function byFinishedDesc(a, b) {
+  return new Date(b.finishedAt || 0) - new Date(a.finishedAt || 0);
 }
 
 export function getInProgressQuests() {
@@ -65,7 +95,7 @@ export function getAllQuests() {
 }
 
 export function getStatusCounts() {
-  var counts = { backlog: 0, in_progress: 0, shipped: 0 };
+  var counts = { backlog: 0, in_progress: 0, shipped: 0, let_go: 0 };
   latestDocs.forEach(function (q) { counts[q.status] = (counts[q.status] || 0) + 1; });
   return counts;
 }
@@ -80,12 +110,22 @@ export function cardHtml(q) {
       '" data-status="' + s + '">' + STATUS_LABEL[s] + '</button>';
   }).join("");
 
+  // Finished cards say when. That's the whole point of a Hall of Fame.
+  var finished = "";
+  if ((q.status === "shipped" || q.status === "let_go") && q.finishedAt) {
+    finished = '<p class="card-when">' + (q.status === "let_go" ? "Let go " : "Shipped ") +
+      escapeHtml(relativeDay(q.finishedAt)) + '</p>';
+  }
+
+  var classes = "card quest-card" + (q.status === "let_go" ? " let-go-card" : "");
+
   return (
-    '<div class="card quest-card" data-id="' + q.id + '" data-drag-id="' + q.id + '">' +
+    '<div class="' + classes + '" data-id="' + q.id + '" data-drag-id="' + q.id + '">' +
     '<div class="card-head">' +
     '<h3 class="card-title">' + escapeHtml(q.title) + '</h3>' +
     '</div>' +
     '<div class="tags">' + tags + '</div>' +
+    finished +
     '<div class="status-row">' + statusBtns + '</div>' +
     '</div>'
   );
@@ -94,7 +134,7 @@ export function cardHtml(q) {
 export function bindQuestActions(container) {
   container.querySelectorAll(".quest-card .status-btn").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      setStatus(btn.getAttribute("data-id"), btn.getAttribute("data-status"));
+      requestStatus(btn.getAttribute("data-id"), btn.getAttribute("data-status"));
     });
   });
 
@@ -105,15 +145,91 @@ export function bindQuestActions(container) {
       title: quest.title,
       tags: quest.tags || [],
       text: quest.hook,
-      rows: [{ label: "Done when", value: quest.dod }],
+      rows: detailRows(quest),
       onEdit: function () { openQuestModal(quest); },
-      onDelete: function () { return onDeleteQuest(quest.id); }
+      onDelete: function () { return onDeleteQuest(quest.id); },
+      letGo: quest.status === "let_go" ? null : function () { return onLetGo(quest); }
     };
   });
 }
 
+function detailRows(q) {
+  var rows = [{ label: "Done when", value: q.dod }];
+
+  if (q.status === "backlog" && q.createdAt) {
+    rows.push({ label: "Waiting", value: daysSince(q.createdAt) + " days in the backlog" });
+  }
+  if (q.status === "in_progress" && q.startedAt) {
+    rows.push({ label: "Started", value: relativeDay(q.startedAt) });
+  }
+  if (q.finishedAt && (q.status === "shipped" || q.status === "let_go")) {
+    rows.push({
+      label: q.status === "let_go" ? "Let go" : "Shipped",
+      value: relativeDay(q.finishedAt) + (q.startedAt ? " · took " + spanDays(q.startedAt, q.finishedAt) + " days" : "")
+    });
+  }
+  return rows;
+}
+
+function daysSince(iso) {
+  return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000));
+}
+
+function spanDays(fromIso, toIso) {
+  var ms = new Date(toIso).getTime() - new Date(fromIso).getTime();
+  return Math.max(1, Math.round(ms / 86400000));
+}
+
+function relativeDay(iso) {
+  var days = daysSince(iso);
+  if (days === 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 30) return days + " days ago";
+  var months = Math.round(days / 30);
+  return months === 1 ? "a month ago" : months + " months ago";
+}
+
+// Every status change routes through here so the gates can't be bypassed by
+// clicking a pill instead of using a menu.
+function requestStatus(id, status) {
+  var quest = latestDocs.filter(function (q) { return q.id === id; })[0];
+  if (!quest || quest.status === status) return;
+
+  if (status === "shipped") {
+    confirmShip(quest, function () { setStatus(id, status); });
+    return;
+  }
+
+  if (status === "in_progress") {
+    var inFlight = latestDocs.filter(function (q) { return q.status === "in_progress"; });
+    if (inFlight.length >= WIP_LIMIT) {
+      confirmWip(quest, inFlight, {
+        onBenchAll: function () {
+          benchAll(inFlight).then(function () { setStatus(id, status); });
+        },
+        onProceed: function () { setStatus(id, status); }
+      });
+      return;
+    }
+  }
+
+  setStatus(id, status);
+}
+
+function benchAll(quests) {
+  return Promise.all(quests.map(function (q) {
+    return window.questLog.updateQuest(q.id, { status: "backlog" }).catch(function () {});
+  }));
+}
+
 function setStatus(id, status) {
   window.questLog.updateQuest(id, { status: status }).then(refetchQuests).catch(function () {});
+}
+
+function onLetGo(quest) {
+  if (!window.confirm('Let go of "' + quest.title + '"?\n\nIt moves to Ashes and gives the fire a little kindling. You can bring it back any time.')) return false;
+  setStatus(quest.id, "let_go");
+  return true;
 }
 
 function onDeleteQuest(id) {
@@ -123,29 +239,35 @@ function onDeleteQuest(id) {
 }
 
 function renderFilters() {
-  var tags = ["all"].concat(allTags);
   filtersEl.innerHTML = "";
-  tags.forEach(function (tag) {
+
+  var all = document.createElement("button");
+  all.className = "chip" + (activeTags.length ? "" : " active");
+  all.textContent = "All";
+  all.addEventListener("click", function () {
+    activeTags = [];
+    renderFilters();
+    rerender();
+  });
+  filtersEl.appendChild(all);
+
+  allTags.forEach(function (tag) {
     var btn = document.createElement("button");
-    btn.className = "chip" + (activeFilter === tag ? " active" : "");
-    btn.textContent = tag === "all" ? "All" : tag;
+    btn.className = "chip" + (activeTags.indexOf(tag) !== -1 ? " active" : "");
+    btn.textContent = tag;
     btn.addEventListener("click", function () {
-      activeFilter = tag;
+      var at = activeTags.indexOf(tag);
+      if (at === -1) activeTags.push(tag);
+      else activeTags.splice(at, 1);
       renderFilters();
-      renderBoard(latestDocs);
-      // Re-renders the In Progress block, which the filter now covers too.
-      if (onChange) onChange();
+      rerender();
     });
     filtersEl.appendChild(btn);
   });
 }
 
-function byOrder(a, b) {
-  return (a.order || 0) - (b.order || 0);
-}
-
-function tierSection(title, quests) {
-  return '<section class="tier">' +
+function tierSection(title, quests, extraClass) {
+  return '<section class="tier' + (extraClass ? " " + extraClass : "") + '">' +
     '<div class="tier-head"><h2 class="tier-title">' + escapeHtml(title) + '</h2></div>' +
     '<div class="grid">' + quests.map(cardHtml).join("") + '</div>' +
     '</section>';
@@ -159,9 +281,8 @@ function renderBoard(quests) {
 
   var visible = quests.filter(matchesFilter);
 
-  // Each quest lands in exactly one of three places: the In Progress block
-  // above the board, a timebox section here, or the Hall of Fame. The board
-  // therefore shows the backlog only — anything else double-renders a card.
+  // Each quest lands in exactly one of four places: the In Progress block
+  // above the board, a timebox section here, the Hall of Fame, or Ashes.
   var html = "";
   TIERS.forEach(function (tier) {
     var inTier = visible
@@ -171,23 +292,22 @@ function renderBoard(quests) {
     html += tierSection(tier.title, inTier);
   });
 
-  // Shipped quests get the same trophy case the tasks have. It was odd that
-  // watering the plants earned a monument and shipping a build didn't.
-  var shipped = visible
-    .filter(function (q) { return q.status === "shipped"; })
-    .sort(byOrder);
+  var shipped = visible.filter(function (q) { return q.status === "shipped"; }).sort(byFinishedDesc);
   if (shipped.length) html += tierSection("Hall of Fame", shipped);
 
+  var letGo = visible.filter(function (q) { return q.status === "let_go"; }).sort(byFinishedDesc);
+  if (letGo.length) html += tierSection("Ashes", letGo, "ashes-tier");
+
   if (!html) {
-    html = activeFilter === "all"
-      ? '<div class="empty-state">Everything you have is in progress. Nothing left on the board.</div>'
-      : '<div class="empty-state">No quests match this filter.</div>';
+    html = (activeTags.length || searchTerm)
+      ? '<div class="empty-state">Nothing matches that.</div>'
+      : '<div class="empty-state">Everything you have is in progress. Nothing left on the board.</div>';
   }
   boardEl.innerHTML = html;
 
   bindQuestActions(boardEl);
 
-  // Each tier sorts independently, so drag-sorting is scoped to one tier's grid.
+  // Each section sorts independently, so drag-sorting is scoped to one grid.
   boardEl.querySelectorAll(".grid").forEach(function (grid) {
     enableDragSort(grid, persistQuestOrder);
   });
@@ -197,6 +317,12 @@ function persistQuestOrder(ids) {
   window.questLog.reorderQuests(ids).then(refetchQuests).catch(function () {});
 }
 
+function rerender() {
+  renderBoard(latestDocs);
+  // The In Progress block lives outside the board but inside the same filter.
+  if (onChange) onChange();
+}
+
 function ingest(docs) {
   docs = (docs || []).filter(function (d) { return d.title; });
 
@@ -204,10 +330,30 @@ function ingest(docs) {
   docs.forEach(function (d) { (d.tags || []).forEach(function (t) { tagSet[t] = true; }); });
   allTags = Object.keys(tagSet).sort();
 
+  // Drop any active tag that no longer exists on anything.
+  activeTags = activeTags.filter(function (t) { return allTags.indexOf(t) !== -1; });
+
   latestDocs = docs;
   renderFilters();
   renderBoard(docs);
   if (onChange) onChange();
+}
+
+// Shown right under the Scope select, at the moment you're committing to one.
+function renderScopeNote() {
+  if (!scopeNoteEl) return;
+  var record = scopeRecord(latestDocs, questTierEl.value);
+
+  if (!record) {
+    scopeNoteEl.textContent = "";
+    scopeNoteEl.hidden = true;
+    return;
+  }
+
+  scopeNoteEl.textContent = "Your " + questTierEl.options[questTierEl.selectedIndex].text.split(" —")[0] +
+    " quests have taken " + record.days + (record.days === 1 ? " day" : " days") +
+    " on average (" + record.shipped + " shipped).";
+  scopeNoteEl.hidden = false;
 }
 
 function openQuestModal(quest) {
@@ -215,9 +361,10 @@ function openQuestModal(quest) {
   questModalTitle.textContent = quest ? "Edit Quest" : "Add Quest";
   document.getElementById("questTitle").value = quest ? quest.title : "";
   document.getElementById("questHook").value = quest ? quest.hook : "";
-  document.getElementById("questTier").value = quest ? quest.tier : "weekend";
+  questTierEl.value = quest ? quest.tier : "weekend";
   document.getElementById("questTags").value = quest && quest.tags ? quest.tags.join(", ") : "";
   document.getElementById("questDod").value = quest ? quest.dod : "";
+  renderScopeNote();
   questModalOverlay.hidden = false;
 }
 
@@ -232,7 +379,7 @@ function onQuestFormSubmit(e) {
   var data = {
     title: document.getElementById("questTitle").value.trim(),
     hook: document.getElementById("questHook").value.trim(),
-    tier: document.getElementById("questTier").value,
+    tier: questTierEl.value,
     tags: document.getElementById("questTags").value.split(",")
       .map(function (t) { return t.trim(); })
       .filter(Boolean),

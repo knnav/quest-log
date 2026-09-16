@@ -22,19 +22,39 @@ function nextOrder(list) {
   return list.reduce((max, item) => Math.max(max, item.order || 0), 0) + 1;
 }
 
-// The bonfire burns on recently finished work, so completion is stamped here
-// rather than in the renderer: set on the way into the done state, cleared on
-// the way out. That makes completedAt a pure function of current status, so
-// re-clicking a status pill can't farm fuel.
+// Three different clocks, because they answer three different questions.
 //
-// An item already sitting in the done state keeps whatever it had — including
-// nothing. Quests finished before this existed stay undated instead of being
+//   completedAt — fuel. A pure function of current status: set on the way into
+//                 a terminal state, cleared on the way out, so re-clicking a
+//                 status pill can never farm the bonfire.
+//   finishedAt  — history. Set the first time something finishes and only ever
+//                 advanced by a *newer* finish. Never cleared, so a stray click
+//                 on a status pill can't destroy the day you shipped.
+//   startedAt   — the first time you actually began. Never overwritten, so
+//                 bouncing in and out of progress doesn't reset the clock.
+//
+// Anything already sitting in a terminal state keeps what it had, including
+// nothing: work finished before these existed stays undated rather than being
 // backfilled to now and lighting a fire nobody earned.
-function completionStamp(before, after, doneStatus) {
-  if (after.status !== doneStatus) return null;
-  if (before && before.status === doneStatus) return before.completedAt || null;
-  return new Date().toISOString();
+function stampTimes(before, after, terminalStatuses) {
+  const now = new Date().toISOString();
+  const wasTerminal = !!before && terminalStatuses.includes(before.status);
+  const isTerminal = terminalStatuses.includes(after.status);
+
+  let completedAt = null;
+  if (isTerminal) completedAt = wasTerminal ? (before.completedAt || null) : now;
+
+  let finishedAt = (before && before.finishedAt) || null;
+  if (isTerminal && !wasTerminal) finishedAt = now;
+
+  let startedAt = (before && before.startedAt) || null;
+  if (!startedAt && after.status === "in_progress") startedAt = now;
+
+  return { completedAt, finishedAt, startedAt };
 }
+
+const QUEST_TERMINAL = ["shipped", "let_go"];
+const TASK_TERMINAL = ["done"];
 
 function applyOrder(list, orderedIds) {
   orderedIds.forEach((id, index) => {
@@ -85,9 +105,10 @@ function createStore(storePath) {
       tags: Array.isArray(data.tags) ? data.tags : [],
       dod: data.dod || "",
       status: data.status || "backlog",
-      completedAt: completionStamp(null, { status: data.status || "backlog" }, "shipped"),
+      createdAt: new Date().toISOString(),
       order: nextOrder(store.quests),
     };
+    Object.assign(quest, stampTimes(null, quest, QUEST_TERMINAL));
     store.quests.push(quest);
     writeStore(store);
     return quest;
@@ -98,7 +119,7 @@ function createStore(storePath) {
     const idx = store.quests.findIndex((q) => q.id === id);
     if (idx === -1) throw new Error(`Quest not found: ${id}`);
     const merged = Object.assign({}, store.quests[idx], data, { id });
-    merged.completedAt = completionStamp(store.quests[idx], merged, "shipped");
+    Object.assign(merged, stampTimes(store.quests[idx], merged, QUEST_TERMINAL));
     store.quests[idx] = merged;
     writeStore(store);
     return merged;
@@ -128,9 +149,10 @@ function createStore(storePath) {
       title: data.title || "",
       note: data.note || "",
       status: data.status || "backlog",
-      completedAt: completionStamp(null, { status: data.status || "backlog" }, "done"),
+      createdAt: new Date().toISOString(),
       order: nextOrder(store.tasks),
     };
+    Object.assign(task, stampTimes(null, task, TASK_TERMINAL));
     store.tasks.push(task);
     writeStore(store);
     return task;
@@ -141,7 +163,7 @@ function createStore(storePath) {
     const idx = store.tasks.findIndex((s) => s.id === id);
     if (idx === -1) throw new Error(`Task not found: ${id}`);
     const merged = Object.assign({}, store.tasks[idx], data, { id });
-    merged.completedAt = completionStamp(store.tasks[idx], merged, "done");
+    Object.assign(merged, stampTimes(store.tasks[idx], merged, TASK_TERMINAL));
     store.tasks[idx] = merged;
     writeStore(store);
     return merged;

@@ -11,6 +11,12 @@ export const DECAY_DAYS = 3;
 export const QUEST_WEIGHT = 3;
 export const TASK_WEIGHT = 1;
 
+// Deciding you are not going to do something is a real decision that closes a
+// real loop, so it burns — just not as hot as finishing. You get kindling for
+// the honesty, and you can only let go of something you already had, so this
+// can't be farmed by piling up quests.
+export const LET_GO_WEIGHT = 1;
+
 // Fuel needed to reach stages 1..4. Stage 0 is embers, and is always reachable.
 export const STAGE_THRESHOLDS = [1, 3, 6, 10];
 
@@ -56,17 +62,58 @@ export function stageFor(fuel) {
 }
 
 // Collects the fields the fuel model needs from both item types, applying each
-// type's own done-status — quests ship, tasks are done.
+// type's own terminal states — quests ship or are let go, tasks are done.
 export function completionEntries(quests, tasks) {
   var fromQuests = (quests || [])
-    .filter(function (q) { return q.status === "shipped" && q.completedAt; })
-    .map(function (q) { return { completedAt: q.completedAt, weight: QUEST_WEIGHT }; });
+    .filter(function (q) { return q.completedAt && (q.status === "shipped" || q.status === "let_go"); })
+    .map(function (q) {
+      return {
+        completedAt: q.completedAt,
+        weight: q.status === "let_go" ? LET_GO_WEIGHT : QUEST_WEIGHT
+      };
+    });
 
   var fromTasks = (tasks || [])
     .filter(function (s) { return s.status === "done" && s.completedAt; })
     .map(function (s) { return { completedAt: s.completedAt, weight: TASK_WEIGHT }; });
 
   return fromQuests.concat(fromTasks);
+}
+
+// How long, on average, quests of a given scope actually took — measured from
+// the day you started to the day you finished. The anti-self-deception number:
+// you said Weekend, the record says otherwise.
+export function scopeRecord(quests, tier) {
+  var spans = (quests || [])
+    .filter(function (q) {
+      return q.tier === tier && q.status === "shipped" && q.startedAt && q.finishedAt;
+    })
+    .map(function (q) {
+      return new Date(q.finishedAt).getTime() - new Date(q.startedAt).getTime();
+    })
+    .filter(function (ms) { return isFinite(ms) && ms >= 0; });
+
+  if (!spans.length) return null;
+
+  var mean = spans.reduce(function (a, b) { return a + b; }, 0) / spans.length;
+  return { shipped: spans.length, days: Math.max(1, Math.round(mean / MS_PER_DAY)) };
+}
+
+// The thing that has been waiting longest without being started.
+export function oldestWaiting(quests, now) {
+  var nowMs = now instanceof Date ? now.getTime() : Date.now();
+  var oldest = null;
+
+  (quests || []).forEach(function (q) {
+    if (q.status !== "backlog" || !q.createdAt) return;
+    var ms = new Date(q.createdAt).getTime();
+    if (!isFinite(ms)) return;
+    if (!oldest || ms < oldest.ms) {
+      oldest = { ms: ms, title: q.title, days: Math.floor((nowMs - ms) / MS_PER_DAY) };
+    }
+  });
+
+  return oldest;
 }
 
 export function lastCompletedAt(entries) {
