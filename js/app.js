@@ -2,8 +2,9 @@ import { initTheme } from "./theme.js";
 import { initTitlebar } from "./titlebar.js";
 import { initMotd } from "./motd.js";
 import {
-  initQuests, loadQuests, cardHtml, bindQuestActions, getInProgressQuests,
-  openCreateQuest, getAllQuests, getStatusCounts as questCounts
+  initQuests, loadQuests, refetchQuests, refreshSessions, getSessions, cardHtml,
+  bindQuestActions, getInProgressQuests, openCreateQuest, getAllQuests,
+  getStatusCounts as questCounts
 } from "./quests.js";
 import {
   initTasks, loadTasks, taskCardHtml, bindTaskActions,
@@ -15,6 +16,7 @@ import { initDetail } from "./detail.js";
 import { initTabs, showTab } from "./tabs.js";
 import { initHome, renderHome } from "./home.js";
 import { initGates } from "./gates.js";
+import { initSession, renderFocusQuests, renderToday } from "./session.js";
 
 function renderProgress() {
   var section = document.getElementById("questsInProgress");
@@ -25,6 +27,8 @@ function renderProgress() {
   grid.innerHTML = inProgress.map(cardHtml).join("");
   bindQuestActions(grid);
 
+  // What you can focus on is whatever is in flight, so it follows this.
+  renderFocusQuests();
   renderHome();
 }
 
@@ -91,6 +95,17 @@ function syncCreateButton(tab) {
 initTabs(syncCreateButton);
 initDetail();
 initGates();
+
+// A finished session changes both the worked-time record and today's tally.
+initSession({
+  quests: getAllQuests,
+  onEnded: function () {
+    refreshSessions().then(function () {
+      renderToday(getSessions());
+      return refetchQuests();
+    });
+  }
+});
 initHome(homeData);
 initQuests(renderProgress);
 initTasks(renderTasks);
@@ -98,7 +113,10 @@ initTasks(renderTasks);
 // The motd pool has to be in hand before the first home render, or the footer
 // shows blank until something else happens to trigger a repaint.
 initMotd().then(renderHome);
+renderToday([]);
 
-Promise.all([loadQuests(), loadTasks()]).catch(function () {
+Promise.all([loadQuests(), loadTasks()]).then(function () {
+  renderToday(getSessions());
+}).catch(function () {
   document.getElementById("board").innerHTML = '<div class="empty-state">Could not load the quest log right now.</div>';
 });

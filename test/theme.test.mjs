@@ -137,3 +137,34 @@ test("clicking outside the picker closes the menu", () => {
   click(dom, dom.window.document.body);
   assert.equal(menu.hidden, true);
 });
+
+
+// The mini window has no theme picker. initTheme() used to run head-first into
+// menuEl.innerHTML, throw, and take the rest of that module's setup with it —
+// which is why the timer showed --:-- and none of its buttons worked.
+function setupBare(html) {
+  const dom = new JSDOM(`<!doctype html><body>${html}</body>`, { url: "http://localhost/" });
+  globalThis.window = dom.window;
+  globalThis.document = dom.window.document;
+  globalThis.localStorage = dom.window.localStorage;
+  dom.window.matchMedia = () => ({
+    matches: true, addListener() {}, removeListener() {},
+    addEventListener() {}, removeEventListener() {},
+  });
+  return dom;
+}
+
+test("initTheme still applies colours in a document with no picker", () => {
+  const dom = setupBare('<p id="miniClock">--:--</p>');
+
+  assert.doesNotThrow(() => initTheme(), "a missing picker must not throw");
+  assert.ok(themeAttr(dom), "the window still gets a theme");
+});
+
+test("a document with a picker still wires the menu up", () => {
+  const dom = setup();
+  initTheme();
+
+  click(dom, dom.window.document.getElementById("themeMenuBtn"));
+  assert.equal(dom.window.document.getElementById("themeMenu").hidden, false);
+});

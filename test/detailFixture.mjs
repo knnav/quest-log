@@ -8,6 +8,7 @@ export const DETAIL_MODAL_HTML = `
       <div class="detail-rows" id="detailRows"></div>
       <button type="button" id="detailDeleteBtn">Delete</button>
       <button type="button" id="detailLetGoBtn">Let go</button>
+      <button type="button" id="detailSessionBtn">Start 25m</button>
       <button type="button" id="detailCloseBtn">Close</button>
       <button type="button" id="detailEditBtn">Edit</button>
     </div>

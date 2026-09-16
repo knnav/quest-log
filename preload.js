@@ -11,6 +11,29 @@ contextBridge.exposeInMainWorld("questLog", {
   updateTask: (id, data) => ipcRenderer.invoke("quest-log:update-task", id, data),
   deleteTask: (id) => ipcRenderer.invoke("quest-log:delete-task", id),
   reorderTasks: (ids) => ipcRenderer.invoke("quest-log:reorder-tasks", ids),
+  listSessions: () => ipcRenderer.invoke("quest-log:list-sessions"),
+});
+
+contextBridge.exposeInMainWorld("session", {
+  start: (options) => ipcRenderer.invoke("session:start", options),
+  pause: () => ipcRenderer.invoke("session:pause"),
+  resume: () => ipcRenderer.invoke("session:resume"),
+  stop: () => ipcRenderer.invoke("session:stop"),
+  get: () => ipcRenderer.invoke("session:get"),
+  onChange: (callback) => {
+    ipcRenderer.on("session:changed", (event, view) => callback(view));
+  },
+  onFinished: (callback) => {
+    ipcRenderer.on("session:finished", () => callback());
+  },
+});
+
+contextBridge.exposeInMainWorld("themeSync", {
+  set: (resolved) => ipcRenderer.send("theme:set", resolved),
+  get: () => ipcRenderer.invoke("theme:get"),
+  onChange: (callback) => {
+    ipcRenderer.on("theme:changed", (event, resolved) => callback(resolved));
+  },
 });
 
 contextBridge.exposeInMainWorld("motd", {

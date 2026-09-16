@@ -324,3 +324,54 @@ test("moving straight from shipped to let go keeps the original finish", () => {
   assert.equal(letGo.completedAt, shipped.completedAt, "terminal to terminal is not a fresh finish");
   assert.equal(letGo.finishedAt, shipped.finishedAt);
 });
+
+
+test("sessions record what was worked on, and survive a restart", () => {
+  const storePath = emptyStorePath();
+  const store = createStore(storePath);
+  const quest = store.createQuest({ title: "GB Emulator" });
+
+  const started = new Date(Date.now() - 25 * 60000).toISOString();
+  const session = store.recordSession({ questId: quest.id, startedAt: started, completed: true });
+
+  assert.ok(session.id);
+  assert.equal(session.questId, quest.id);
+  assert.equal(session.startedAt, started);
+  assert.ok(Date.parse(session.endedAt));
+  assert.equal(session.completed, true);
+
+  const reopened = createStore(storePath);
+  assert.deepEqual(reopened.getSessions().map((s) => s.id), [session.id]);
+});
+
+// Stopping early is still work, so it is still recorded — just not as completed.
+test("a session stopped early is recorded as incomplete", () => {
+  const store = createStore(emptyStorePath());
+  const session = store.recordSession({
+    questId: "q1",
+    startedAt: new Date(Date.now() - 6 * 60000).toISOString(),
+  });
+
+  assert.equal(session.completed, false);
+  assert.ok(session.endedAt);
+});
+
+test("a store written before sessions existed gets an empty list", () => {
+  const storePath = tempStorePath();
+  fs.writeFileSync(storePath, JSON.stringify({ quests: [], tasks: [] }));
+
+  const store = createStore(storePath);
+  assert.deepEqual(store.getSessions(), []);
+});
+
+// The bonfire is an outcome mechanic. If sessions fed it you could sit at a
+// roaring fire having shipped nothing, which is the failure this app fights.
+test("recording a session does not stamp any completion time", () => {
+  const store = createStore(emptyStorePath());
+  const quest = store.createQuest({ title: "Q" });
+  store.recordSession({ questId: quest.id, startedAt: new Date().toISOString(), completed: true });
+
+  const after = store.getQuests().find((q) => q.id === quest.id);
+  assert.equal(after.completedAt, null, "sessions feed the record, never the fire");
+  assert.equal(after.finishedAt, null);
+});

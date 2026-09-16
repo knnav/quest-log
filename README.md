@@ -35,7 +35,17 @@ The headings say `Weekend`, `Fortnight`, `Ongoing` and nothing else — "Tier 2"
 
 **A nudge when too much is in flight.** Start a fourth quest while three are open and the app asks which one you're actually working on, and offers to bench the rest. It never blocks you — the failure mode this app fights is *starting* things, and a tool that shames you is worse than one that says nothing.
 
-**It knows how long your scopes really take.** Pick a scope in the quest form and it tells you: *"Your Weekend quests have taken 6 days on average (3 shipped)."* Measured from the day you started to the day you finished. Information, not judgement.
+**A Focus tab.** Its own screen, not a button bolted to every card — a timer is a different job from a backlog, and mixing them made both worse. Pick 15, 25 or 50 minutes, optionally pick what you're working on, and start. A small always-on-top window appears in the corner with the countdown and pause/stop; drag it wherever you like. It sits above other windows, including full-screen ones, so the timer is still there when the app isn't. The Focus tab carries a small ember while a session runs.
+
+The quest picker lists only what's **already in progress**. Starting a quest is a decision that belongs on the Quests tab, behind the WIP nudge — not a side effect of choosing something from a dropdown. You can also just run a timer with no quest attached.
+
+When the session ends the app **plays a soft chime** rather than firing a system notification: no permission prompt, no OS plumbing, nothing to configure, and it still reaches you when the window is buried. It's three sine tones generated on the spot, so there's no audio file in the bundle and still no network calls. Stopping early records the session too — partial work is still work.
+
+The timer lives in the main process, not in either window, so there is exactly one clock. The bar in the main window and the countdown in the mini window can't drift apart, and it keeps running while the app is minimised.
+
+**Sessions never feed the fire.** They feed the record. Fuel stays outcome-only — otherwise you could sit at a roaring bonfire having shipped nothing all week, which is the exact failure this app exists to fight.
+
+**It knows how long your scopes really take.** Pick a scope in the quest form and it tells you: *"Your Weekend quests have taken 6 days on average (3 shipped, 4h 20m of tracked work)."* Elapsed days were always the soft number — six days can be two hours — so the sessions give you the honest one alongside it. Information, not judgement.
 
 **Search and stacking tags.** A search box over titles, hooks, definitions of done and tags. Tag quests however you like (`Elixir`, `Gaming`, `Cursed`); the chips stack, so each one you add narrows further rather than replacing the last. Both sit at the top of the Quests tab and filter everything in it, In Progress included.
 
@@ -43,7 +53,7 @@ The headings say `Weekend`, `Fortnight`, `Ongoing` and nothing else — "Tier 2"
 
 **The message of the day knows where you are.** Nothing in flight, too much in flight, a cold fire, a roaring one — the line changes to match. Still plain text in `assets/motd.json`, now grouped into pools.
 
-**Three tabs.** Home, Quests, Tasks. Each tab holds In Progress, then the backlog, then the Hall of Fame. The app remembers which one you were on.
+**Four tabs.** Home, Quests, Tasks, Focus. Each tab holds In Progress, then the backlog, then the Hall of Fame. The app remembers which one you were on.
 
 **The bonfire.** The home screen is a point of rest: counts for both kinds of work, how long it's been since you last finished something, the time, and a fire in the middle.
 
@@ -149,12 +159,18 @@ Vanilla JS. No framework, no bundler, no build step — just ES modules loaded s
 main.js            Electron main process, window creation, IPC handlers
 preload.js         contextBridge surface (no raw fs or ipcRenderer in the renderer)
 store.js           JSON persistence with atomic writes
-index.html         Markup
 assets/css/        Styles
 assets/motd.json   Message-of-the-day pool
 fonts/             Self-hosted JetBrains Mono + Press Start 2P
-js/                Renderer modules (app, tabs, home, fire, gates, quests, tasks,
-                   detail, dragSort, theme, titlebar, motd)
+index.html         Main window markup
+mini.html          The always-on-top session timer
+js/                Renderer modules (app, tabs, home, fire, gates, session,
+                   sessionFormat, mini, quests, tasks, detail, dragSort,
+                   theme, titlebar, motd)
+
+The two windows share one clock: the timer lives in the main process and both
+just draw it. The theme is relayed the same way — the mini window has no picker
+of its own, so it's told which theme to wear.
 test/              Tests
 ```
 

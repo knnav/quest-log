@@ -19,6 +19,7 @@
     </button>
     <button class="tab" data-tab="quests" role="tab" aria-selected="false">Quests</button>
     <button class="tab" data-tab="tasks" role="tab" aria-selected="false">Tasks</button>
+    <button class="tab" data-tab="focus" role="tab" aria-selected="false">Focus<span class="tab-dot" id="focusDot" hidden></span></button>
   </nav>
   <div class="chrome-actions">
     <button class="btn primary" id="addQuestBtn" title="Create a quest (Ctrl+N)">+ Quest</button>
@@ -98,6 +99,35 @@
     <div id="board">
       <div class="loading">loading quest log…</div>
     </div>
+  </section>
+
+  <section class="screen focus" id="focusScreen" hidden>
+    <div class="focus-face">
+      <p class="focus-clock" id="focusClock">25:00</p>
+      <p class="focus-target" id="focusTarget">Nothing in particular</p>
+    </div>
+
+    <div class="focus-lengths" id="focusLengths">
+      <button class="chip" data-minutes="1">1m</button>
+      <button class="chip" data-minutes="15">15m</button>
+      <button class="chip active" data-minutes="25">25m</button>
+      <button class="chip" data-minutes="50">50m</button>
+    </div>
+
+    <div class="field">
+      <label for="focusQuest">Working on</label>
+      <select id="focusQuest">
+        <option value="">Nothing in particular</option>
+      </select>
+    </div>
+
+    <div class="focus-actions">
+      <button class="btn primary focus-go" id="focusStart">Start</button>
+      <button class="btn focus-go" id="focusToggle" hidden>Pause</button>
+      <button class="btn danger focus-go" id="focusStop" hidden>Stop</button>
+    </div>
+
+    <p class="focus-today" id="focusToday"></p>
   </section>
 
   <section class="screen" id="tasksScreen" hidden>

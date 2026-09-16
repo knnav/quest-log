@@ -3,12 +3,14 @@ import { escapeHtml } from "./utils.js";
 import { enableDragSort } from "./dragSort.js";
 import { bindCardDetail } from "./detail.js";
 import { scopeRecord } from "./fire.js";
+import { formatWorked } from "./sessionFormat.js";
 import { confirmShip, confirmWip } from "./gates.js";
 
 var allTags = [];
 var activeTags = [];
 var searchTerm = "";
 var latestDocs = [];
+var latestSessions = [];
 var editingQuestId = null;
 var onChange = null;
 
@@ -55,7 +57,22 @@ export function openCreateQuest() {
 }
 
 export function loadQuests() {
-  return window.questLog.listQuests().then(ingest);
+  return refreshSessions().then(function () {
+    return window.questLog.listQuests().then(ingest);
+  });
+}
+
+// Worked time only changes when a session ends, so this is pulled on load and
+// whenever one finishes rather than on every render.
+export function getSessions() {
+  return latestSessions;
+}
+
+export function refreshSessions() {
+  if (!window.questLog.listSessions) return Promise.resolve();
+  return window.questLog.listSessions().then(function (rows) {
+    latestSessions = rows || [];
+  }).catch(function () {});
 }
 
 export function refetchQuests() {
@@ -342,7 +359,7 @@ function ingest(docs) {
 // Shown right under the Scope select, at the moment you're committing to one.
 function renderScopeNote() {
   if (!scopeNoteEl) return;
-  var record = scopeRecord(latestDocs, questTierEl.value);
+  var record = scopeRecord(latestDocs, questTierEl.value, latestSessions);
 
   if (!record) {
     scopeNoteEl.textContent = "";
@@ -350,9 +367,10 @@ function renderScopeNote() {
     return;
   }
 
-  scopeNoteEl.textContent = "Your " + questTierEl.options[questTierEl.selectedIndex].text.split(" —")[0] +
+  var worked = record.workedMs ? ", " + formatWorked(record.workedMs) + " of tracked work" : "";
+  scopeNoteEl.textContent = "Your " + questTierEl.options[questTierEl.selectedIndex].text.split(" \u2014")[0] +
     " quests have taken " + record.days + (record.days === 1 ? " day" : " days") +
-    " on average (" + record.shipped + " shipped).";
+    " on average (" + record.shipped + " shipped" + worked + ").";
   scopeNoteEl.hidden = false;
 }
 

@@ -83,7 +83,11 @@ export function completionEntries(quests, tasks) {
 // How long, on average, quests of a given scope actually took — measured from
 // the day you started to the day you finished. The anti-self-deception number:
 // you said Weekend, the record says otherwise.
-export function scopeRecord(quests, tier) {
+export function scopeRecord(quests, tier, sessions) {
+  var matching = (quests || []).filter(function (q) {
+    return q.tier === tier && q.status === "shipped" && q.startedAt && q.finishedAt;
+  });
+
   var spans = (quests || [])
     .filter(function (q) {
       return q.tier === tier && q.status === "shipped" && q.startedAt && q.finishedAt;
@@ -96,7 +100,21 @@ export function scopeRecord(quests, tier) {
   if (!spans.length) return null;
 
   var mean = spans.reduce(function (a, b) { return a + b; }, 0) / spans.length;
-  return { shipped: spans.length, days: Math.max(1, Math.round(mean / MS_PER_DAY)) };
+
+  // Elapsed days were always the soft number; worked time is the honest one.
+  var ids = {};
+  matching.forEach(function (q) { ids[q.id] = true; });
+  var workedMs = (sessions || []).reduce(function (total, s) {
+    if (!ids[s.questId] || !s.startedAt || !s.endedAt) return total;
+    var ms = new Date(s.endedAt).getTime() - new Date(s.startedAt).getTime();
+    return isFinite(ms) && ms > 0 ? total + ms : total;
+  }, 0);
+
+  return {
+    shipped: spans.length,
+    days: Math.max(1, Math.round(mean / MS_PER_DAY)),
+    workedMs: workedMs
+  };
 }
 
 // The thing that has been waiting longest without being started.

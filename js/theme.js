@@ -49,10 +49,16 @@ function resolveTheme(id) {
 }
 
 function applyTheme() {
-  document.documentElement.setAttribute("data-theme", resolveTheme(selectedTheme()));
+  var resolved = resolveTheme(selectedTheme());
+  document.documentElement.setAttribute("data-theme", resolved);
+  // Other windows have their own document and can't see this one's choice, so
+  // the main process relays it. Without this the mini window sits on whatever
+  // the system default resolved to.
+  if (window.themeSync) window.themeSync.set(resolved);
 }
 
 function renderMenu() {
+  if (!menuEl) return;
   var current = selectedTheme();
   menuEl.innerHTML = THEMES.map(function (t) {
     return '<button type="button" class="theme-option' + (t.id === current ? " active" : "") +
@@ -73,11 +79,23 @@ function closeMenu() {
   buttonEl.setAttribute("aria-expanded", "false");
 }
 
+// Applies the theme and, where the document actually has a picker, wires it up.
+// A window without one (the mini timer) still gets the colours — it must never
+// throw partway through, or nothing after this call in that module ever runs.
 export function initTheme() {
   buttonEl = document.getElementById("themeMenuBtn");
   menuEl = document.getElementById("themeMenu");
 
   applyTheme();
+
+  if (window.themeSync) {
+    window.themeSync.onChange(function (resolved) {
+      if (resolved) document.documentElement.setAttribute("data-theme", resolved);
+    });
+  }
+
+  if (!buttonEl || !menuEl) return;
+
   renderMenu();
 
   buttonEl.addEventListener("click", function (e) {

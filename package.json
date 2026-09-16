@@ -1,7 +1,7 @@
 {
   "name": "quest-log-app",
   "version": "1.0.0",
-  "description": "Quest Log — local Electron board for scoped side-project drops.",
+  "description": "Quest Log \u2014 local Electron board for scoped side-project drops.",
   "main": "main.js",
   "license": "MIT",
   "private": true,
@@ -27,15 +27,20 @@
       "preload.js",
       "store.js",
       "index.html",
+      "mini.html",
       "js/**/*",
       "assets/**/*",
       "fonts/**/*"
     ],
     "win": {
-      "target": ["zip"]
+      "target": [
+        "zip"
+      ]
     },
     "mac": {
-      "target": ["zip"],
+      "target": [
+        "zip"
+      ],
       "category": "public.app-category.productivity"
     }
   }

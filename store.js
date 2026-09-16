@@ -16,6 +16,7 @@ const DEFAULT_STORE = {
     },
   ],
   tasks: [],
+  sessions: [],
 };
 
 function nextOrder(list) {
@@ -78,6 +79,7 @@ function createStore(storePath) {
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed.quests)) parsed.quests = [];
       if (!Array.isArray(parsed.tasks)) parsed.tasks = [];
+      if (!Array.isArray(parsed.sessions)) parsed.sessions = [];
       return parsed;
     } catch (err) {
       return JSON.parse(JSON.stringify(DEFAULT_STORE));
@@ -182,6 +184,28 @@ function createStore(storePath) {
     return store.tasks;
   }
 
+  // A session is a stretch of actual work against one quest. Elapsed calendar
+  // days were always a lie — six days can be two hours — so this is what makes
+  // the scope record mean anything. Sessions never feed the bonfire: fuel stays
+  // outcome-only, or the fire would start rewarding time spent.
+  function getSessions() {
+    return readStore().sessions;
+  }
+
+  function recordSession(data) {
+    const store = readStore();
+    const session = {
+      id: crypto.randomUUID(),
+      questId: data.questId || null,
+      startedAt: data.startedAt,
+      endedAt: data.endedAt || new Date().toISOString(),
+      completed: !!data.completed,
+    };
+    store.sessions.push(session);
+    writeStore(store);
+    return session;
+  }
+
   return {
     getQuests,
     createQuest,
@@ -193,6 +217,8 @@ function createStore(storePath) {
     updateTask,
     deleteTask,
     reorderTasks,
+    getSessions,
+    recordSession,
   };
 }
 
@@ -218,4 +244,6 @@ module.exports = {
   updateTask: (...args) => getDefaultStore().updateTask(...args),
   deleteTask: (...args) => getDefaultStore().deleteTask(...args),
   reorderTasks: (...args) => getDefaultStore().reorderTasks(...args),
+  getSessions: (...args) => getDefaultStore().getSessions(...args),
+  recordSession: (...args) => getDefaultStore().recordSession(...args),
 };
