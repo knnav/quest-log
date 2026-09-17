@@ -146,17 +146,28 @@ function hearthBounds() {
   return onScreen(Object.assign({}, HEARTH, saved || fallback));
 }
 
-function boardBounds() {
-  const saved = store.getUi().board;
-  if (saved) return onScreen(saved);
-
+function centredOnPrimary(size) {
   const area = screen.getPrimaryDisplay().workArea;
   return {
-    x: Math.round(area.x + (area.width - BOARD.width) / 2),
-    y: Math.round(area.y + (area.height - BOARD.height) / 2),
-    width: BOARD.width,
-    height: BOARD.height,
+    x: Math.round(area.x + (area.width - size.width) / 2),
+    y: Math.round(area.y + (area.height - size.height) / 2),
+    width: size.width,
+    height: size.height,
   };
+}
+
+function boardBounds() {
+  const saved = store.getUi().board;
+  return saved ? onScreen(saved) : centredOnPrimary(BOARD);
+}
+
+// Where the board opens at launch: always the primary display. The saved
+// position is still honoured for mode switches within a run, but a board last
+// left on a side monitor shouldn't come back there on the next start.
+function launchBounds() {
+  const saved = boardBounds();
+  const onPrimary = screen.getDisplayMatching(saved).id === screen.getPrimaryDisplay().id;
+  return onPrimary ? saved : centredOnPrimary(saved);
 }
 
 // Remembers the geometry of whichever face is showing. Called before every
@@ -321,7 +332,7 @@ function confirmQuit() {
 function createWindow() {
   // Bounded rather than fixed: the board can grow to two columns of cards and
   // no further, so reaching for more work still costs a scroll.
-  const bounds = boardBounds();
+  const bounds = launchBounds();
   const win = new BrowserWindow({
     x: bounds.x,
     y: bounds.y,
