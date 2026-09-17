@@ -25,6 +25,7 @@ import { enableDragSort } from "./ui/dragSort.js";
 import { initDetail } from "./ui/detail.js";
 import { initTabs, showTab } from "./ui/tabs.js";
 import { initHome, renderHome, armLedger } from "./features/home.js";
+import { initLevelUp } from "./ui/levelUp.js";
 import { initGates } from "./features/gates.js";
 import { initSession, renderFocusQuests, renderToday, chime } from "./features/session.js";
 import { initHearth } from "./features/hearth.js";
@@ -138,6 +139,7 @@ initSession({
     });
   }
 });
+initLevelUp();
 initHome(homeData, { onLevelUp: chime });
 initHearth();
 initQuests(renderProgress, renderProgressGrid);

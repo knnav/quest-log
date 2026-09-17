@@ -676,9 +676,8 @@ body.is-panel { background: var(--panel); }
 
 /* ---- the XP ledger ---- */
 
-/* Level, bar, count in one row. The bar fills in the fire's colour and flashes
-   on a level-up (home.js toggles is-levelup) — the only place the ledger
-   makes a fuss, and only for a moment. */
+/* Level, bar, count in one row. The bar fills in the fire's colour; the fuss
+   on a level-up is the card (below), not the row. */
 .xp {
   display: flex;
   align-items: center;
@@ -717,19 +716,152 @@ body.is-panel { background: var(--panel); }
   white-space: nowrap;
 }
 
-.xp.is-levelup .xp-level { color: var(--fire-outer); }
-.xp.is-levelup .xp-fill { animation: xp-flash 0.5s ease-in-out 3; }
-
-@keyframes xp-flash {
-  50% { opacity: 0.2; }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .xp-fill { transition: none; }
-  .xp.is-levelup .xp-fill { animation: none; }
 }
 
 .hearth-xp { margin-top: 6px; }
+
+/* ---- the level-up card ---- */
+
+/* Short and loud: the window goes warm, the words punch in, sparks fly out,
+   all of it gone in under two seconds. Sized against the window's width so
+   the same markup works in the 220px hearth and the board. Above the modals:
+   a level-up mid-form is still a level-up. */
+.levelup {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  overflow: hidden;
+  --lu: clamp(4px, 2.4vw, 11px);
+}
+
+.levelup[hidden] { display: none; }
+
+/* Two layers: the room dims so the card carries on a light theme too, and
+   the fire's glow flares through the middle of it and dies away first. */
+.levelup::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  opacity: 0;
+}
+
+.levelup.is-on::before { animation: levelup-dim 1.8s ease forwards; }
+
+@keyframes levelup-dim {
+  0%   { opacity: 0; }
+  12%  { opacity: 1; }
+  75%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.levelup-flash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, var(--fire-outer) 0%, var(--fire-glow) 30%, transparent 65%);
+  opacity: 0;
+}
+
+.levelup.is-on .levelup-flash { animation: levelup-flash 0.8s ease-out forwards; }
+
+@keyframes levelup-flash {
+  0%   { opacity: 0; transform: scale(0.4); }
+  15%  { opacity: 0.9; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.3); }
+}
+
+.levelup-card {
+  position: relative;
+  text-align: center;
+  opacity: 0;
+  transform: scale(0.6);
+}
+
+.levelup.is-on .levelup-card { animation: levelup-card 1.8s cubic-bezier(0.2, 1.4, 0.4, 1) forwards; }
+
+@keyframes levelup-card {
+  0%   { opacity: 0; transform: scale(0.6); }
+  18%  { opacity: 1; transform: scale(1.12); }
+  30%  { transform: scale(1); }
+  78%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.06); }
+}
+
+.levelup-title {
+  margin: 0;
+  font-family: "Press Start 2P", monospace;
+  font-size: calc(3.2 * var(--lu));
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+  color: var(--fire-core);
+  text-shadow:
+    calc(0.4 * var(--lu)) calc(0.4 * var(--lu)) 0 var(--fire-outer),
+    0 0 calc(1.5 * var(--lu)) var(--fire-mid),
+    0 0 calc(5 * var(--lu)) var(--fire-outer);
+}
+
+.levelup-level {
+  margin: calc(1.2 * var(--lu)) 0 0;
+  font-family: "Press Start 2P", monospace;
+  font-size: calc(2 * var(--lu));
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--fire-outer);
+  border-radius: 6px;
+  padding: calc(0.9 * var(--lu)) calc(1.6 * var(--lu));
+  display: inline-block;
+  box-shadow: 0 0 calc(2.5 * var(--lu)) var(--fire-glow);
+}
+
+/* Twelve motes from the centre, each on its own bearing (--a, inline), the
+   small ones a beat behind. They ride the same unit as the text so the burst
+   is the size of the words. */
+.levelup-spark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(1.1 * var(--lu));
+  height: calc(1.1 * var(--lu));
+  margin: calc(-0.55 * var(--lu)) 0 0 calc(-0.55 * var(--lu));
+  background: var(--fire-core);
+  box-shadow: 0 0 0 calc(0.4 * var(--lu)) var(--fire-mid), 0 0 calc(1.5 * var(--lu)) var(--fire-outer);
+  opacity: 0;
+  --reach: calc(30 * var(--lu));
+}
+
+.levelup-spark.small {
+  width: calc(0.7 * var(--lu));
+  height: calc(0.7 * var(--lu));
+  --reach: calc(20 * var(--lu));
+}
+
+.levelup.is-on .levelup-spark { animation: levelup-spark 0.9s ease-out 0.08s forwards; }
+.levelup.is-on .levelup-spark.small { animation-delay: 0.2s; animation-duration: 0.8s; }
+
+@keyframes levelup-spark {
+  0%   { opacity: 0; transform: rotate(var(--a)) translateX(0) scale(1); }
+  10%  { opacity: 1; }
+  100% { opacity: 0; transform: rotate(var(--a)) translateX(var(--reach)) scale(0.3); }
+}
+
+/* Reduced motion: the card fades in and out where it stands; no burst. */
+@media (prefers-reduced-motion: reduce) {
+  .levelup.is-on .levelup-card { animation: levelup-card-still 1.8s ease forwards; }
+  .levelup.is-on .levelup-flash { animation: levelup-flash 1s ease-out forwards; }
+  .levelup.is-on .levelup-spark { animation: none; }
+  @keyframes levelup-card-still {
+    0%   { opacity: 0; transform: none; }
+    15%  { opacity: 1; transform: none; }
+    80%  { opacity: 1; transform: none; }
+    100% { opacity: 0; transform: none; }
+  }
+}
 
 /* ---- since / clock ---- */
 

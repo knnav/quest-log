@@ -309,4 +309,27 @@
   </div>
 </div>
 
+<!-- The level-up card: over everything, briefly, and in both modes (it is
+     outside .app-scroll and .hearth-view on purpose). ui/levelUp.js runs it;
+     home.js asks for it. Never interactive, so it can't be in the way. -->
+<div class="levelup" id="levelUp" hidden aria-live="polite">
+  <span class="levelup-flash"></span>
+  <span class="levelup-spark" style="--a: 0deg"></span>
+  <span class="levelup-spark" style="--a: 45deg"></span>
+  <span class="levelup-spark" style="--a: 90deg"></span>
+  <span class="levelup-spark" style="--a: 135deg"></span>
+  <span class="levelup-spark" style="--a: 180deg"></span>
+  <span class="levelup-spark" style="--a: 225deg"></span>
+  <span class="levelup-spark" style="--a: 270deg"></span>
+  <span class="levelup-spark" style="--a: 315deg"></span>
+  <span class="levelup-spark small" style="--a: 22deg"></span>
+  <span class="levelup-spark small" style="--a: 112deg"></span>
+  <span class="levelup-spark small" style="--a: 202deg"></span>
+  <span class="levelup-spark small" style="--a: 292deg"></span>
+  <div class="levelup-card">
+    <p class="levelup-title">Level up!</p>
+    <p class="levelup-level" id="levelUpLevel">Lv 2</p>
+  </div>
+</div>
+
 <script type="module" src="js/app.js"></script>

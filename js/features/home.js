@@ -14,10 +14,11 @@ import {
 import { totalXp, levelFor, growthFor } from "../core/xp.js";
 import { oldestWaiting } from "../core/records.js";
 import { pickMotd, motdHtml } from "./motd.js";
+import { showLevelUp } from "../ui/levelUp.js";
 import { WIP_LIMIT, STALE_DAYS } from "../core/domain.js";
 
 var bonfireEls, stageLabelEls, motdEls, bonfireEl, staleEl;
-var xpEls, xpLevelEls, xpFillEls, xpCountEls;
+var xpLevelEls, xpFillEls, xpCountEls;
 var sinceValueEl, sinceLabelEl, clockEl;
 var questStatsEl, taskStatsEl;
 var getData = null;
@@ -29,11 +30,9 @@ var tickTimer = null;
 // separate loads at boot, and a threshold crossed between the two would
 // otherwise ring as if it had just happened.
 var lastLevel = null;
-var levelUpTimer = null;
-var LEVEL_UP_MS = 2000;
 
-// `hooks.onLevelUp` is called once each time the level rises between renders
-// — app.js hands it the session chime, since the ledger has no sound of its
+// A level-up shows the card (ui/levelUp.js) and calls `hooks.onLevelUp` —
+// app.js hands it the session chime, since the ledger has no sound of its
 // own and one chime for "something finished" is enough vocabulary.
 export function initHome(dataSource, hooks) {
   getData = dataSource;
@@ -47,7 +46,6 @@ export function initHome(dataSource, hooks) {
   // Likewise the quote under the stage label: the hearth face shows the same one.
   motdEls = document.querySelectorAll("[data-motd]");
   // And the ledger: one row under the stage label, one in the hearth's corner.
-  xpEls = document.querySelectorAll("[data-xp]");
   xpLevelEls = document.querySelectorAll("[data-xp-level]");
   xpFillEls = document.querySelectorAll("[data-xp-fill]");
   xpCountEls = document.querySelectorAll("[data-xp-count]");
@@ -107,11 +105,20 @@ export function renderHome() {
 
   var entries = completionEntries(data.quests, data.tasks);
   var stage = stageFor(fuelFor(entries, now));
+  var ledger = levelFor(totalXp(data.quests, data.tasks));
 
-  bonfireEls.forEach(function (el) { el.setAttribute("data-stage", String(stage)); });
+  // The fire has two readings: its stage is the last three days, its size is
+  // the level — --growth scales its unit, so a level-40 embers is a bigger
+  // bed of coals than a level-1 blaze is a fire.
+  var growth = growthFor(ledger.level).toFixed(3);
+  bonfireEls.forEach(function (el) {
+    el.setAttribute("data-stage", String(stage));
+    el.style.setProperty("--growth", growth);
+  });
   stageLabelEls.forEach(function (el) { el.textContent = STAGE_LABELS[stage]; });
 
-  renderXp(levelFor(totalXp(data.quests, data.tasks)));
+  renderXp(ledger);
+  noteLevel(ledger);
 
   var lastMs = lastCompletedAt(entries);
   var since = elapsedLabel(lastMs, now);
@@ -132,33 +139,26 @@ export function renderHome() {
   motdEls.forEach(function (el) { el.innerHTML = html; });
 }
 
-// Paints the ledger into every copy of it, and marks a level-up for a moment.
-// The count reads "into / span" rather than the lifetime total: the number
-// that matters is how far to the next goal, and the total is on the bar.
+// Paints the ledger into every copy of it. The count reads "into / span"
+// rather than the lifetime total: the number that matters is how far to the
+// next goal, and the total is on the bar.
 function renderXp(ledger) {
-  // The level is also the size of the fire: --growth scales its unit, so a
-  // level-40 embers is a bigger bed of coals than a level-1 blaze is a fire.
-  var growth = growthFor(ledger.level).toFixed(3);
-  bonfireEls.forEach(function (el) { el.style.setProperty("--growth", growth); });
-
   xpLevelEls.forEach(function (el) { el.textContent = "Lv " + ledger.level; });
   xpFillEls.forEach(function (el) { el.style.width = Math.round(ledger.progress * 100) + "%"; });
   xpCountEls.forEach(function (el) {
     el.textContent = ledger.toNext ? ledger.into + " / " + ledger.span : "max";
   });
+}
 
+// A rise in level since the last render is the moment: the card, then the
+// hook. Silent until armLedger() has taken a baseline.
+function noteLevel(ledger) {
   if (lastLevel === null) return;
   var leveledUp = ledger.level > lastLevel;
   lastLevel = ledger.level;
   if (!leveledUp) return;
 
-  xpEls.forEach(function (el) { el.classList.add("is-levelup"); });
-  if (levelUpTimer) clearTimeout(levelUpTimer);
-  levelUpTimer = setTimeout(function () {
-    xpEls.forEach(function (el) { el.classList.remove("is-levelup"); });
-  }, LEVEL_UP_MS);
-  if (levelUpTimer && typeof levelUpTimer.unref === "function") levelUpTimer.unref();
-
+  showLevelUp(ledger.level);
   if (onLevelUp) onLevelUp(ledger);
 }
 

@@ -147,10 +147,10 @@ test("a threshold crossed between the two boot loads is not a level-up", async (
   const doc = dom.window.document;
 
   assert.equal(doc.getElementById("xp").querySelector("[data-xp-level]").textContent, "Lv 2");
-  assert.equal(doc.getElementById("xp").classList.contains("is-levelup"), false);
+  assert.equal(doc.getElementById("levelUp").hidden, true, "no card");
 });
 
-test("crossing a level threshold rings the chime and lights the ledger for a moment", async () => {
+test("crossing a level threshold rings the chime and shows the card", async () => {
   // Nine XP banked: one more is level 2.
   const long = new Date(Date.now() - 40 * DAY).toISOString();
   const quests = [1, 2, 3].map((n) => (
@@ -184,9 +184,13 @@ test("crossing a level threshold rings the chime and lights the ledger for a mom
   await new Promise((resolve) => setTimeout(resolve, 0));
 
   assert.equal(doc.getElementById("xp").querySelector("[data-xp-level]").textContent, "Lv 2");
-  assert.ok(doc.getElementById("xp").classList.contains("is-levelup"));
-  assert.ok(doc.querySelector("#hearthView [data-xp]").classList.contains("is-levelup"));
   assert.equal(rang, 3, "one triad");
+
+  // And the card, over everything, saying which level.
+  const card = doc.getElementById("levelUp");
+  assert.equal(card.hidden, false);
+  assert.ok(card.classList.contains("is-on"));
+  assert.equal(doc.getElementById("levelUpLevel").textContent, "Lv 2");
 });
 
 test("the quote is painted under the stage label and into the hearth face alike", async () => {

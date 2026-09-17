@@ -6,7 +6,7 @@
 // it testable by passing a fixed `now`.
 
 import { MS_PER_DAY, msOf } from "./dates.js";
-import { TASK_WORTH, LET_GO_WORTH, questWorth } from "./domain.js";
+import { TASK_WORTH, LET_GO_WORTH, questWorth, isQuestTerminal } from "./domain.js";
 
 export const DECAY_DAYS = 3;
 
@@ -53,7 +53,7 @@ export function stageFor(fuel) {
 // flickers.
 export function completionEntries(quests, tasks) {
   var fromQuests = (quests || [])
-    .filter(function (q) { return q.completedAt && (q.status === "shipped" || q.status === "let_go"); })
+    .filter(function (q) { return q.completedAt && isQuestTerminal(q.status); })
     .map(function (q) {
       return {
         completedAt: q.completedAt,

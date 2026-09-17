@@ -51,6 +51,12 @@ export const STATUS_LABEL = {
   let_go: "Let go"
 };
 
+// The quest outcomes: the two statuses a quest can finish in. store.js keeps
+// its own copy (it is CommonJS); keep them in step.
+export function isQuestTerminal(status) {
+  return status === "shipped" || status === "let_go";
+}
+
 export const TASK_STATUSES = ["backlog", "in_progress", "done"];
 
 export const TASK_STATUS_LABEL = { backlog: "Backlog", in_progress: "In Progress", done: "Done" };

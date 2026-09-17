@@ -7,7 +7,7 @@
 // is banked at write time: the total is recomputed from the record on every
 // render, the same way the fire is, so there is no counter to drift.
 
-import { TASK_WORTH, LET_GO_WORTH, questWorth } from "./domain.js";
+import { TASK_WORTH, LET_GO_WORTH, questWorth, isQuestTerminal } from "./domain.js";
 
 // Cumulative XP needed to *be* level n. Level 1 is the floor, MAX_LEVEL the
 // cap. RuneScape's shape: each level costs a fixed ratio more than the last,
@@ -24,20 +24,14 @@ export function xpStep(level) {
   return Math.round(XP_BASE * Math.pow(2, (level - 1) / DOUBLE_EVERY));
 }
 
-// Summed once and kept: levelFor walks it on every render.
-var thresholds = null;
-
-function thresholdTable() {
-  if (thresholds) return thresholds;
-  thresholds = [0, 0];
-  for (var n = 1; n < MAX_LEVEL; n++) thresholds.push(thresholds[n] + xpStep(n));
-  return thresholds;
-}
+// THRESHOLDS[n] is the XP to be level n; summed once, levelFor walks it on
+// every render. Index 0 is padding so the table reads by level.
+var THRESHOLDS = [0, 0];
+for (var n = 1; n < MAX_LEVEL; n++) THRESHOLDS.push(THRESHOLDS[n] + xpStep(n));
 
 export function xpForLevel(level) {
   if (level <= 1) return 0;
-  var table = thresholdTable();
-  return table[Math.min(level, MAX_LEVEL)];
+  return THRESHOLDS[Math.min(level, MAX_LEVEL)];
 }
 
 // XP one quest has earned, by the outcome it last finished as. A quest that
@@ -47,7 +41,7 @@ export function xpForLevel(level) {
 // existed rather than one that never did.
 export function questXp(quest) {
   if (!quest) return 0;
-  var outcome = quest.finishedAs || (isTerminal(quest.status) ? quest.status : null);
+  var outcome = quest.finishedAs || (isQuestTerminal(quest.status) ? quest.status : null);
   if (outcome === "shipped") return questWorth(quest.tier);
   if (outcome === "let_go") return LET_GO_WORTH;
   return 0;
@@ -76,18 +70,16 @@ export function levelFor(xp) {
   while (level < MAX_LEVEL && xpForLevel(level + 1) <= total) level += 1;
 
   var floor = xpForLevel(level);
-  if (level === MAX_LEVEL) {
-    return { level: level, xp: total, into: total - floor, span: 0, toNext: 0, progress: 1 };
-  }
+  var into = total - floor;
+  var span = level === MAX_LEVEL ? 0 : xpForLevel(level + 1) - floor;
 
-  var span = xpForLevel(level + 1) - floor;
   return {
     level: level,
     xp: total,
-    into: total - floor,
+    into: into,
     span: span,
-    toNext: floor + span - total,
-    progress: (total - floor) / span
+    toNext: span ? span - into : 0,
+    progress: span ? into / span : 1
   };
 }
 
@@ -103,8 +95,4 @@ export const GROWTH_HALF_LIFE = 10;
 export function growthFor(level) {
   var above = Math.max(0, (level || 1) - 1);
   return 1 + GROWTH_MAX * (1 - Math.pow(2, -above / GROWTH_HALF_LIFE));
-}
-
-function isTerminal(status) {
-  return status === "shipped" || status === "let_go";
 }
