@@ -225,6 +225,11 @@ body {
 
 .focus-clock.is-paused { color: var(--text-dim); }
 
+/* The board's side of the same alarm: the face turns fire-coloured and a
+   click on it dismisses. */
+body.session-done .focus-face { cursor: pointer; }
+body.session-done .focus-clock { color: var(--fire-outer); }
+
 .focus-target {
   margin: 0;
   font-size: 11.5px;
@@ -329,6 +334,48 @@ body.is-idle[data-mode="hearth"] .bonfire { animation-play-state: running; }
 }
 
 .hearth-view.is-paused .hearth-view-clock { color: var(--text-dim); }
+
+/* A finished session waits to be noticed: the fire's own glow swells until
+   it fills (almost) the whole window, then settles, and again. The next click
+   is the acknowledgement (hearth.js switches the drag off). Gentle on purpose
+   — a hand on the shoulder, not a smoke alarm. The flame never grows: a
+   bigger flame is easy to miss, a room that goes warm is not. The bottom
+   offset shifts with the size so the halo stays centred on the coals rather
+   than climbing off them; the window's overflow clips the rest. */
+.hearth-view.is-alarm { cursor: pointer; }
+.hearth-view.is-alarm .hearth-view-stage { display: none; }
+.hearth-view.is-alarm .hearth-view-clock { color: var(--fire-outer); }
+
+.hearth-view.is-alarm .fire-glow {
+  --alarm-glow: 400px;
+  animation: hearth-glow 2.6s ease-in-out infinite;
+}
+
+@keyframes hearth-glow {
+  0%, 100% {
+    width: var(--glow);
+    height: var(--glow);
+    bottom: 18px;
+    opacity: var(--glow-opacity);
+  }
+  50% {
+    width: var(--alarm-glow);
+    height: var(--alarm-glow);
+    bottom: calc(18px - (var(--alarm-glow) - var(--glow)) / 2);
+    opacity: 0.95;
+  }
+}
+
+/* Reduced motion: hold the halo at its widest instead of pulsing. The bonfire
+   rules strip every animation there, so this has to be a static override. */
+@media (prefers-reduced-motion: reduce) {
+  .hearth-view.is-alarm .fire-glow {
+    width: var(--alarm-glow);
+    height: var(--alarm-glow);
+    bottom: calc(18px - (var(--alarm-glow) - var(--glow)) / 2);
+    opacity: 0.85;
+  }
+}
 
 /* Pause/stop sit in the top-right and only surface on hover, so at rest the
    face is nothing but the fire. */

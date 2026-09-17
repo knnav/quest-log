@@ -9,6 +9,16 @@ const store = require("./store");
 // renderer just draws it.
 let session = null;
 let sessionTicker = null;
+
+// A completed session waits to be noticed. `finished` holds the title while
+// that is pending and rides along in the view, so both faces show it; the
+// nudges are re-rung from here, so the renderer keeps no timer of its own.
+// Deliberately bounded: two reminders, then silence with the face still lit.
+// An alarm that nags until obeyed is one you learn to dread, and then avoid
+// starting sessions at all.
+let finished = null;
+let nudgeTimers = [];
+const NUDGE_DELAYS_MS = [30000, 120000];
 let mainWindow = null;
 let tray = null;
 let quitting = false;
@@ -23,7 +33,9 @@ const BOARD = { width: 420, height: 880, minWidth: 420, minHeight: 600, maxWidth
 let mode = "board";
 
 function sessionView() {
-  if (!session) return { active: false };
+  if (!session) {
+    return { active: false, awaitingAck: !!finished, questTitle: finished ? finished.questTitle : "" };
+  }
   const remainingMs = session.paused
     ? session.remainingMs
     : Math.max(0, session.endsAt - Date.now());
@@ -75,14 +87,37 @@ function finishSession(completed) {
     completed: completed,
   });
 
+  const questTitle = session.questTitle;
   session = null;
   stopTicker();
-  pushSession();
 
   // Only a completed session rings the chime; stopping early is deliberate.
+  if (completed) {
+    finished = { questTitle: questTitle };
+    NUDGE_DELAYS_MS.forEach((ms) => {
+      nudgeTimers.push(setTimeout(() => {
+        if (liveWindow()) liveWindow().webContents.send("session:nudge");
+      }, ms));
+    });
+  }
+  pushSession();
   if (completed && liveWindow()) {
     liveWindow().webContents.send("session:finished");
   }
+}
+
+function clearFinished() {
+  nudgeTimers.forEach(clearTimeout);
+  nudgeTimers = [];
+  finished = null;
+}
+
+// Any deliberate return counts: a click on the hearth, the Focus tab, or
+// simply bringing the board back.
+function acknowledge() {
+  if (!finished) return;
+  clearFinished();
+  pushSession();
 }
 
 function liveWindow() {
@@ -161,6 +196,7 @@ function collapseToHearth() {
 function expandToBoard() {
   const win = liveWindow();
   if (!win) return;
+  acknowledge();
   if (mode === "board") {
     win.show();
     win.focus();
@@ -292,6 +328,7 @@ function createWindow() {
   win.on("closed", () => {
     mainWindow = null;
     stopTicker();
+    clearFinished();
     session = null;
   });
 }
@@ -343,6 +380,7 @@ function registerIpcHandlers() {
 
   ipcMain.handle("session:start", (event, options) => {
     const durationMs = Math.max(60000, Number(options.durationMs) || 25 * 60000);
+    clearFinished();
     session = {
       questId: options.questId || null,
       questTitle: options.questTitle || "",
@@ -384,6 +422,11 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle("session:get", () => sessionView());
+
+  ipcMain.handle("session:acknowledge", () => {
+    acknowledge();
+    return sessionView();
+  });
 
   // The theme lives in the main window's localStorage; every other window
   // learns about it through here.

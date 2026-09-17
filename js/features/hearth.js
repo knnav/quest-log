@@ -16,6 +16,10 @@
 // are written up in main.js above `dragOrigin`; don't reintroduce a drag
 // region here without reading that first. The pause/stop buttons only appear
 // while a session is running.
+//
+// A finished session that nobody has acknowledged puts the face in `is-alarm`:
+// it pulses, the drag is switched off, and the next click is the
+// acknowledgement — you can't accidentally move it instead of noticing it.
 
 import { formatRemaining } from "../core/sessionFormat.js";
 
@@ -41,6 +45,11 @@ export function initHearth() {
   viewEl.addEventListener("dblclick", function (e) {
     if (e.target.closest("button")) return;
     if (window.windowControls) window.windowControls.expand();
+  });
+
+  viewEl.addEventListener("click", function (e) {
+    if (!lastView.awaitingAck || e.target.closest("button")) return;
+    if (window.session && window.session.acknowledge) window.session.acknowledge().then(render);
   });
 
   viewEl.addEventListener("contextmenu", function (e) {
@@ -79,8 +88,9 @@ export function initHearth() {
 }
 
 // Left button only, and never from the buttons — they have their own job.
+// Nor while the alarm is on: that click is for acknowledging.
 function startDrag(e) {
-  if (e.button !== 0 || e.target.closest("button")) return;
+  if (e.button !== 0 || e.target.closest("button") || lastView.awaitingAck) return;
   if (!window.windowControls || !window.windowControls.dragStart) return;
   drag = { x: e.screenX, y: e.screenY, pointerId: e.pointerId };
   if (viewEl.setPointerCapture) viewEl.setPointerCapture(e.pointerId);
@@ -123,11 +133,20 @@ function render(view) {
   if (!viewEl) return;
   lastView = view || { active: false };
   var running = !!lastView.active;
+  var alarm = !running && !!lastView.awaitingAck;
 
-  sessionEl.hidden = !running;
+  sessionEl.hidden = !running && !alarm;
   actionsEl.hidden = !running;
   viewEl.classList.toggle("session-running", running);
   viewEl.classList.toggle("is-paused", running && lastView.paused);
+  viewEl.classList.toggle("is-alarm", alarm);
+
+  if (alarm) {
+    questEl.textContent = lastView.questTitle || "Focus";
+    clockEl.textContent = "Done";
+    barEl.style.width = "100%";
+    return;
+  }
 
   if (!running) {
     barEl.style.width = "0%";

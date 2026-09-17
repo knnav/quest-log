@@ -49,6 +49,7 @@ function setup(options) {
     pause: () => { calls.push("pause"); view = Object.assign({}, view, { paused: true }); return Promise.resolve(view); },
     resume: () => { calls.push("resume"); view = Object.assign({}, view, { paused: false }); return Promise.resolve(view); },
     stop: () => { calls.push("stop"); view = { active: false }; return Promise.resolve(view); },
+    acknowledge: () => { calls.push("ack"); view = { active: false, awaitingAck: false }; return Promise.resolve(view); },
     onChange: (cb) => { sessionListener = cb; },
   };
 
@@ -72,6 +73,7 @@ function pointer(dom, el, type, opts) {
 }
 
 const RUNNING = { active: true, questTitle: "Ship it", durationMs: 60000, remainingMs: 45000, paused: false };
+const FINISHED = { active: false, awaitingAck: true, questTitle: "Ship it" };
 
 test("mirrors the mode pushed by the main process onto the body", async () => {
   const { dom, pushMode } = await setup();
@@ -201,4 +203,55 @@ test("Escape brings the board back, but only from the hearth", async () => {
   pushMode("hearth");
   key();
   assert.deepEqual(calls, ["expand"]);
+});
+
+test("a finished session lights the face up until it is acknowledged", async () => {
+  const { dom, pushSession } = await setup();
+  const doc = dom.window.document;
+  const view = doc.getElementById("hearthView");
+
+  pushSession(FINISHED);
+  assert.ok(view.classList.contains("is-alarm"));
+  assert.ok(!view.classList.contains("session-running"));
+  assert.equal(doc.getElementById("hearthSession").hidden, false);
+  assert.equal(doc.getElementById("hearthActions").hidden, true, "nothing to pause or stop any more");
+  assert.equal(doc.getElementById("hearthQuest").textContent, "Ship it");
+  assert.equal(doc.getElementById("hearthClock").textContent, "Done");
+  assert.equal(doc.getElementById("hearthBar").style.width, "100%");
+
+  pushSession({ active: false, awaitingAck: false });
+  assert.ok(!view.classList.contains("is-alarm"));
+  assert.equal(doc.getElementById("hearthSession").hidden, true);
+  assert.equal(doc.getElementById("hearthBar").style.width, "0%");
+});
+
+test("while the alarm is on, a click acknowledges and the face cannot be dragged", async () => {
+  const { dom, calls } = await setup({ view: FINISHED });
+  const doc = dom.window.document;
+  const fire = doc.querySelector(".bonfire");
+
+  pointer(dom, fire, "pointerdown", { screenX: 100, screenY: 200 });
+  pointer(dom, fire, "pointermove", { screenX: 130, screenY: 180 });
+  pointer(dom, fire, "pointerup", { screenX: 130, screenY: 180 });
+  await new Promise((r) => setTimeout(r, 30));
+  assert.deepEqual(calls, [], "no drag reaches the main process");
+
+  fire.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 0));
+  assert.deepEqual(calls, ["ack"]);
+  assert.ok(!doc.getElementById("hearthView").classList.contains("is-alarm"));
+
+  // Acknowledged: dragging works again and a plain click does nothing.
+  fire.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true }));
+  pointer(dom, fire, "pointerdown", { screenX: 0, screenY: 0 });
+  pointer(dom, fire, "pointerup", { screenX: 0, screenY: 0 });
+  await new Promise((r) => setTimeout(r, 30));
+  assert.deepEqual(calls, ["ack", "drag-start", "drag-end"]);
+});
+
+test("a plain click at rest is not an acknowledgement", async () => {
+  const { dom, calls } = await setup({ view: RUNNING });
+  dom.window.document.querySelector(".bonfire").dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 0));
+  assert.deepEqual(calls, []);
 });

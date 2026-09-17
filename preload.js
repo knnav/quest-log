@@ -20,11 +20,16 @@ contextBridge.exposeInMainWorld("session", {
   resume: () => ipcRenderer.invoke("session:resume"),
   stop: () => ipcRenderer.invoke("session:stop"),
   get: () => ipcRenderer.invoke("session:get"),
+  acknowledge: () => ipcRenderer.invoke("session:acknowledge"),
   onChange: (callback) => {
     ipcRenderer.on("session:changed", (event, view) => callback(view));
   },
   onFinished: (callback) => {
     ipcRenderer.on("session:finished", () => callback());
+  },
+  // Reminder chimes for a finished session nobody has acknowledged yet.
+  onNudge: (callback) => {
+    ipcRenderer.on("session:nudge", () => callback());
   },
 });
 

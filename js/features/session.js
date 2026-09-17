@@ -7,11 +7,13 @@
 //
 // Session end rings a WebAudio chime rather than firing a system notification:
 // no permission prompt, and it still reaches you when the window is buried.
+// Until someone acknowledges it, main.js sends a couple of nudges that ring
+// the same chime again; the schedule lives there, not here.
 
 import { formatRemaining, formatWorked } from "../core/sessionFormat.js";
 import { msOf, spanMs } from "../core/dates.js";
 
-var clockEl, targetEl, lengthsEl, questSelect, startBtn, toggleBtn, stopBtn, todayEl, dotEl;
+var clockEl, faceEl, targetEl, lengthsEl, questSelect, startBtn, toggleBtn, stopBtn, todayEl, dotEl;
 var onSessionEnd = null;
 var getQuests = null;
 var minutes = 25;
@@ -25,6 +27,7 @@ export function initSession(options) {
   clockEl = document.getElementById("focusClock");
   if (!clockEl) return;
 
+  faceEl = document.getElementById("focusFace");
   targetEl = document.getElementById("focusTarget");
   lengthsEl = document.getElementById("focusLengths");
   questSelect = document.getElementById("focusQuest");
@@ -43,6 +46,13 @@ export function initSession(options) {
   });
 
   startBtn.addEventListener("click", start);
+
+  if (faceEl) {
+    faceEl.addEventListener("click", function () {
+      if (!lastView.awaitingAck || !window.session || !window.session.acknowledge) return;
+      window.session.acknowledge().then(render);
+    });
+  }
 
   toggleBtn.addEventListener("click", function () {
     if (!window.session) return;
@@ -65,6 +75,7 @@ export function initSession(options) {
     chime();
     if (onSessionEnd) onSessionEnd();
   });
+  if (window.session.onNudge) window.session.onNudge(chime);
   window.session.get().then(render);
 }
 
@@ -143,16 +154,18 @@ function render(view) {
   lastView = view || { active: false };
 
   var running = !!lastView.active;
+  var done = !running && !!lastView.awaitingAck;
 
   clockEl.textContent = running
     ? formatRemaining(lastView.remainingMs)
-    : formatRemaining(minutes * 60000);
+    : done ? "00:00" : formatRemaining(minutes * 60000);
 
   targetEl.textContent = running
     ? (lastView.questTitle || "Nothing in particular")
-    : "Ready when you are";
+    : done ? "Session complete · click to dismiss" : "Ready when you are";
 
   document.body.classList.toggle("session-running", running);
+  document.body.classList.toggle("session-done", done);
   clockEl.classList.toggle("is-paused", running && lastView.paused);
 
   startBtn.hidden = running;
@@ -160,7 +173,7 @@ function render(view) {
   stopBtn.hidden = !running;
   questSelect.disabled = running;
   if (toggleBtn) toggleBtn.textContent = lastView.paused ? "Resume" : "Pause";
-  if (dotEl) dotEl.hidden = !running;
+  if (dotEl) dotEl.hidden = !running && !done;
 
   renderLengths();
 }

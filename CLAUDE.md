@@ -32,7 +32,7 @@ The renderer never touches `fs` or `ipcRenderer`. `preload.js` exposes five name
 
 ### The timer lives in the main process
 
-`main.js` owns the single session clock. The Focus tab (`js/features/session.js`) and the hearth face (`js/features/hearth.js`) are pure views of the `view` object broadcast on `session:changed`; neither keeps its own countdown. When a session ends, `main.js` calls `store.recordSession()` and the renderer plays the chime (`session:finished`).
+`main.js` owns the single session clock. The Focus tab (`js/features/session.js`) and the hearth face (`js/features/hearth.js`) are pure views of the `view` object broadcast on `session:changed`; neither keeps its own countdown. When a session ends, `main.js` calls `store.recordSession()` and the renderer plays the chime (`session:finished`). A *completed* session then waits to be acknowledged: `main.js` holds `finished`, broadcasts `awaitingAck: true` in the view, and re-rings the chime over `session:nudge` on a bounded schedule (`NUDGE_DELAYS_MS`, 30s and 2min — never indefinitely). The hearth goes `is-alarm` (gentle pulse, drag disabled, next click acknowledges); the Focus tab shows `session-done` with click-to-dismiss. `acknowledge()` also runs on `expandToBoard()` and on `session:start`.
 
 ### One window, two modes
 

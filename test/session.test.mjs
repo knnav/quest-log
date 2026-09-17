@@ -26,8 +26,10 @@ test("formatWorked switches to hours past sixty minutes", () => {
 
 const FOCUS_HTML = `<!doctype html><html><body>
   <span class="tab-dot" id="focusDot" hidden></span>
-  <p id="focusClock">25:00</p>
-  <p id="focusTarget"></p>
+  <div id="focusFace">
+    <p id="focusClock">25:00</p>
+    <p id="focusTarget"></p>
+  </div>
   <div id="focusLengths">
     <button class="chip" data-minutes="15">15m</button>
     <button class="chip active" data-minutes="25">25m</button>
@@ -55,8 +57,10 @@ function sessionMock(calls) {
       resume: () => { calls.push(["resume"]); return Promise.resolve({ active: true, paused: false, remainingMs: 1000, durationMs: 1000 }); },
       stop: () => { calls.push(["stop"]); return Promise.resolve({ active: false }); },
       get: () => Promise.resolve({ active: false }),
+      acknowledge: () => { calls.push(["ack"]); return Promise.resolve({ active: false, awaitingAck: false }); },
       onChange: (cb) => { handlers.change = cb; },
       onFinished: (cb) => { handlers.finished = cb; },
+      onNudge: (cb) => { handlers.nudge = cb; },
     },
     handlers,
   };
@@ -210,4 +214,35 @@ test("no sessions today says so rather than showing a zero", async () => {
   const { doc, mod } = await bootFocus([]);
   mod.renderToday([]);
   assert.equal(doc.getElementById("focusToday").textContent, "No sessions yet today.");
+});
+
+test("a finished session holds the face at zero until the click that dismisses it", async () => {
+  const calls = [];
+  const { dom, doc, mock } = await bootFocus([], calls);
+
+  mock.handlers.change({ active: false, awaitingAck: true, questTitle: "X" });
+  assert.equal(doc.getElementById("focusClock").textContent, "00:00");
+  assert.match(doc.getElementById("focusTarget").textContent, /Session complete/);
+  assert.ok(doc.body.classList.contains("session-done"));
+  assert.equal(doc.getElementById("focusDot").hidden, false, "the tab still carries the dot");
+  assert.equal(doc.getElementById("focusStart").hidden, false, "starting again is always allowed");
+  assert.ok(Array.from(doc.querySelectorAll("#focusLengths .chip")).every((c) => !c.disabled));
+
+  click(dom, doc.getElementById("focusClock"));
+  await new Promise((r) => setTimeout(r, 0));
+  assert.deepEqual(calls, [["ack"]]);
+  assert.ok(!doc.body.classList.contains("session-done"));
+  assert.equal(doc.getElementById("focusClock").textContent, "25:00");
+  assert.equal(doc.getElementById("focusDot").hidden, true);
+
+  // Once dismissed, the face is inert again.
+  click(dom, doc.getElementById("focusClock"));
+  await new Promise((r) => setTimeout(r, 0));
+  assert.deepEqual(calls, [["ack"]]);
+});
+
+test("nudges from the main process are accepted (the chime is theirs to time)", async () => {
+  const { mock } = await bootFocus([]);
+  assert.equal(typeof mock.handlers.nudge, "function");
+  assert.doesNotThrow(() => mock.handlers.nudge());
 });
