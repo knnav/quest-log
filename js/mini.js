@@ -1,11 +1,16 @@
+// Renderer entry point for the always-on-top timer window.
+//
+// A pure view: it holds no timer and no state. Every value comes from the
+// `view` object pushed by the main process, which is what keeps this countdown
+// and the Focus tab's in lockstep.
+//
+// It applies the theme by hand rather than calling initTheme(): this document
+// has no picker, and the resolved theme arrives over IPC from the window that
+// does. Everything runs at import time — there is no init function, because
+// this script has exactly one consumer and mini.html loads it after the body.
+
 import { formatRemaining } from "./core/sessionFormat.js";
 
-// The mini window draws the timer; it never owns it. Everything shown here
-// comes from the main process, so this countdown and the one in the main
-// window can't drift apart.
-//
-// It deliberately does NOT use initTheme(): there is no picker in this
-// document, and the theme arrives over IPC from whichever window has one.
 var questEl, clockEl, toggleBtn, stopBtn, barEl;
 
 function applyTheme(resolved) {

@@ -1,3 +1,16 @@
+// The Quests tab: the board, the search/tag filter, and the quest form.
+//
+// This module holds the quest list in memory (`latestDocs`) and is the only
+// writer of quests — every change goes out over window.questLog and comes back
+// through refetchQuests, so the store stays the source of truth and the board
+// is always a render of what was actually persisted.
+//
+// It re-renders wholesale rather than patching cards, which is what lets the
+// filter, the board and the In Progress block above it stay consistent.
+//
+// `onChange` is app.js's hook: it re-renders everything outside this tab that
+// depends on quests (the In Progress block, the focus picker, the home screen).
+
 import { TIERS, TIER_LABEL, STATUSES, STATUS_LABEL, WIP_LIMIT, countByStatus } from "../core/domain.js";
 import { escapeHtml } from "../core/html.js";
 import { daysSince, spanMs, MS_PER_DAY } from "../core/dates.js";
@@ -46,7 +59,7 @@ export function initQuests(onQuestsChanged) {
       },
       { id: "questDod", key: "dod" }
     ],
-    // The record for the scope you're looking at, refreshed as you change it.
+    // Populated after the fields are set, so it reads the item's own scope.
     onOpen: renderScopeNote,
     create: function (data) { return window.questLog.createQuest(data); },
     update: function (id, data) { return window.questLog.updateQuest(id, data); },
@@ -73,8 +86,9 @@ export function loadQuests() {
   });
 }
 
-// Worked time only changes when a session ends, so this is pulled on load and
-// whenever one finishes rather than on every render.
+// Sessions are only needed for the scope note's worked-time figure, and only
+// change when a session ends — so they are fetched on load and on session end,
+// not on every render.
 export function getSessions() {
   return latestSessions;
 }
@@ -90,9 +104,9 @@ export function refetchQuests() {
   return window.questLog.listQuests().then(ingest);
 }
 
-// The filter row sits above the whole tab, so it filters the whole tab — the
-// In Progress block included, not just the board underneath it. Tags are AND:
-// each chip you add narrows further, which is the only useful direction.
+// Applied to every quest the tab shows, including the In Progress block that
+// renders outside this module. Tags combine with AND — each active chip must
+// be present — while the search term is a substring match across all text.
 function matchesFilter(q) {
   var tags = q.tags || [];
   var hasAllTags = activeTags.every(function (t) { return tags.indexOf(t) !== -1; });
@@ -107,7 +121,8 @@ function byOrder(a, b) {
   return (a.order || 0) - (b.order || 0);
 }
 
-// Most recently finished first: a trophy case reads newest-on-top.
+// Newest finish first. Used for the Hall of Fame and Ashes, which are ordered
+// by when they ended rather than by the drag order the backlog uses.
 function byFinishedDesc(a, b) {
   return new Date(b.finishedAt || 0) - new Date(a.finishedAt || 0);
 }
@@ -136,7 +151,7 @@ export function cardHtml(q) {
       '" data-status="' + s + '">' + STATUS_LABEL[s] + '</button>';
   }).join("");
 
-  // Finished cards say when. That's the whole point of a Hall of Fame.
+  // Only terminal cards carry a date line; backlog and in-progress ones don't.
   var finished = "";
   if ((q.status === "shipped" || q.status === "let_go") && q.finishedAt) {
     finished = '<p class="card-when">' + (q.status === "let_go" ? "Let go " : "Shipped ") +
@@ -216,8 +231,9 @@ function relativeDay(iso) {
   return months === 1 ? "a month ago" : months + " months ago";
 }
 
-// Every status change routes through here so the gates can't be bypassed by
-// clicking a pill instead of using a menu.
+// The single entry point for status changes from the board. Both gates live
+// here rather than on the pill handler, so no path can set a status without
+// passing them. setStatus is the raw write and must not be called directly.
 function requestStatus(id, status) {
   var quest = latestDocs.filter(function (q) { return q.id === id; })[0];
   if (!quest || quest.status === status) return;
@@ -308,8 +324,9 @@ function renderBoard(quests) {
 
   var visible = quests.filter(matchesFilter);
 
-  // Each quest lands in exactly one of four places: the In Progress block
-  // above the board, a timebox section here, the Hall of Fame, or Ashes.
+  // Sections are mutually exclusive by status, so every quest appears exactly
+  // once: in progress (rendered by app.js above this board), its scope section,
+  // the Hall of Fame, or Ashes.
   var html = "";
   TIERS.forEach(function (tier) {
     var inTier = visible
@@ -334,7 +351,8 @@ function renderBoard(quests) {
 
   bindQuestActions(boardEl);
 
-  // Each section sorts independently, so drag-sorting is scoped to one grid.
+  // Per-grid, not per-board: dragging must not move a card between sections,
+  // and each section persists its own order.
   boardEl.querySelectorAll(".grid").forEach(function (grid) {
     enableDragSort(grid, persistQuestOrder);
   });
@@ -346,7 +364,7 @@ function persistQuestOrder(ids) {
 
 function rerender() {
   renderBoard(latestDocs);
-  // The In Progress block lives outside the board but inside the same filter.
+  // onChange redraws the In Progress block, which app.js owns but this filters.
   if (onChange) onChange();
 }
 
@@ -357,7 +375,8 @@ function ingest(docs) {
   docs.forEach(function (d) { (d.tags || []).forEach(function (t) { tagSet[t] = true; }); });
   allTags = Object.keys(tagSet).sort();
 
-  // Drop any active tag that no longer exists on anything.
+  // Drop active tags that no longer exist on any quest, or the filter would
+  // stick on a chip the user can no longer see or clear.
   activeTags = activeTags.filter(function (t) { return allTags.indexOf(t) !== -1; });
 
   latestDocs = docs;
@@ -366,7 +385,8 @@ function ingest(docs) {
   if (onChange) onChange();
 }
 
-// Shown right under the Scope select, at the moment you're committing to one.
+// The scope's track record, shown under the Scope select as it changes.
+// Hidden rather than blanked when there is no history for that scope yet.
 function renderScopeNote() {
   if (!scopeNoteEl) return;
   var record = scopeRecord(latestDocs, questModal.field("tier").value, latestSessions);

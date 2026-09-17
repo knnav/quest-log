@@ -1,3 +1,11 @@
+// The shared card-detail modal. One instance serves every card on the board:
+// callers don't render it, they hand showDetail a plain description and it
+// fills the single #detailModalOverlay in index.html.
+//
+// Actions are passed in as callbacks. onDelete and letGo return a boolean —
+// true means the action went through and the modal should close — so the
+// caller owns its own confirmation and a cancelled action leaves the modal up.
+
 import { escapeHtml } from "../core/html.js";
 
 var overlay, titleEl, tagsEl, textEl, rowsEl, closeBtn, editBtn, deleteBtn, letGoBtn;
@@ -29,8 +37,7 @@ export function initDetail() {
     if (edit) edit();
   });
 
-  // Delete confirms for itself, so the modal only closes if it actually went
-  // through — a cancelled delete leaves you where you were.
+  // Closes only on a truthy return; see the contract at the top of the file.
   deleteBtn.addEventListener("click", function () {
     if (pendingDelete && pendingDelete()) closeDetail();
   });
@@ -45,6 +52,8 @@ export function initDetail() {
 }
 
 // detail: { title, tags, text, rows: [{ label, value }], onEdit, onDelete, letGo }
+// Each action is optional; its button is hidden when the callback is absent.
+// Rows with an empty value are dropped, so callers can build them unconditionally.
 export function showDetail(detail) {
   if (!overlay) return;
 
@@ -68,7 +77,8 @@ export function showDetail(detail) {
     return '<div class="dod"><b>' + escapeHtml(row.label) + '</b>' + escapeHtml(row.value) + '</div>';
   }).join("");
 
-  // A card with nothing but a title still opens, so say so rather than showing a blank sheet.
+  // Every card opens, including one carrying nothing but a title — fill the
+  // body rather than showing an empty sheet.
   if (!detail.text && !rows.length) {
     textEl.textContent = "Nothing written down yet.";
     textEl.hidden = false;
@@ -88,7 +98,9 @@ export function closeDetail() {
   pendingLetGo = null;
 }
 
-// Cards are clickable except on their own buttons, which have their own handlers.
+// Makes every `selector` card in `container` open its detail view. Clicks that
+// land on a button are ignored so status pills keep their own handlers.
+// buildDetail receives the card's data-id and may return null to do nothing.
 export function bindCardDetail(container, selector, buildDetail) {
   container.querySelectorAll(selector).forEach(function (card) {
     card.addEventListener("click", function (e) {

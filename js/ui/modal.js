@@ -1,10 +1,24 @@
-// Both boards put a form over the board, fill it from an item or leave it
-// blank, and save by creating or updating. Only the fields and the calls
-// differ, so those are all this asks for.
+// A create/edit form over existing markup. Both boards use one; the markup
+// already exists in index.html, so this wires it rather than rendering it.
 //
-// A field is { id, key }: read that input, trim it, store it under key.
-// Anything shaped differently — tags are a list, scope has a default — brings
-// its own read/write pair.
+// It owns the whole lifecycle: which item is being edited, populating inputs,
+// clearing on close, and the three ways out (cancel, Escape, backdrop click).
+//
+// config:
+//   overlay, form, heading, cancel, addButton  element ids
+//   headings  { create, edit }   heading text for each mode
+//   fields    [{ id, key, fallback?, read?, write? }]
+//             id is the input's element id, key the property on the item.
+//             read maps the input's string to the stored value (default: trim),
+//             write maps a stored value back to a string (default: as-is),
+//             fallback is the value used when creating rather than editing.
+//   onOpen    optional hook after the fields are populated, before it shows
+//   create(data) / update(id, data)   must return promises
+//   onSaved   called after either resolves
+//
+// Returns { open(item|null), close, values, field(key) }. field() exposes an
+// input element for callers that need to watch it — quests listens to the
+// scope select to refresh its note.
 export function createModal(config) {
   var overlay = document.getElementById(config.overlay);
   var form = document.getElementById(config.form);
@@ -69,7 +83,8 @@ export function createModal(config) {
   if (addEl) addEl.addEventListener("click", function () { open(null); });
   cancelEl.addEventListener("click", close);
 
-  // Only the backdrop closes it. A click that lands inside the form must not.
+  // Identity check, not `closest`: a click inside the form bubbles up to the
+  // overlay too, and must not be treated as a click on the backdrop.
   overlay.addEventListener("click", function (e) {
     if (e.target === overlay) close();
   });

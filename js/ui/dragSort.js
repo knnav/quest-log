@@ -1,3 +1,10 @@
+// Drag-to-reorder for any grid of cards. Opt in by giving each child a
+// data-drag-id; the container needs no markup of its own.
+//
+// Reordering is done live in the DOM as you drag, and onReorder(ids) fires once
+// on drop — and only if the order actually changed, so a click-and-release
+// doesn't write to disk.
+
 function orderedIds(container) {
   return Array.prototype.slice.call(container.querySelectorAll("[data-drag-id]"))
     .map(function (el) { return el.getAttribute("data-drag-id"); });
@@ -35,8 +42,8 @@ export function enableDragSort(container, onReorder) {
 
     var rect = target.getBoundingClientRect();
     var draggingRect = dragging.getBoundingClientRect();
-    // Cards sitting on the same row are side by side, so the horizontal
-    // midpoint decides; stacked cards use the vertical one.
+    // Grids wrap, so the axis to compare on depends on the layout: cards whose
+    // tops line up are side by side and split on X, stacked cards split on Y.
     var sameRow = Math.abs(rect.top - draggingRect.top) < 5;
     var after = sameRow
       ? e.clientX > rect.left + rect.width / 2

@@ -1,3 +1,13 @@
+// Theme selection and the picker menu.
+//
+// A theme is applied by setting data-theme on <html>; the palettes themselves
+// live in assets/css. "system" is not a palette — it resolves to one of the
+// two below at apply time and re-resolves when the OS preference changes.
+//
+// Both windows must agree, so the resolved id is pushed to the main process
+// over window.themeSync and relayed to the other window. initTheme is safe to
+// call in a document with no picker; the mini window does exactly that.
+
 const THEME_KEY = "quest-log-theme";
 
 const SYSTEM_LIGHT = "light";
@@ -34,7 +44,8 @@ function setStoredTheme(id) {
 
 function selectedTheme() {
   var stored = getStoredTheme();
-  // "dark" was the id before themes were named; keep those users on the same palette.
+  // "dark" was the stored id before the themes were named. Migrate it in place
+  // rather than dropping those users back to "system".
   if (stored === "dark") return SYSTEM_DARK;
   return THEMES.some(function (t) { return t.id === stored; }) ? stored : "system";
 }
@@ -51,9 +62,8 @@ function resolveTheme(id) {
 function applyTheme() {
   var resolved = resolveTheme(selectedTheme());
   document.documentElement.setAttribute("data-theme", resolved);
-  // Other windows have their own document and can't see this one's choice, so
-  // the main process relays it. Without this the mini window sits on whatever
-  // the system default resolved to.
+  // Push the *resolved* id, never "system": the other window can't resolve it
+  // itself, and would fall back to the OS default instead of this choice.
   if (window.themeSync) window.themeSync.set(resolved);
 }
 
@@ -79,9 +89,9 @@ function closeMenu() {
   buttonEl.setAttribute("aria-expanded", "false");
 }
 
-// Applies the theme and, where the document actually has a picker, wires it up.
-// A window without one (the mini timer) still gets the colours — it must never
-// throw partway through, or nothing after this call in that module ever runs.
+// Applies the theme, then wires the picker if this document has one. The early
+// return keeps a picker-less window (the mini timer) working: it must not throw
+// past the applyTheme call, or the rest of that window's setup never runs.
 export function initTheme() {
   buttonEl = document.getElementById("themeMenuBtn");
   menuEl = document.getElementById("themeMenu");

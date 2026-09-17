@@ -1,12 +1,11 @@
-// Two moments where the app asks a question instead of just doing the thing.
+// The two confirmation dialogs that sit in front of a status change: shipping
+// a quest, and starting one past WIP_LIMIT.
 //
-// Shipping asks whether you actually met the Definition of Done — without it
-// the DoD is a note you wrote once, not the contract the whole app is built
-// around, and every log on the bonfire would be worth the same as a shrug.
-//
-// Starting a fourth quest asks what you're really working on. It never blocks;
-// the failure mode this app exists to fight is starting things, not finishing
-// them, and a tool that shames you is worse than one that says nothing.
+// Both are continuation-style — the caller hands over what to do next and the
+// gate runs it, so the status change happens inside the confirm path rather
+// than being undone afterwards. Both degrade to running the callback straight
+// away when their markup is absent, so a document without the modals still
+// works. Neither can cancel the action outright: dismissing simply drops it.
 
 import { escapeHtml } from "../core/html.js";
 
@@ -64,8 +63,7 @@ export function initGates() {
 }
 
 export function confirmShip(quest, onConfirm) {
-  // A quest with no Definition of Done has nothing to check against, and an
-  // empty dialog would just be a speed bump.
+  // Nothing to confirm against without a DoD, so don't show an empty dialog.
   if (!shipOverlay || !quest.dod) {
     onConfirm();
     return;
@@ -78,6 +76,8 @@ export function confirmShip(quest, onConfirm) {
   shipConfirmBtn.focus();
 }
 
+// handlers: { onProceed, onBenchAll } — start anyway, or move everything
+// already in flight back to the backlog first.
 export function confirmWip(quest, inFlight, handlers) {
   if (!wipOverlay) {
     handlers.onProceed();

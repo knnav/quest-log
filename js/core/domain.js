@@ -1,5 +1,9 @@
-// The timebox is the whole point, so it is the whole name — "Tier 2" carried
-// no information the word "Fortnight" doesn't. Keys stay put: they're on disk.
+// The vocabulary the board is built from: the scopes a quest can have, the
+// statuses both item types move through, and the two thresholds the home
+// screen checks against.
+//
+// `key` is what gets persisted on every quest, `title` is display only.
+// Changing a title is free; changing a key needs a migration of the store.
 export const TIERS = [
   { key: "weekend", title: "Weekend" },
   { key: "medium", title: "Fortnight" },
@@ -11,9 +15,9 @@ export const TIER_LABEL = TIERS.reduce(function (acc, t) {
   return acc;
 }, {});
 
-// The three you cycle through. "let_go" is deliberately not here: deciding to
-// abandon something is a considered act, so it lives in the detail view rather
-// than one click away on every card.
+// The statuses a status pill cycles through, in order. "let_go" is absent on
+// purpose — it is reachable only from the detail view — but it still needs a
+// label below, and store.js still treats it as terminal.
 export const STATUSES = ["backlog", "in_progress", "shipped"];
 
 export const STATUS_LABEL = {
@@ -27,16 +31,17 @@ export const TASK_STATUSES = ["backlog", "in_progress", "done"];
 
 export const TASK_STATUS_LABEL = { backlog: "Backlog", in_progress: "In Progress", done: "Done" };
 
-// Past this many quests in flight, starting another one asks you to look at
-// what you already have first. A nudge, never a block.
+// Starting a quest beyond this many in flight routes through the WIP dialog in
+// features/gates.js. The dialog can always be dismissed; this gates the prompt,
+// not the action.
 export const WIP_LIMIT = 3;
 
 // How long a quest can sit in the backlog before the home screen mentions it.
 export const STALE_DAYS = 30;
 
-// Tallies a list by its status field. The statuses are passed in so each type
-// gets its own zeroed shape — a quest board that never showed "Let go: 0"
-// shouldn't start just because tasks don't have that status.
+// Tallies a list by its status field. `statuses` seeds the result with zeros,
+// so callers get every key they asked for and none they didn't — quests and
+// tasks have different status sets and must not inherit each other's rows.
 export function countByStatus(list, statuses) {
   var counts = {};
   statuses.forEach(function (s) { counts[s] = 0; });

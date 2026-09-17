@@ -1,3 +1,10 @@
+// The Tasks tab: a flat list of small things, with no scope, no tags and no
+// Definition of Done — that separation is the point of having two item types.
+//
+// Mirrors features/quests.js in shape: holds the list in memory, writes only
+// through window.questLog, and refetches rather than patching locally. There
+// are no gates here, so status pills write straight through.
+
 import { TASK_STATUSES, TASK_STATUS_LABEL, countByStatus } from "../core/domain.js";
 import { escapeHtml } from "../core/html.js";
 import { bindCardDetail } from "../ui/detail.js";

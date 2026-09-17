@@ -1,22 +1,20 @@
-import { MS_PER_DAY, msOf } from "./dates.js";
-
-// The bonfire's fuel model.
+// The bonfire's fuel model: pure functions, no DOM, no clock of its own.
 //
-// Finished work burns for a while and then fades, so the fire reflects what
-// you've done lately rather than what you've done ever. Nothing here resets at
-// midnight: a quiet day dims the fire, it doesn't kill it, and the flame never
-// drops below embers. You relight a bonfire, you don't fail it.
+// Each finished item contributes its weight, scaled linearly down to zero over
+// DECAY_DAYS. Nothing is bucketed by calendar day and nothing resets, so the
+// output is a continuous function of (completions, now) — which is what makes
+// it testable by passing a fixed `now`.
+
+import { MS_PER_DAY, msOf } from "./dates.js";
 
 export const DECAY_DAYS = 3;
 
-// A two-week build and "water the plants" should not be worth the same log.
+// Relative worth of one completion of each kind.
 export const QUEST_WEIGHT = 3;
 export const TASK_WEIGHT = 1;
 
-// Deciding you are not going to do something is a real decision that closes a
-// real loop, so it burns — just not as hot as finishing. You get kindling for
-// the honesty, and you can only let go of something you already had, so this
-// can't be farmed by piling up quests.
+// Letting a quest go is terminal too, so it carries weight — less than
+// shipping. store.js grants it once per outcome, so it cannot be farmed.
 export const LET_GO_WEIGHT = 1;
 
 // Fuel needed to reach stages 1..4. Stage 0 is embers, and is always reachable.
@@ -32,8 +30,9 @@ export const STAGE_NOTES = [
   "Roaring. Go rest, you've earned the bonfire."
 ];
 
-// entries: [{ completedAt, weight }]. Anything undated (finished before the
-// fire existed) contributes nothing rather than being treated as fresh.
+// entries: [{ completedAt, weight }], as built by completionEntries.
+// Undated entries (finished before completedAt existed) contribute nothing
+// rather than being treated as fresh. `now` is injectable for tests.
 export function fuelFor(entries, now) {
   var nowMs = now instanceof Date ? now.getTime() : Date.now();
 
@@ -43,8 +42,8 @@ export function fuelFor(entries, now) {
     var doneMs = msOf(entry.completedAt);
     if (doneMs === null) return total;
 
-    // A clock that moved backwards shouldn't hand out extra fuel, so anything
-    // stamped in the future counts as "just now" rather than more than full.
+    // Clamped at zero: a stamp in the future would otherwise make `remaining`
+    // exceed 1 and pay out more than the entry's full weight.
     var ageDays = Math.max(0, nowMs - doneMs) / MS_PER_DAY;
     var remaining = 1 - ageDays / DECAY_DAYS;
     if (remaining <= 0) return total;
@@ -61,8 +60,8 @@ export function stageFor(fuel) {
   return stage;
 }
 
-// Collects the fields the fuel model needs from both item types, applying each
-// type's own terminal states — quests ship or are let go, tasks are done.
+// Flattens quests and tasks into the { completedAt, weight } shape fuelFor
+// wants, applying each type's own terminal statuses and weights.
 export function completionEntries(quests, tasks) {
   var fromQuests = (quests || [])
     .filter(function (q) { return q.completedAt && (q.status === "shipped" || q.status === "let_go"); })
@@ -89,7 +88,9 @@ export function lastCompletedAt(entries) {
   }, null);
 }
 
-// "3h 12m" / "18m" / "4d 2h" — the elapsed number the OS clock can't give you.
+// Milliseconds-since to a coarse label: "18m", "3h 12m", "4d 2h". Takes an
+// epoch number (not an ISO string) because its caller already has one from
+// lastCompletedAt. Returns null for no input, which the caller renders as em-dash.
 export function elapsedLabel(fromMs, now) {
   if (fromMs === null || fromMs === undefined) return null;
 

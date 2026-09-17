@@ -1,13 +1,15 @@
+// The Focus tab: the pomodoro timer's main-window UI.
+//
+// It does not own the timer. The clock lives in the main process so that this
+// view and the mini window can't drift apart, and both are pure renderers of
+// the `view` object pushed over window.session. `lastView` is the only state
+// kept here, and only so the length chips know whether a session is running.
+//
+// Session end rings a WebAudio chime rather than firing a system notification:
+// no permission prompt, and it still reaches you when the window is buried.
+
 import { formatRemaining, formatWorked } from "../core/sessionFormat.js";
 import { msOf, spanMs } from "../core/dates.js";
-
-// The Focus tab: a plain pomodoro that happens to know what you're working on.
-// It is its own surface rather than a button on every card — a timer is a
-// different job from a backlog, and bolting it onto quests made both worse.
-//
-// The end of a session rings a chime rather than firing a system notification:
-// no permission prompt, no OS plumbing, and it still reaches you when the
-// window is buried, which is the whole job.
 
 var clockEl, targetEl, lengthsEl, questSelect, startBtn, toggleBtn, stopBtn, todayEl, dotEl;
 var onSessionEnd = null;
@@ -69,9 +71,9 @@ export function initSession(options) {
 function start() {
   if (!window.session) return;
 
-  // Unlock audio on the click that starts the session: a context created
-  // without a user gesture is not allowed to make noise later, and "later" is
-  // exactly when the chime is needed.
+  // Create the AudioContext inside the click handler. A context built without
+  // a user gesture starts suspended and is never allowed to make noise — and
+  // the chime is needed 25 minutes later, with no gesture in sight.
   primeAudio();
 
   var id = questSelect.value;
@@ -84,9 +86,10 @@ function start() {
   }).then(render);
 }
 
-// Only what you're already working on. Starting a quest is a decision that
-// belongs on the Quests tab, behind the WIP nudge — not a side effect of
-// picking something from a dropdown here.
+// Repopulates the quest picker from whatever is in progress; call it whenever
+// that set changes. Deliberately excludes backlog quests, so that picking one
+// here can't start it behind the WIP gate on the Quests tab. Preserves the
+// current selection if it is still in flight.
 export function renderFocusQuests() {
   if (!questSelect) return;
 
@@ -173,8 +176,8 @@ function primeAudio() {
   }
 }
 
-// A soft major triad, rung one note at a time and left to decay. Warm rather
-// than an alarm — this is a bonfire, not a smoke detector.
+// A C major triad, arpeggiated at 170ms and left to ring for 1.7s. Synthesised
+// rather than played from a file, so the bundle carries no audio asset.
 function chime() {
   primeAudio();
   if (!audio) return;

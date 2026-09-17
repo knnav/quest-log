@@ -1,12 +1,17 @@
+// Aggregates over the quest history, kept apart from core/fire.js: the fire
+// reads recent momentum, these read the whole record. Pure functions, no DOM.
+
 import { MS_PER_DAY, msOf, spanMs } from "./dates.js";
 
-// The honest numbers. Not the bonfire — the fire is a reading of momentum,
-// and these are the two questions it can't answer: how long this kind of quest
-// really takes you, and what has been sitting untouched the longest.
-
-// How long, on average, quests of a given scope actually took — measured from
-// the day you started to the day you finished. The anti-self-deception number:
-// you said Weekend, the record says otherwise.
+// Mean start-to-finish time for shipped quests of one scope, plus the tracked
+// session time against them.
+//
+// Two known biases, both deliberate and both visible in the returned shape:
+// only `shipped` quests count (so quests that overran and were let go, or are
+// still open, are excluded), and `workedMs` sees only sessions carrying a
+// matching questId — sessions run with no quest attached are invisible here.
+// Callers should show `shipped` alongside the average so a tiny sample reads
+// as one.
 export function scopeRecord(quests, tier, sessions) {
   var matching = (quests || []).filter(function (q) {
     return q.tier === tier && q.status === "shipped" &&
@@ -18,7 +23,6 @@ export function scopeRecord(quests, tier, sessions) {
   var spans = matching.map(function (q) { return spanMs(q.startedAt, q.finishedAt); });
   var mean = spans.reduce(function (a, b) { return a + b; }, 0) / spans.length;
 
-  // Elapsed days were always the soft number; worked time is the honest one.
   var ids = {};
   matching.forEach(function (q) { ids[q.id] = true; });
   var workedMs = (sessions || []).reduce(function (total, s) {
@@ -33,7 +37,8 @@ export function scopeRecord(quests, tier, sessions) {
   };
 }
 
-// The thing that has been waiting longest without being started.
+// The backlog quest with the oldest createdAt. Only "backlog" counts: anything
+// started, shipped or let go has been touched. Null when nothing qualifies.
 export function oldestWaiting(quests, now) {
   var nowMs = now instanceof Date ? now.getTime() : Date.now();
   var oldest = null;

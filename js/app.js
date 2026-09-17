@@ -1,3 +1,13 @@
+// Renderer entry point for the main window.
+//
+// Owns no state and renders nothing itself: it wires the feature modules to
+// each other and to the DOM. The pattern throughout is that a feature that
+// changes data calls back into here, and here re-renders whatever else depends
+// on it — which is why quests and tasks don't import each other or home.js.
+//
+// Init order matters at the bottom of the file: everything must be initialised
+// before the first load resolves and triggers a render.
+
 import { initTheme } from "./ui/theme.js";
 import { initTitlebar } from "./ui/titlebar.js";
 import { initMotd } from "./features/motd.js";
@@ -27,7 +37,8 @@ function renderProgress() {
   grid.innerHTML = inProgress.map(cardHtml).join("");
   bindQuestActions(grid);
 
-  // What you can focus on is whatever is in flight, so it follows this.
+  // Both depend on what's in progress, so they follow it rather than being
+  // refreshed on their own schedule.
   renderFocusQuests();
   renderHome();
 }
@@ -70,8 +81,8 @@ function initShortcuts() {
     if (anyModalOpen()) return;
     e.preventDefault();
 
-    // New items land in a backlog, so send the user to the tab that will
-    // actually show what they just created.
+    // Switch tabs before opening the form: new items land in a backlog, so
+    // creating one from another tab would otherwise appear to do nothing.
     if (e.shiftKey) {
       showTab("tasks");
       openCreateTask();
@@ -85,8 +96,8 @@ function initShortcuts() {
 initTheme();
 initTitlebar();
 initShortcuts();
-// Only the create button for the tab you're looking at is shown — two of them
-// plus the tab bar does not fit the 380px minimum window width.
+// One create button in the header, retargeted per tab — two buttons plus the
+// tab bar do not fit the 380px minimum window width.
 function syncCreateButton(tab) {
   document.getElementById("addQuestBtn").hidden = tab === "tasks";
   document.getElementById("addTaskBtn").hidden = tab !== "tasks";
@@ -96,7 +107,8 @@ initTabs(syncCreateButton);
 initDetail();
 initGates();
 
-// A finished session changes both the worked-time record and today's tally.
+// A finished session changes the worked-time totals the scope note reads, so
+// refresh sessions before re-rendering the quests that depend on them.
 initSession({
   quests: getAllQuests,
   onEnded: function () {
@@ -110,8 +122,8 @@ initHome(homeData);
 initQuests(renderProgress);
 initTasks(renderTasks);
 
-// The motd pool has to be in hand before the first home render, or the footer
-// shows blank until something else happens to trigger a repaint.
+// Renders again once the motd pools land — the first render above runs before
+// they arrive and would leave the footer blank until the next repaint.
 initMotd().then(renderHome);
 renderToday([]);
 

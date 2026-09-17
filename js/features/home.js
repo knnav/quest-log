@@ -1,3 +1,12 @@
+// The Home screen: the two stat columns, the bonfire, the clock, the
+// stale-quest line and the message of the day.
+//
+// It owns no data. initHome takes a `dataSource` callback and re-reads it on
+// every render, so quests.js and tasks.js just call renderHome() after they
+// change something. Everything shown is derived — nothing here is stored.
+//
+// It also re-renders on a timer, because the window stays open for days.
+
 import {
   fuelFor, stageFor, completionEntries, lastCompletedAt, elapsedLabel,
   STAGE_LABELS, STAGE_NOTES
@@ -28,12 +37,11 @@ export function initHome(dataSource) {
 
   if (!bonfireEl) return;
 
-  // The window sits open for days, so nothing here can be computed once. The
-  // clock needs the minute, and the fire decays across it.
   startTicking();
 
-  // An idle Electron window animating a fire forever is a battery complaint
-  // waiting to happen.
+  // The fire is a CSS animation; pause it while the window is unfocused rather
+  // than burning CPU in the background. Re-render on focus to catch up on the
+  // decay and clock drift that happened while we were idle.
   window.addEventListener("blur", function () { document.body.classList.add("is-idle"); });
   window.addEventListener("focus", function () {
     document.body.classList.remove("is-idle");
@@ -52,8 +60,8 @@ export function renderHome() {
     ["In progress", data.questCounts.in_progress],
     ["Shipped", data.questCounts.shipped]
   ];
-  // Only once there is an Ashes pile — otherwise it is a row of zero, and
-  // without it the column would quietly stop adding up to your total.
+  // Shown only once non-zero: an always-present "Let go: 0" is noise, but
+  // hiding it when it is non-zero makes the column stop summing to the total.
   if (data.questCounts.let_go) questRows.push(["Let go", data.questCounts.let_go]);
   renderStats(questStatsEl, questRows);
 
@@ -87,8 +95,9 @@ export function renderHome() {
   if (motdEl) motdEl.textContent = pickMotd(situationOf(data, stage));
 }
 
-// One line, on the screen you actually look at. A quest rotting in the backlog
-// is invisible otherwise — you would have to open every card to notice.
+// Surfaces the longest-waiting backlog quest once it passes STALE_DAYS.
+// Hidden entirely below the threshold, rather than shown as an empty element,
+// so it takes no vertical space on a board with nothing stale.
 function renderStale(data, now) {
   if (!staleEl) return;
   var oldest = oldestWaiting(data.quests, now);
@@ -103,7 +112,8 @@ function renderStale(data, now) {
   staleEl.hidden = false;
 }
 
-// The message of the day is worth more when it knows where you actually are.
+// Maps the current board state to a motd pool name. Order matters: the checks
+// run most-specific first, and "default" is the fallthrough.
 function situationOf(data, stage) {
   var q = data.questCounts;
   var t = data.taskCounts;
@@ -129,8 +139,9 @@ function formatClock(date) {
     String(date.getMinutes()).padStart(2, "0");
 }
 
-// Re-render on the minute rather than every minute from load, so the clock
-// turns over when the wall clock does — and so midnight recomputes the fire.
+// Re-renders on the wall-clock minute, not every 60s from load, so the clock
+// flips when the real minute does. Re-arms itself each tick rather than using
+// setInterval, since the delay differs every time.
 function startTicking() {
   if (tickTimer) clearTimeout(tickTimer);
   var msToNextMinute = 60000 - (Date.now() % 60000);
@@ -139,8 +150,8 @@ function startTicking() {
     startTicking();
   }, msToNextMinute);
 
-  // In a browser setTimeout hands back a number and this is a no-op. Under
-  // Node it hands back a Timeout, and a repeating one would hold the event
-  // loop open forever — which is exactly what hung the test run.
+  // Under Node (jsdom tests) setTimeout returns a Timeout object, and this
+  // self-rearming chain would hold the event loop open forever. In a browser it
+  // returns a number and this is a no-op.
   if (tickTimer && typeof tickTimer.unref === "function") tickTimer.unref();
 }
