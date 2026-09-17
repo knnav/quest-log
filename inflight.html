@@ -1,0 +1,22 @@
+<title>In Flight</title>
+<link rel="stylesheet" href="assets/css/styles.css">
+
+<!-- The In Flight panel: its own small always-on-top window, listing what is
+     in progress and nothing else. It belongs to mini mode — it arrives when
+     the board folds into the hearth and goes when the board comes back. It is
+     a separate BrowserWindow rather than another face of the main one because
+     the hearth is already that face, and both have to be on screen at once.
+
+     Like the hearth, the whole thing is dragged by hand (see main.js above
+     `dragging`) — no CSS drag region, or the double-click that brings the
+     board back would never arrive on Windows. -->
+<div class="panel" id="panel">
+  <div class="panel-head">
+    <span class="panel-title">IN FLIGHT</span>
+    <button class="panel-btn" id="panelClose" title="Hide until next time">&#10005;</button>
+  </div>
+  <div class="panel-list" id="panelList"></div>
+  <p class="panel-empty" id="panelEmpty" hidden>Nothing in flight.</p>
+</div>
+
+<script type="module" src="js/inflight.js"></script>

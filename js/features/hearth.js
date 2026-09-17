@@ -8,13 +8,9 @@
 //
 // The whole face can be dragged, a double-click anywhere brings the board
 // back, right-click opens a small menu, Escape is the keyboard way out. The
-// drag is done by hand — pointer deltas over IPC, at most one per animation
-// frame — rather than with a CSS `-webkit-app-region: drag`. That is not a
-// style choice: on Windows a drag region swallows every DOM mouse event, so
-// the double-click (and the right-click menu with Quit in it) would never
-// arrive. The trade-offs and the two Windows scaling traps this walks around
-// are written up in main.js above `dragOrigin`; don't reintroduce a drag
-// region here without reading that first. The pause/stop buttons only appear
+// drag itself lives in ui/windowDrag.js, shared with the In Flight panel —
+// read the note there (and the one above `dragging` in main.js) before
+// reaching for a CSS drag region instead. The pause/stop buttons only appear
 // while a session is running.
 //
 // A finished session that nobody has acknowledged puts the face in `is-alarm`:
@@ -22,11 +18,10 @@
 // acknowledgement — you can't accidentally move it instead of noticing it.
 
 import { formatRemaining } from "../core/sessionFormat.js";
+import { enableWindowDrag } from "../ui/windowDrag.js";
 
 var viewEl, sessionEl, questEl, clockEl, actionsEl, toggleBtn, stopBtn, barEl;
 var lastView = { active: false };
-var drag = null;
-var pendingMove = null;
 
 export function initHearth() {
   viewEl = document.getElementById("hearthView");
@@ -57,10 +52,9 @@ export function initHearth() {
     if (window.windowControls && window.windowControls.hearthMenu) window.windowControls.hearthMenu();
   });
 
-  viewEl.addEventListener("pointerdown", startDrag);
-  viewEl.addEventListener("pointermove", moveDrag);
-  viewEl.addEventListener("pointerup", stopDrag);
-  viewEl.addEventListener("pointercancel", stopDrag);
+  // Not while the alarm is on: that click is for acknowledging, and must not
+  // be spent nudging the window a few pixels instead.
+  enableWindowDrag(viewEl, { blocked: function () { return !!lastView.awaitingAck; } });
 
   document.addEventListener("keydown", function (e) {
     if (e.key !== "Escape" || document.body.getAttribute("data-mode") !== "hearth") return;
@@ -85,44 +79,6 @@ export function initHearth() {
     window.session.onChange(render);
     window.session.get().then(render);
   }
-}
-
-// Left button only, and never from the buttons — they have their own job.
-// Nor while the alarm is on: that click is for acknowledging.
-function startDrag(e) {
-  if (e.button !== 0 || e.target.closest("button") || lastView.awaitingAck) return;
-  if (!window.windowControls || !window.windowControls.dragStart) return;
-  drag = { x: e.screenX, y: e.screenY, pointerId: e.pointerId };
-  if (viewEl.setPointerCapture) viewEl.setPointerCapture(e.pointerId);
-  window.windowControls.dragStart();
-}
-
-// Coalesced to one IPC per frame: pointer events can arrive far faster than
-// the window can be repainted, and every extra move is a wasted native call.
-function moveDrag(e) {
-  if (!drag) return;
-  pendingMove = { dx: e.screenX - drag.x, dy: e.screenY - drag.y };
-  if (pendingMove.scheduled) return;
-  pendingMove.scheduled = true;
-  var raf = window.requestAnimationFrame || function (fn) { return setTimeout(fn, 16); };
-  raf(flushMove);
-}
-
-function flushMove() {
-  var move = pendingMove;
-  pendingMove = null;
-  if (!move || !drag) return;
-  window.windowControls.dragMove(move.dx, move.dy);
-}
-
-function stopDrag(e) {
-  if (!drag) return;
-  flushMove();
-  if (viewEl.releasePointerCapture) {
-    try { viewEl.releasePointerCapture(drag.pointerId); } catch (err) { /* already released */ }
-  }
-  drag = null;
-  window.windowControls.dragEnd();
 }
 
 export function applyMode(mode) {

@@ -22,14 +22,6 @@ export const STAGE_THRESHOLDS = [1, 3, 6, 10];
 
 export const STAGE_LABELS = ["Embers", "Kindling", "Burning", "Blazing", "Roaring"];
 
-export const STAGE_NOTES = [
-  "Nothing burning yet. Finish something small.",
-  "Caught. Keep feeding it.",
-  "Burning steady.",
-  "Well fed. This is what a good week looks like.",
-  "Roaring. Go rest, you've earned the bonfire."
-];
-
 // entries: [{ completedAt, weight }], as built by completionEntries.
 // Undated entries (finished before completedAt existed) contribute nothing
 // rather than being treated as fresh. `now` is injectable for tests.

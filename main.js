@@ -20,16 +20,39 @@ let finished = null;
 let nudgeTimers = [];
 const NUDGE_DELAYS_MS = [30000, 120000];
 let mainWindow = null;
+let panelWindow = null;
 let tray = null;
 let quitting = false;
 let currentTheme = null;
+
+// The In Flight panel's last contents, cached so a panel that opens between
+// two board changes has something to draw immediately. main.js is only a relay
+// here: the board renderer decides what counts as in flight (js/core/wip.js)
+// and pushes the rows, because that is where the quests and tasks live.
+let panelData = { rows: [], hidden: 0 };
+
+// The × on the panel means "not right now", not "not ever": it hides the panel
+// for the rest of this stint in mini mode, and the next collapse brings it
+// back. Switching it off for good is the checkbox, which persists. Two words
+// in the original ask — closable *and* disablable — and they are not the same.
+let panelDismissed = false;
 
 // One window, two modes. The hearth is the tiny always-on-top resident that
 // lives in a screen corner; the board is the full app. Switching is a
 // setBounds + a flag pushed to the renderer, never a second BrowserWindow, so
 // theme, session and data plumbing exist once.
+//
+// The In Flight panel is the one deliberate exception. It belongs to mini
+// mode: it appears when the board folds into the hearth and goes when the
+// board comes back, so the two floating things arrive together. It still
+// cannot be a *face* of this window, because the hearth already is one and
+// both have to be on screen at once. On unless switched off; see syncPanel.
 const HEARTH = { width: 220, height: 210 };
 const BOARD = { width: 420, height: 880, minWidth: 420, minHeight: 600, maxWidth: 720, maxHeight: 4000 };
+// Never taller than the hearth: the two sit side by side in one band, so a
+// panel that fits on screen wherever the hearth does needs no clamping as it
+// grows. Six rows plus an overflow line come to ~155px, well inside this.
+const PANEL = { width: 210, minHeight: 46, maxHeight: HEARTH.height };
 let mode = "board";
 
 function sessionView() {
@@ -193,7 +216,7 @@ function collapseToHearth() {
 
   // Deliberately left resizable, with min == max pinning the size — a
   // resizable:false window grows on every drag move on Windows. See the note
-  // above dragOrigin for the full story.
+  // above `dragging` for the full story.
   win.setMinimumSize(HEARTH.width, HEARTH.height);
   win.setMaximumSize(HEARTH.width, HEARTH.height);
   win.setBounds(hearthBounds());
@@ -202,6 +225,11 @@ function collapseToHearth() {
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   win.showInactive();
   pushMode();
+
+  // A fresh stint in mini mode, so a previous × is spent: the panel arrives
+  // with the hearth.
+  panelDismissed = false;
+  syncPanel();
 }
 
 function expandToBoard() {
@@ -211,6 +239,7 @@ function expandToBoard() {
   if (mode === "board") {
     win.show();
     win.focus();
+    syncPanel();
     return;
   }
   rememberBounds();
@@ -227,9 +256,219 @@ function expandToBoard() {
   win.show();
   win.focus();
   pushMode();
+
+  // The board shows what is in progress by itself; the panel would only sit
+  // on top of it.
+  syncPanel();
 }
 
-// Dragging the hearth — why it is done by hand.
+// ---- the In Flight panel ------------------------------------------------
+//
+// A small always-on-top window listing what is in progress, so that the answer
+// to "what was I doing?" is already on screen when you sit back down. Off by
+// default, and switchable from three places — the board's title bar, the tray,
+// and the panel's own × — all of which flip one persisted flag so they can
+// never disagree.
+//
+// It holds no logic: the rows are pushed from the board renderer, which is
+// where the data is. The height follows its contents, reported after each
+// render, because a fixed box would either clip a third quest or leave a hole
+// under one.
+
+function panelUi() {
+  return store.getUi().panel || {};
+}
+
+// store.setUi merges at the top level only, so the panel's own fields are
+// merged here — saving a position must not wipe the on/off flag.
+function savePanelUi(patch) {
+  store.setUi({ panel: Object.assign({}, panelUi(), patch) });
+}
+
+// On by default. An ambient reminder you have to go and switch on is one you
+// never switch on, so an absent flag means "never touched", which is not the
+// same as "switched off" — only an explicit false turns it off.
+function panelEnabled() {
+  const saved = panelUi().enabled;
+  return saved === undefined ? true : !!saved;
+}
+
+// The single decision about whether the panel is on screen, so that no path
+// can leave it showing over the board or missing from the hearth. Everything
+// that can change the answer — a mode switch, the checkbox, the × — calls
+// this rather than opening or closing the window itself.
+function syncPanel() {
+  if (panelEnabled() && mode === "hearth" && !panelDismissed) openPanel();
+  else closePanel();
+}
+
+function livePanel() {
+  return panelWindow && !panelWindow.isDestroyed() ? panelWindow : null;
+}
+
+function clampPanelHeight(height) {
+  const h = Math.round(Number(height) || 0);
+  return Math.min(PANEL.maxHeight, Math.max(PANEL.minHeight, h));
+}
+
+// First time out it opens beside the hearth, top edges aligned — the two
+// arrive together, so the panel belongs where you are already looking rather
+// than in a corner you have to find. To its left, or to its right when the
+// hearth is parked against the left edge of the screen. After that it keeps
+// wherever it was dragged to.
+//
+// Top-aligned rather than bottom-aligned on purpose. The window is opened
+// before the renderer has laid out the rows and can say how tall they are, so
+// it always grows once, afterwards: anchored by its top edge it grows straight
+// down its own column and never has to be moved again. That matters beyond
+// tidiness — a window that is already on screen cannot be reliably
+// repositioned under WSLg, where the window manager reverts the move a moment
+// after Electron reports it applied.
+function panelBounds(height) {
+  const saved = panelUi();
+  const h = clampPanelHeight(height);
+  if (Number.isFinite(saved.x) && Number.isFinite(saved.y)) {
+    return onScreen({ x: saved.x, y: saved.y, width: PANEL.width, height: h });
+  }
+
+  const hearth = hearthBounds();
+  const area = screen.getDisplayMatching(hearth).workArea;
+  const left = hearth.x - PANEL.width - 8;
+  return onScreen({
+    x: left >= area.x ? left : hearth.x + HEARTH.width + 8,
+    y: hearth.y,
+    width: PANEL.width,
+    height: h,
+  });
+}
+
+function openPanel() {
+  const open = livePanel();
+  if (open) {
+    open.showInactive();
+    return;
+  }
+
+  const bounds = panelBounds(PANEL.minHeight);
+  const win = new BrowserWindow({
+    x: bounds.x,
+    y: bounds.y,
+    width: bounds.width,
+    height: bounds.height,
+    // The width is pinned, the height is a range the renderer drives. Left
+    // resizable on purpose: a resizable:false window grows a pixel on every
+    // programmatic move on Windows — the note above `dragging` has the story.
+    minWidth: PANEL.width,
+    maxWidth: PANEL.width,
+    minHeight: PANEL.minHeight,
+    maxHeight: PANEL.maxHeight,
+    resizable: true,
+    maximizable: false,
+    fullscreenable: false,
+    frame: false,
+    show: false,
+    // Never in the taskbar or the switcher: it is a sticky note, not a place
+    // you alt-tab to, and it must not take focus from what you are typing in.
+    skipTaskbar: true,
+    backgroundColor: nativeTheme.shouldUseDarkColors ? "#0b0714" : "#f6f3ff",
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  panelWindow = win;
+  win.loadFile("inflight.html");
+  win.setAlwaysOnTop(true, "screen-saver");
+  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  win.once("ready-to-show", () => {
+    if (!win.isDestroyed()) win.showInactive();
+  });
+
+  // Closed from outside (Alt+F4) while mini mode still wanted it on screen:
+  // read that as the × — otherwise the next sync would argue with the user and
+  // put it straight back.
+  //
+  // Which close this was is decided by identity, never by timing. `closed`
+  // arrives a beat after destroy(), and by then mini mode may already have
+  // opened the *next* panel: a handler that trusted the clock would blame that
+  // new window for this one's death, mark the panel dismissed and leave mini
+  // mode with no panel at all until something else reset the flag. closePanel
+  // clears this reference before it destroys, so if it still points at this
+  // window, nobody here asked for the close.
+  win.on("closed", () => {
+    if (panelWindow !== win) return;
+    panelWindow = null;
+    if (!quitting && panelEnabled() && mode === "hearth") panelDismissed = true;
+  });
+}
+
+function closePanel() {
+  const win = livePanel();
+  // Cleared before the destroy rather than in the `closed` handler: that event
+  // lands later, and this reference is what tells a deliberate close apart
+  // from an OS one. See the handler in openPanel.
+  panelWindow = null;
+  if (win) win.destroy();
+}
+
+// The persistent switch. Saved before anything moves, so the `closed` hook
+// above can tell this apart from an OS close. Switching it on from the board
+// shows nothing until the next collapse, which is why the button says "in mini
+// mode" — there is nothing to show while the board is the thing on screen.
+function setPanelEnabled(enabled) {
+  const on = !!enabled;
+  savePanelUi({ enabled: on });
+  if (on) panelDismissed = false;
+  syncPanel();
+  broadcast("panel:enabled", on);
+  refreshTray();
+  return on;
+}
+
+// The ×.
+function dismissPanel() {
+  panelDismissed = true;
+  syncPanel();
+}
+
+function pushPanelData(data) {
+  panelData = data && Array.isArray(data.rows) ? data : { rows: [], hidden: 0 };
+  const win = livePanel();
+  if (win) win.webContents.send("panel:data", panelData);
+}
+
+// Grows and shrinks with the list, and only ever changes its height: it is
+// anchored by its top-left corner, wherever that is, so this never moves the
+// window. See panelBounds for why that restraint is load-bearing.
+function resizePanel(height) {
+  const win = livePanel();
+  if (!win) return;
+
+  const b = win.getBounds();
+  win.setBounds({ x: b.x, y: b.y, width: PANEL.width, height: clampPanelHeight(height) });
+}
+
+function savePanelBounds() {
+  const win = livePanel();
+  if (!win) return;
+  const b = win.getBounds();
+  savePanelUi({ x: b.x, y: b.y });
+}
+
+function showPanelMenu() {
+  const win = livePanel();
+  if (!win) return;
+  Menu.buildFromTemplate([
+    { label: "Open board", click: expandToBoard },
+    { type: "separator" },
+    { label: "Hide until next time", click: dismissPanel },
+    { label: "Turn the panel off", click: () => setPanelEnabled(false) },
+  ]).popup({ window: win });
+}
+
+// Dragging the floating windows — why it is done by hand.
 //
 // The obvious way to make a frameless window draggable is a CSS
 // `-webkit-app-region: drag` and let the OS move it. That was the first
@@ -241,42 +480,57 @@ function expandToBoard() {
 // Second attempt kept the drag region and read the double-click off the raw
 // window messages with win.hookWindowMessage(WM_NCLBUTTONDBLCLK) — Electron's
 // Windows-only escape hatch for exactly this. It did not fire either. So the
-// window is moved from here instead: hearth.js sends pointer deltas over IPC
-// (coalesced to one per animation frame) and dragBy() applies them.
+// window is moved from here instead: the renderer sends pointer deltas over
+// IPC (coalesced to one per animation frame) and dragBy() applies them. The
+// renderer half of this is js/ui/windowDrag.js.
 //
 // Doing it this way has two traps of its own on Windows with display scaling
 // other than 100%, both of which make the window grow by a pixel on every
 // move until you let go:
 //   1. setPosition() re-derives the size through a DIP→pixel→DIP round trip
 //      and the rounding compounds. dragBy() therefore always calls setBounds()
-//      with the hearth's fixed size spelled out — same native SetWindowPos
+//      with the window's size spelled out — same native SetWindowPos
 //      underneath, so no extra cost, but the size can no longer drift.
 //   2. A `resizable: false` window is what triggers the bug in the first
 //      place, so collapseToHearth() leaves the window resizable and pins the
-//      size with min == max instead. The user can't resize it either way.
-let dragOrigin = null;
+//      size with min == max instead (the panel pins its width the same way).
+//      The user can't resize either of them meaningfully.
+//
+// Both floating windows are moved this way, so a drag is keyed to the window
+// that sent it rather than assuming the hearth: `dragging` holds the sender
+// and the bounds it started from.
+let dragging = null;
 
-function beginDrag() {
-  const win = liveWindow();
-  if (win) dragOrigin = win.getBounds();
+function senderWindow(event) {
+  const win = event ? BrowserWindow.fromWebContents(event.sender) : null;
+  return win && !win.isDestroyed() ? win : null;
+}
+
+function beginDrag(event) {
+  const win = senderWindow(event);
+  dragging = win ? { win: win, bounds: win.getBounds() } : null;
 }
 
 // Full bounds with the size spelled out, never setPosition — see the note
-// above dragOrigin.
+// above `dragging`. The size is the one captured at drag start, which is what
+// lets this move either window without knowing which it is.
 function dragBy(dx, dy) {
-  const win = liveWindow();
-  if (!win || !dragOrigin) return;
-  win.setBounds({
-    x: Math.round(dragOrigin.x + dx),
-    y: Math.round(dragOrigin.y + dy),
-    width: HEARTH.width,
-    height: HEARTH.height,
+  if (!dragging || dragging.win.isDestroyed()) return;
+  const from = dragging.bounds;
+  dragging.win.setBounds({
+    x: Math.round(from.x + dx),
+    y: Math.round(from.y + dy),
+    width: from.width,
+    height: from.height,
   });
 }
 
 function endDrag() {
-  dragOrigin = null;
-  if (mode === "hearth") rememberBounds();
+  const win = dragging ? dragging.win : null;
+  dragging = null;
+  if (!win || win.isDestroyed()) return;
+  if (win === panelWindow) savePanelBounds();
+  else if (mode === "hearth") rememberBounds();
 }
 
 function showHearthMenu() {
@@ -284,6 +538,12 @@ function showHearthMenu() {
   if (!win) return;
   Menu.buildFromTemplate([
     { label: "Open board", click: expandToBoard },
+    {
+      label: "In Flight panel in mini mode",
+      type: "checkbox",
+      checked: panelEnabled(),
+      click: (item) => setPanelEnabled(item.checked),
+    },
     { type: "separator" },
     { label: "Quit Quest Log", click: quitApp },
   ]).popup({ window: win });
@@ -295,6 +555,9 @@ function showHearthMenu() {
 function quitApp() {
   quitting = true;
   rememberBounds();
+  // Before the board goes: the panel is a window of its own, and one left
+  // alive would keep the event loop (and an always-on-top box) around.
+  closePanel();
   const win = liveWindow();
   if (win) win.destroy();
   app.quit();
@@ -374,16 +637,34 @@ function createWindow() {
 
 // The tray also carries Quit: the board's × is out of reach when only the
 // hearth is on screen, so this and the hearth's right-click menu are the
-// exits from that state.
+// exits from that state. It carries the panel switch for the same reason —
+// the title bar's copy is unreachable from the hearth.
+//
+// Rebuilt on every change rather than set once, because a checkbox in a tray
+// menu is a snapshot: Electron reads `checked` when the menu is built.
+function trayMenu() {
+  return Menu.buildFromTemplate([
+    { label: "Open board", click: expandToBoard },
+    { label: "Back to hearth", click: collapseToHearth },
+    {
+      label: "In Flight panel in mini mode",
+      type: "checkbox",
+      checked: panelEnabled(),
+      click: (item) => setPanelEnabled(item.checked),
+    },
+    { type: "separator" },
+    { label: "Quit Quest Log", click: quitApp },
+  ]);
+}
+
+function refreshTray() {
+  if (tray && !tray.isDestroyed()) tray.setContextMenu(trayMenu());
+}
+
 function createTray() {
   tray = new Tray(path.join(__dirname, "assets", "tray.png"));
   tray.setToolTip("Quest Log");
-  tray.setContextMenu(Menu.buildFromTemplate([
-    { label: "Open board", click: expandToBoard },
-    { label: "Back to hearth", click: collapseToHearth },
-    { type: "separator" },
-    { label: "Quit Quest Log", click: quitApp },
-  ]));
+  tray.setContextMenu(trayMenu());
   tray.on("click", () => (mode === "board" ? collapseToHearth() : expandToBoard()));
 }
 
@@ -481,12 +762,24 @@ function registerIpcHandlers() {
 
   ipcMain.handle("quest-log:list-sessions", () => store.getSessions());
 
+  // The In Flight panel. The board pushes the rows and owns the switch; the
+  // panel window reads, hides and resizes itself.
+  ipcMain.on("panel:push", (event, data) => pushPanelData(data));
+  ipcMain.handle("panel:get", () => panelData);
+  ipcMain.handle("panel:is-enabled", () => panelEnabled());
+  ipcMain.handle("panel:set-enabled", (event, enabled) => setPanelEnabled(enabled));
+  ipcMain.on("panel:hide", dismissPanel);
+  ipcMain.on("panel:menu", showPanelMenu);
+  ipcMain.on("panel:resize", (event, height) => resizePanel(height));
 }
 
 app.whenReady().then(() => {
   registerIpcHandlers();
   createWindow();
   createTray();
+  // No panel here: the app starts on the board, and the panel belongs to mini
+  // mode. It opens on the first collapse — including the automatic one when a
+  // session starts.
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

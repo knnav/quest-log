@@ -144,6 +144,8 @@ body {
 
 .titlebar-btn:hover { background: var(--chip-bg); color: var(--text); }
 .titlebar-btn.close:hover { background: #e5484d; color: #ffffff; }
+/* The panel button is a switch, not an action, so it shows its state. */
+.titlebar-btn.on { color: var(--accent); }
 
 .wrap {
   width: 100%;
@@ -464,6 +466,123 @@ body.is-idle[data-mode="hearth"] .bonfire { animation-play-state: running; }
   transition: width 1s linear;
 }
 
+/* ---- the In Flight panel (inflight.html, its own window) ---- */
+
+/* The second window, and the whole of its document. It is sized to its
+   contents rather than filling a fixed box — js/inflight.js reports the height
+   after each render and main.js resizes the window to match — so nothing in
+   here stretches, and the body carries the panel's own colour so there is
+   never a strip of a different shade under it.
+
+   Dragged by hand like the hearth, hence the grab cursor and touch-action;
+   see js/ui/windowDrag.js. */
+body.is-panel { background: var(--panel); }
+
+.panel {
+  flex: none;
+  -webkit-user-select: none;
+  cursor: grab;
+  touch-action: none;
+  min-height: 46px;
+  padding: 5px 8px 8px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 15px;
+  margin-bottom: 5px;
+}
+
+.panel-title {
+  font-family: "Press Start 2P", monospace;
+  font-size: 7px;
+  letter-spacing: 1px;
+  color: var(--accent);
+}
+
+/* Hidden until the pointer is over the panel: this is meant to be read at a
+   glance, not operated, and a × sitting there invites fiddling. */
+.panel-btn {
+  opacity: 0;
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  line-height: 1;
+  font-family: inherit;
+  font-size: 8px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: opacity 0.15s ease, color 0.12s ease;
+}
+
+.panel:hover .panel-btn { opacity: 1; }
+.panel-btn:hover { color: var(--danger); }
+
+.panel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.panel-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+/* The kind, so a task can't be mistaken for a quest at this size. Quests wear
+   the in-progress colour the board uses for them; tasks stay neutral. */
+.panel-kind {
+  flex: none;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 7.5px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--status-progress);
+  background: var(--status-progress-bg);
+}
+
+.panel-kind.task {
+  color: var(--text-dim);
+  background: var(--chip-bg);
+}
+
+/* One line each: the window is 210px wide and a wrapped title would push the
+   rest of the list out of the box. */
+.panel-row-title {
+  min-width: 0;
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.panel-more {
+  padding-left: 2px;
+  font-size: 9px;
+  color: var(--text-dim);
+}
+
+.panel-empty {
+  margin: 0;
+  font-size: 10px;
+  font-style: italic;
+  color: var(--text-dim);
+}
+
+.panel-empty[hidden] { display: none; }
+
 .screen { display: flex; flex-direction: column; flex: 1 0 auto; }
 .screen[hidden] { display: none; }
 
@@ -532,14 +651,7 @@ body.is-idle[data-mode="hearth"] .bonfire { animation-play-state: running; }
   text-align: center;
 }
 
-.hearth-note {
-  font-size: 11.5px;
-  color: var(--text-dim);
-  margin: 0;
-  text-align: center;
-  max-width: 34ch;
-  line-height: 1.6;
-}
+.hearth-note { max-width: 36ch; }
 
 /* ---- since / clock ---- */
 

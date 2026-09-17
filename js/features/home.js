@@ -9,13 +9,13 @@
 
 import {
   fuelFor, stageFor, completionEntries, lastCompletedAt, elapsedLabel,
-  STAGE_LABELS, STAGE_NOTES
+  STAGE_LABELS
 } from "../core/fire.js";
 import { oldestWaiting } from "../core/records.js";
 import { pickMotd, motdHtml } from "./motd.js";
 import { WIP_LIMIT, STALE_DAYS } from "../core/domain.js";
 
-var bonfireEls, stageLabelEls, motdEls, bonfireEl, stageNoteEl, staleEl;
+var bonfireEls, stageLabelEls, motdEls, bonfireEl, staleEl;
 var sinceValueEl, sinceLabelEl, clockEl;
 var questStatsEl, taskStatsEl;
 var getData = null;
@@ -28,10 +28,9 @@ export function initHome(dataSource) {
   // are painted from here so they can never disagree about the stage.
   bonfireEls = document.querySelectorAll(".bonfire");
   stageLabelEls = document.querySelectorAll("[data-bonfire-stage]");
-  // Likewise the quote: the home footer and the hearth face show the same one.
+  // Likewise the quote under the stage label: the hearth face shows the same one.
   motdEls = document.querySelectorAll("[data-motd]");
   bonfireEl = document.getElementById("bonfire");
-  stageNoteEl = document.getElementById("bonfireNote");
   sinceValueEl = document.getElementById("sinceValue");
   sinceLabelEl = document.getElementById("sinceLabel");
   clockEl = document.getElementById("clock");
@@ -81,7 +80,6 @@ export function renderHome() {
 
   bonfireEls.forEach(function (el) { el.setAttribute("data-stage", String(stage)); });
   stageLabelEls.forEach(function (el) { el.textContent = STAGE_LABELS[stage]; });
-  stageNoteEl.textContent = STAGE_NOTES[stage];
 
   var lastMs = lastCompletedAt(entries);
   var since = elapsedLabel(lastMs, now);

@@ -27,6 +27,7 @@
       "preload.js",
       "store.js",
       "index.html",
+      "inflight.html",
       "js/**/*",
       "assets/**/*",
       "fonts/**/*"

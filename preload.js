@@ -41,6 +41,27 @@ contextBridge.exposeInMainWorld("themeSync", {
   },
 });
 
+// The In Flight panel, which is its own window. The first three are called
+// from the board (which owns the data and the on/off switch), the rest from
+// the panel itself. Both documents get the whole namespace; each uses its
+// half. Moving the panel goes through windowControls.drag* like the hearth —
+// main.js applies the deltas to whichever window sent them.
+contextBridge.exposeInMainWorld("panel", {
+  push: (data) => ipcRenderer.send("panel:push", data),
+  setEnabled: (enabled) => ipcRenderer.invoke("panel:set-enabled", enabled),
+  isEnabled: () => ipcRenderer.invoke("panel:is-enabled"),
+  onEnabledChange: (callback) => {
+    ipcRenderer.on("panel:enabled", (event, enabled) => callback(enabled));
+  },
+  get: () => ipcRenderer.invoke("panel:get"),
+  onData: (callback) => {
+    ipcRenderer.on("panel:data", (event, data) => callback(data));
+  },
+  hide: () => ipcRenderer.send("panel:hide"),
+  menu: () => ipcRenderer.send("panel:menu"),
+  resize: (height) => ipcRenderer.send("panel:resize", height),
+});
+
 contextBridge.exposeInMainWorld("motd", {
   list: () => ipcRenderer.invoke("motd:list"),
 });

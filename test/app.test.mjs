@@ -22,7 +22,10 @@ function memoryStorage() {
   };
 }
 
-function boot(quests, tasks) {
+// options.noPanel boots without the In Flight bridge, the way the app runs
+// under a preload that predates it.
+function boot(quests, tasks, options) {
+  options = options || {};
   const dom = new JSDOM(`<!doctype html><html><body>${INDEX_HTML}</body></html>`, {
     url: "http://localhost/",
   });
@@ -36,6 +39,21 @@ function boot(quests, tasks) {
   };
   win.motd = { list: () => Promise.resolve(["a line"]) };
   win.matchMedia = () => ({ matches: false, addEventListener() {} });
+
+  // The panel lives in another window, so the board only ever pushes to it.
+  dom.pushes = [];
+  let enabled = !!options.panelEnabled;
+  let enabledListener = null;
+  if (!options.noPanel) {
+    win.panel = {
+      push: (data) => dom.pushes.push(data),
+      setEnabled: (next) => { enabled = !!next; return Promise.resolve(enabled); },
+      isEnabled: () => Promise.resolve(enabled),
+      onEnabledChange: (cb) => { enabledListener = cb; },
+    };
+  }
+  // What main.js broadcasts when the tray or the panel's own × flips the flag.
+  dom.pushEnabled = (next) => enabledListener(next);
 
   globalThis.window = win;
   globalThis.document = win.document;
@@ -82,20 +100,19 @@ test("the bonfire lights from recent completions and names its stage", async () 
   const stage = Number(doc.getElementById("bonfire").getAttribute("data-stage"));
   assert.equal(stage, 2, "a quest and a task inside the decay window");
   assert.equal(doc.getElementById("bonfireStage").textContent, "Burning");
-  assert.ok(doc.getElementById("bonfireNote").textContent.length > 0);
 
   // The hearth face carries its own copy of the fire; it must never disagree.
   const hearthFire = doc.querySelector("#hearthView .bonfire");
   assert.equal(hearthFire.getAttribute("data-stage"), "2");
 });
 
-test("the quote is painted into the footer and the hearth face alike", async () => {
+test("the quote is painted under the stage label and into the hearth face alike", async () => {
   const dom = await boot(QUESTS, SIDE_QUESTS);
   const doc = dom.window.document;
 
-  const footer = doc.getElementById("motd");
+  const board = doc.getElementById("motd");
   const hearth = doc.querySelector("#hearthView [data-motd]");
-  assert.equal(footer.querySelector(".motd-text").textContent, "a line");
+  assert.equal(board.querySelector(".motd-text").textContent, "a line");
   assert.equal(hearth.querySelector(".motd-text").textContent, "a line");
   // A plain-string line carries no attribution.
   assert.equal(hearth.querySelector(".motd-by"), null);
@@ -286,4 +303,66 @@ test("the Let go count appears only once something has been let go", async () =>
     SIDE_QUESTS
   );
   assert.match(withAshes.window.document.getElementById("questStats").textContent, /Let go1/);
+});
+
+
+test("what is in flight is pushed to the panel window", async () => {
+  const dom = await boot(QUESTS, SIDE_QUESTS);
+  const last = dom.pushes[dom.pushes.length - 1];
+
+  // q2 is the only quest in progress here, and no task is.
+  assert.deepEqual(last, { rows: [{ kind: "quest", title: "Doing it" }], hidden: 0 });
+});
+
+test("in-progress tasks reach the panel too, after the quests", async () => {
+  const tasks = [
+    { id: "s1", title: "Plants", note: "", status: "in_progress", order: 1 },
+    { id: "s2", title: "Bank", note: "", status: "backlog", order: 2 },
+  ];
+  const dom = await boot(QUESTS, tasks);
+  const last = dom.pushes[dom.pushes.length - 1];
+
+  assert.deepEqual(last.rows, [
+    { kind: "quest", title: "Doing it" },
+    { kind: "task", title: "Plants" },
+  ]);
+});
+
+test("filtering the Quests tab does not empty the panel", async () => {
+  const dom = await boot(QUESTS, SIDE_QUESTS);
+  const doc = dom.window.document;
+  const before = dom.pushes[dom.pushes.length - 1];
+
+  const search = doc.getElementById("questSearch");
+  search.value = "nothing matches this";
+  search.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+
+  assert.equal(doc.getElementById("progressGrid").querySelectorAll(".quest-card").length, 0,
+    "the board is filtered");
+  const after = dom.pushes[dom.pushes.length - 1];
+  assert.deepEqual(after, before, "what you are actually doing has not changed");
+});
+
+test("the title bar switch reflects the panel flag and flips it", async () => {
+  const dom = await boot(QUESTS, SIDE_QUESTS, { panelEnabled: true });
+  const doc = dom.window.document;
+  const btn = doc.getElementById("panelBtn");
+
+  assert.equal(btn.hidden, false);
+  assert.equal(btn.getAttribute("aria-pressed"), "true", "it opened with the panel on");
+
+  btn.dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(btn.getAttribute("aria-pressed"), "false");
+  assert.ok(!btn.classList.contains("on"));
+
+  // The tray and the panel's own × flip the same flag; the switch follows.
+  dom.pushEnabled(true);
+  assert.equal(btn.getAttribute("aria-pressed"), "true");
+  assert.ok(btn.classList.contains("on"));
+});
+
+test("with no panel bridge the switch is hidden rather than dead", async () => {
+  const dom = await boot(QUESTS, SIDE_QUESTS, { noPanel: true });
+  assert.equal(dom.window.document.getElementById("panelBtn").hidden, true);
 });

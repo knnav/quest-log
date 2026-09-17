@@ -28,6 +28,7 @@ import { initHome, renderHome } from "./features/home.js";
 import { initGates } from "./features/gates.js";
 import { initSession, renderFocusQuests, renderToday } from "./features/session.js";
 import { initHearth } from "./features/hearth.js";
+import { wipItems } from "./core/wip.js";
 
 // The In Progress block above the board. Split out because it is the only
 // thing outside quests.js that the search/tag filter applies to.
@@ -48,6 +49,17 @@ function renderProgress() {
   // refreshed on their own schedule.
   renderFocusQuests();
   renderHome();
+  pushInFlight();
+}
+
+// The In Flight panel is a window of its own, so it is pushed to rather than
+// rendered: main.js relays whatever the board sends. Built from the unfiltered
+// lists, because a search term in the Quests tab must not empty the panel —
+// see core/wip.js. Called from the two data-change paths only, not from the
+// filter-only redraw.
+function pushInFlight() {
+  if (!window.panel) return;
+  window.panel.push(wipItems(getAllQuests(), getAllTasks()));
 }
 
 function renderTaskSection(sectionId, gridId, tasks) {
@@ -67,6 +79,7 @@ function renderTasks() {
 
   document.getElementById("tasksEmpty").hidden = getAllTasks().length > 0;
   renderHome();
+  pushInFlight();
 }
 
 function homeData() {
