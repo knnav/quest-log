@@ -4,26 +4,41 @@
 // Reordering is done live in the DOM as you drag, and onReorder(ids) fires once
 // on drop — and only if the order actually changed, so a click-and-release
 // doesn't write to disk.
+//
+// Safe to call after every render. Cards are re-rendered wholesale but the
+// grid they sit in usually persists, so the listeners go on the container once
+// and later calls only re-flag the new children (and swap in the latest
+// callback). Binding again each time would stack a full set of handlers per
+// render and fire onReorder — a disk write — once per stacked set.
 
 function orderedIds(container) {
   return Array.prototype.slice.call(container.querySelectorAll("[data-drag-id]"))
     .map(function (el) { return el.getAttribute("data-drag-id"); });
 }
 
-export function enableDragSort(container, onReorder) {
-  var dragging = null;
-  var startOrder = null;
-
+function markDraggable(container) {
   container.querySelectorAll("[data-drag-id]").forEach(function (el) {
     el.setAttribute("draggable", "true");
   });
+}
+
+export function enableDragSort(container, onReorder) {
+  markDraggable(container);
+
+  if (container.dragSort) {
+    container.dragSort.onReorder = onReorder;
+    return;
+  }
+
+  var state = { dragging: null, startOrder: null, onReorder: onReorder };
+  container.dragSort = state;
 
   container.addEventListener("dragstart", function (e) {
     var card = e.target.closest("[data-drag-id]");
     if (!card) return;
 
-    dragging = card;
-    startOrder = orderedIds(container).join(",");
+    state.dragging = card;
+    state.startOrder = orderedIds(container).join(",");
     card.classList.add("dragging");
 
     if (e.dataTransfer) {
@@ -33,6 +48,7 @@ export function enableDragSort(container, onReorder) {
   });
 
   container.addEventListener("dragover", function (e) {
+    var dragging = state.dragging;
     if (!dragging) return;
     e.preventDefault();
     if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
@@ -57,11 +73,11 @@ export function enableDragSort(container, onReorder) {
   });
 
   container.addEventListener("dragend", function () {
-    if (!dragging) return;
-    dragging.classList.remove("dragging");
-    dragging = null;
+    if (!state.dragging) return;
+    state.dragging.classList.remove("dragging");
+    state.dragging = null;
 
     var ids = orderedIds(container);
-    if (ids.join(",") !== startOrder) onReorder(ids);
+    if (ids.join(",") !== state.startOrder) state.onReorder(ids);
   });
 }

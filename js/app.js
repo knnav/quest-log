@@ -29,7 +29,9 @@ import { initGates } from "./features/gates.js";
 import { initSession, renderFocusQuests, renderToday } from "./features/session.js";
 import { initHearth } from "./features/hearth.js";
 
-function renderProgress() {
+// The In Progress block above the board. Split out because it is the only
+// thing outside quests.js that the search/tag filter applies to.
+function renderProgressGrid() {
   var section = document.getElementById("questsInProgress");
   var grid = document.getElementById("progressGrid");
   var inProgress = getInProgressQuests();
@@ -37,6 +39,10 @@ function renderProgress() {
   section.hidden = inProgress.length === 0;
   grid.innerHTML = inProgress.map(cardHtml).join("");
   bindQuestActions(grid);
+}
+
+function renderProgress() {
+  renderProgressGrid();
 
   // Both depend on what's in progress, so they follow it rather than being
   // refreshed on their own schedule.
@@ -121,7 +127,7 @@ initSession({
 });
 initHome(homeData);
 initHearth();
-initQuests(renderProgress);
+initQuests(renderProgress, renderProgressGrid);
 initTasks(renderTasks);
 
 // Renders again once the motd pools land — the first render above runs before

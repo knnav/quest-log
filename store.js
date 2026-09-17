@@ -87,7 +87,18 @@ function applyOrder(list, orderedIds) {
   });
 }
 
+// The file is read and parsed once, then held in memory and written through.
+// Every operation still rewrites the whole file — atomically, and
+// synchronously on the main process — but it no longer re-reads and re-parses
+// it first, which was half the cost of every status click. The file is only
+// touched from this process, so nothing can change it behind the cache.
+//
+// Everything handed out is the live cached object, not a copy. Callers in the
+// main process treat it as read-only; the renderer only ever sees a copy,
+// because IPC serialises it.
 function createStore(storePath) {
+  let cache = null;
+
   function ensureStore() {
     if (!fs.existsSync(storePath)) {
       fs.mkdirSync(path.dirname(storePath), { recursive: true });
@@ -95,7 +106,7 @@ function createStore(storePath) {
     }
   }
 
-  function readStore() {
+  function loadStore() {
     ensureStore();
     const raw = fs.readFileSync(storePath, "utf-8");
     try {
@@ -110,11 +121,25 @@ function createStore(storePath) {
     }
   }
 
+  function readStore() {
+    if (!cache) cache = loadStore();
+    return cache;
+  }
+
+  // Compact JSON: the file is machine-written and machine-read, and the
+  // indentation was roughly a third of its size.
   function writeStore(data) {
     const dir = path.dirname(storePath);
     const tmpPath = path.join(dir, `.quest-log.json.${process.pid}.${Date.now()}.tmp`);
-    fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2));
-    fs.renameSync(tmpPath, storePath);
+    try {
+      fs.writeFileSync(tmpPath, JSON.stringify(data));
+      fs.renameSync(tmpPath, storePath);
+    } catch (err) {
+      // The in-memory copy was already mutated by the caller and now disagrees
+      // with disk; drop it so the next read starts from what was persisted.
+      cache = null;
+      throw err;
+    }
   }
 
   function getQuests() {

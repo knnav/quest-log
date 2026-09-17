@@ -80,3 +80,45 @@ test("dragging over the card itself changes nothing", () => {
   assert.deepEqual(currentOrder(grid), ["a", "b"]);
   assert.deepEqual(reorders, []);
 });
+
+// app.js re-enables sorting on the same persistent grid after every render.
+// Each call used to stack another full set of listeners, so one drop wrote to
+// disk once per render that had ever happened.
+test("re-enabling on the same container does not stack handlers", () => {
+  const { dom, grid } = setup(["a", "b", "c"]);
+
+  const reorders = [];
+  for (let i = 0; i < 5; i++) {
+    grid.innerHTML = ["a", "b", "c"].map((id) => `<div class="card" data-drag-id="${id}">${id}</div>`).join("");
+    enableDragSort(grid, (ids) => reorders.push(ids));
+  }
+
+  const flags = Array.from(grid.querySelectorAll("[data-drag-id]")).map((el) => el.getAttribute("draggable"));
+  assert.deepEqual(flags, ["true", "true", "true"], "fresh cards are still flagged draggable");
+
+  const cardC = grid.querySelector('[data-drag-id="c"]');
+  const cardA = grid.querySelector('[data-drag-id="a"]');
+  cardC.dispatchEvent(dragEvent(dom, "dragstart"));
+  cardA.dispatchEvent(dragEvent(dom, "dragover"));
+  cardC.dispatchEvent(dragEvent(dom, "dragend"));
+
+  assert.deepEqual(reorders, [["c", "a", "b"]]);
+});
+
+test("re-enabling swaps in the latest callback", () => {
+  const { dom, grid } = setup(["a", "b"]);
+
+  const first = [];
+  const second = [];
+  enableDragSort(grid, (ids) => first.push(ids));
+  enableDragSort(grid, (ids) => second.push(ids));
+
+  const cardB = grid.querySelector('[data-drag-id="b"]');
+  const cardA = grid.querySelector('[data-drag-id="a"]');
+  cardB.dispatchEvent(dragEvent(dom, "dragstart"));
+  cardA.dispatchEvent(dragEvent(dom, "dragover"));
+  cardB.dispatchEvent(dragEvent(dom, "dragend"));
+
+  assert.deepEqual(first, []);
+  assert.deepEqual(second, [["b", "a"]]);
+});

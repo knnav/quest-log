@@ -452,3 +452,37 @@ test("a store written before ui prefs existed reads back an empty object", () =>
   fs.writeFileSync(storePath, JSON.stringify({ quests: [], tasks: [], sessions: [] }));
   assert.deepEqual(createStore(storePath).getUi(), {});
 });
+
+test("reads are served from memory after the first load", () => {
+  const storePath = emptyStorePath();
+  const store = createStore(storePath);
+  const quest = store.createQuest({ title: "Q" });
+
+  // Something else clobbering the file is not a supported case, but it is the
+  // easiest way to prove the second read never touched disk.
+  fs.writeFileSync(storePath, JSON.stringify({ quests: [], tasks: [] }));
+  assert.deepEqual(store.getQuests().map((q) => q.id), [quest.id]);
+
+  assert.deepEqual(createStore(storePath).getQuests(), [], "a fresh store instance reads the file");
+});
+
+test("a failed write drops the cached copy instead of keeping the unsaved change", (t) => {
+  // Permissions are how the write is made to fail, and root ignores them.
+  if (process.getuid && process.getuid() === 0) return t.skip("runs as root");
+
+  const storePath = emptyStorePath();
+  const store = createStore(storePath);
+  store.createQuest({ title: "Saved" });
+
+  // Make the directory unwritable so the temp file cannot be created.
+  const dir = path.dirname(storePath);
+  fs.chmodSync(dir, 0o500);
+  try {
+    assert.throws(() => store.createQuest({ title: "Lost" }));
+  } finally {
+    fs.chmodSync(dir, 0o700);
+  }
+
+  assert.deepEqual(store.getQuests().map((q) => q.title), ["Saved"]);
+  assert.deepEqual(JSON.parse(fs.readFileSync(storePath, "utf-8")).quests.map((q) => q.title), ["Saved"]);
+});

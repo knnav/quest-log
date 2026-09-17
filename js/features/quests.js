@@ -10,10 +10,13 @@
 //
 // `onChange` is app.js's hook: it re-renders everything outside this tab that
 // depends on quests (the In Progress block, the focus picker, the home screen).
+// `onFilterChange` is the narrower one for the search box and tag chips: only
+// the In Progress block is filtered, so the home screen and focus picker are
+// left alone rather than rebuilt (and the motd re-rolled) on every keystroke.
 
 import { TIERS, TIER_LABEL, STATUSES, STATUS_LABEL, WIP_LIMIT, countByStatus } from "../core/domain.js";
 import { escapeHtml } from "../core/html.js";
-import { daysSince, spanMs, MS_PER_DAY } from "../core/dates.js";
+import { daysSince, spanMs, msOf, MS_PER_DAY } from "../core/dates.js";
 import { enableDragSort } from "../ui/dragSort.js";
 import { bindCardDetail } from "../ui/detail.js";
 import { scopeRecord } from "../core/records.js";
@@ -27,12 +30,14 @@ var searchTerm = "";
 var latestDocs = [];
 var latestSessions = [];
 var onChange = null;
+var onFilterChange = null;
 var questModal = null;
 
 var boardEl, filtersEl, searchEl, scopeNoteEl;
 
-export function initQuests(onQuestsChanged) {
+export function initQuests(onQuestsChanged, onQuestFilterChanged) {
   onChange = onQuestsChanged;
+  onFilterChange = onQuestFilterChanged || onQuestsChanged;
 
   boardEl = document.getElementById("board");
   filtersEl = document.getElementById("filters");
@@ -80,9 +85,11 @@ export function openCreateQuest() {
   questModal.open(null);
 }
 
+// Sessions and quests are independent reads, so they go out together; ingest
+// waits for both because the scope note reads sessions.
 export function loadQuests() {
-  return refreshSessions().then(function () {
-    return window.questLog.listQuests().then(ingest);
+  return Promise.all([refreshSessions(), window.questLog.listQuests()]).then(function (results) {
+    return ingest(results[1]);
   });
 }
 
@@ -122,9 +129,13 @@ function byOrder(a, b) {
 }
 
 // Newest finish first. Used for the Hall of Fame and Ashes, which are ordered
-// by when they ended rather than by the drag order the backlog uses.
-function byFinishedDesc(a, b) {
-  return new Date(b.finishedAt || 0) - new Date(a.finishedAt || 0);
+// by when they ended rather than by the drag order the backlog uses. The
+// timestamp is parsed once per quest rather than twice per comparison.
+function sortByFinishedDesc(quests) {
+  return quests
+    .map(function (q) { return { ms: msOf(q.finishedAt) || 0, quest: q }; })
+    .sort(function (a, b) { return b.ms - a.ms; })
+    .map(function (entry) { return entry.quest; });
 }
 
 export function getInProgressQuests() {
@@ -336,10 +347,10 @@ function renderBoard(quests) {
     html += tierSection(tier.title, inTier);
   });
 
-  var shipped = visible.filter(function (q) { return q.status === "shipped"; }).sort(byFinishedDesc);
+  var shipped = sortByFinishedDesc(visible.filter(function (q) { return q.status === "shipped"; }));
   if (shipped.length) html += tierSection("Hall of Fame", shipped);
 
-  var letGo = visible.filter(function (q) { return q.status === "let_go"; }).sort(byFinishedDesc);
+  var letGo = sortByFinishedDesc(visible.filter(function (q) { return q.status === "let_go"; }));
   if (letGo.length) html += tierSection("Ashes", letGo, "ashes-tier");
 
   if (!html) {
@@ -362,10 +373,12 @@ function persistQuestOrder(ids) {
   window.questLog.reorderQuests(ids).then(refetchQuests).catch(function () {});
 }
 
+// Filter-only redraw: the data hasn't changed, so only what the filter
+// applies to is repainted.
 function rerender() {
   renderBoard(latestDocs);
-  // onChange redraws the In Progress block, which app.js owns but this filters.
-  if (onChange) onChange();
+  // The In Progress block is owned by app.js but filtered from here.
+  if (onFilterChange) onFilterChange();
 }
 
 function ingest(docs) {

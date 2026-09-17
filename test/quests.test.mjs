@@ -707,3 +707,55 @@ test("a scope with nothing shipped yet says nothing at all", async () => {
 
   assert.equal(doc.getElementById("questScopeNote").hidden, true);
 });
+
+// Typing in the search box changes what is shown, not what exists. The full
+// onChange rebuilds the focus picker and the home screen (and re-rolls the
+// motd), so a filter change must take the narrower hook instead.
+test("search and tag filters fire the filter hook, not the data-change hook", async () => {
+  const questLogMock = {
+    listQuests: () => Promise.resolve([backlogQuest({ tags: ["Elixir"] }), backlogQuest({ id: "q2", title: "Other" })]),
+  };
+
+  const dom = new JSDOM(FIXTURE_HTML, { url: "http://localhost/" });
+  installGlobals(dom, questLogMock);
+
+  const quests = await freshQuestsModule();
+  let changes = 0;
+  let filters = 0;
+  quests.initQuests(() => { changes += 1; }, () => { filters += 1; });
+  await quests.loadQuests();
+
+  assert.equal(changes, 1, "loading is a data change");
+  assert.equal(filters, 0);
+
+  const doc = dom.window.document;
+  const search = doc.getElementById("questSearch");
+  search.value = "oth";
+  search.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+
+  assert.equal(filters, 1, "a keystroke only refilters");
+  assert.equal(changes, 1, "and never counts as a data change");
+  assert.equal(doc.querySelectorAll("#board .quest-card").length, 1);
+
+  const chip = Array.from(doc.querySelectorAll("#filters .chip")).find((c) => c.textContent === "Elixir");
+  chip.dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+
+  assert.equal(filters, 2);
+  assert.equal(changes, 1);
+});
+
+test("initQuests with one callback uses it for filter changes too", async () => {
+  const questLogMock = { listQuests: () => Promise.resolve([backlogQuest()]) };
+  const dom = new JSDOM(FIXTURE_HTML, { url: "http://localhost/" });
+  installGlobals(dom, questLogMock);
+
+  const quests = await freshQuestsModule();
+  let calls = 0;
+  quests.initQuests(() => { calls += 1; });
+  await quests.loadQuests();
+
+  const search = dom.window.document.getElementById("questSearch");
+  search.value = "x";
+  search.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+  assert.equal(calls, 2);
+});
