@@ -1,0 +1,30 @@
+:root[data-theme="vaporwave"] {
+  --bg: #1a1030;
+  --panel: #241a40;
+  --panel-border: #3f2f66;
+  --text: #f4e6ff;
+  --text-dim: #9d8bc4;
+  --accent: #5ff5e0;
+  --accent-bright: #a6fff2;
+  --accent-glow: rgba(95, 245, 224, 0.24);
+  --status-backlog: #9d8bc4;
+  --status-backlog-bg: #2e2450;
+  --status-progress: #ffb86b;
+  --status-progress-bg: #3d2c30;
+  --status-shipped: #5ff5e0;
+  --status-shipped-bg: #1e3a44;
+  --chip-bg: #30264f;
+  --chip-bg-active: #ff71ce;
+  --chip-text-active: #1a1030;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 20px rgba(255, 113, 206, 0.16);
+  --fire-core: #ffffff;
+  --fire-mid: #ffb3e6;
+  --fire-outer: #ff71ce;
+  --fire-glow: rgba(255, 113, 206, 0.55);
+  --fire-ember: #7a3cbf;
+  --danger: #ff6b8b;
+  --danger-border: rgba(255, 107, 139, 0.42);
+  --danger-bg: rgba(255, 107, 139, 0.12);
+}
+
+.theme-swatch[data-swatch="vaporwave"] { background: #ff71ce; }

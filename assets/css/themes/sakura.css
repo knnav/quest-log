@@ -1,0 +1,30 @@
+:root[data-theme="sakura"] {
+  --bg: #fff5f7;
+  --panel: #ffffff;
+  --panel-border: #f3d3dc;
+  --text: #4a2e38;
+  --text-dim: #9a7a86;
+  --accent: #e0669b;
+  --accent-bright: #c94a82;
+  --accent-glow: rgba(224, 102, 155, 0.22);
+  --status-backlog: #9a7a86;
+  --status-backlog-bg: #f7eaee;
+  --status-progress: #d98a2b;
+  --status-progress-bg: #fdf0dc;
+  --status-shipped: #5da87a;
+  --status-shipped-bg: #e3f4e8;
+  --chip-bg: #fbe6ec;
+  --chip-bg-active: #e0669b;
+  --chip-text-active: #ffffff;
+  --shadow: 0 1px 2px rgba(74, 46, 56, 0.08), 0 6px 20px rgba(224, 102, 155, 0.12);
+  --fire-core: #fff8e6;
+  --fire-mid: #ffb07c;
+  --fire-outer: #ff7a90;
+  --fire-glow: rgba(255, 122, 144, 0.45);
+  --fire-ember: #c94a82;
+  --danger: #d64550;
+  --danger-border: rgba(214, 69, 80, 0.42);
+  --danger-bg: rgba(214, 69, 80, 0.10);
+}
+
+.theme-swatch[data-swatch="sakura"] { background: #e0669b; }

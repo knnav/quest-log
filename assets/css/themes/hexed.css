@@ -1,0 +1,31 @@
+/* Hexed: witch's purple and poison green. */
+:root[data-theme="hexed"] {
+  --bg: #120c1a;
+  --panel: #1c1328;
+  --panel-border: #372748;
+  --text: #ece0f8;
+  --text-dim: #9482ac;
+  --accent: #8ef05a;
+  --accent-bright: #b8ff8a;
+  --accent-glow: rgba(142, 240, 90, 0.24);
+  --status-backlog: #9482ac;
+  --status-backlog-bg: #261a36;
+  --status-progress: #f5c451;
+  --status-progress-bg: #3a3018;
+  --status-shipped: #8ef05a;
+  --status-shipped-bg: #223a1c;
+  --chip-bg: #2a1d3a;
+  --chip-bg-active: #8ef05a;
+  --chip-text-active: #120c1a;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.6), 0 6px 20px rgba(142, 240, 90, 0.14);
+  --fire-core: #f4ffe8;
+  --fire-mid: #b8ff8a;
+  --fire-outer: #5ed13a;
+  --fire-glow: rgba(94, 209, 58, 0.55);
+  --fire-ember: #6a2c9e;
+  --danger: #ff5c8a;
+  --danger-border: rgba(255, 92, 138, 0.42);
+  --danger-bg: rgba(255, 92, 138, 0.12);
+}
+
+.theme-swatch[data-swatch="hexed"] { background: #8ef05a; }

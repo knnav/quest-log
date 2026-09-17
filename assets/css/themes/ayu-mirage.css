@@ -1,0 +1,30 @@
+:root[data-theme="ayu-mirage"] {
+  --bg: #1f2430;
+  --panel: #242936;
+  --panel-border: #3a4150;
+  --text: #cccac2;
+  --text-dim: #707a8c;
+  --accent: #ffcc66;
+  --accent-bright: #ffe09a;
+  --accent-glow: rgba(255, 204, 102, 0.22);
+  --status-backlog: #707a8c;
+  --status-backlog-bg: #2d3342;
+  --status-progress: #ffad66;
+  --status-progress-bg: #3c3226;
+  --status-shipped: #d5ff80;
+  --status-shipped-bg: #303a2a;
+  --chip-bg: #2f3646;
+  --chip-bg-active: #ffcc66;
+  --chip-text-active: #1f2430;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 20px rgba(255, 204, 102, 0.12);
+  --fire-core: #fff8e0;
+  --fire-mid: #ffcc66;
+  --fire-outer: #ffad66;
+  --fire-glow: rgba(255, 173, 102, 0.50);
+  --fire-ember: #f28779;
+  --danger: #f28779;
+  --danger-border: rgba(242, 135, 121, 0.42);
+  --danger-bg: rgba(242, 135, 121, 0.12);
+}
+
+.theme-swatch[data-swatch="ayu-mirage"] { background: #ffcc66; }

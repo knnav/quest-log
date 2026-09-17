@@ -1,0 +1,30 @@
+:root[data-theme="night-owl"] {
+  --bg: #011627;
+  --panel: #0b2942;
+  --panel-border: #1d3b53;
+  --text: #d6deeb;
+  --text-dim: #637777;
+  --accent: #82aaff;
+  --accent-bright: #a9c6ff;
+  --accent-glow: rgba(130, 170, 255, 0.22);
+  --status-backlog: #637777;
+  --status-backlog-bg: #12314a;
+  --status-progress: #ecc48d;
+  --status-progress-bg: #3a3527;
+  --status-shipped: #addb67;
+  --status-shipped-bg: #1f3a2a;
+  --chip-bg: #12314a;
+  --chip-bg-active: #82aaff;
+  --chip-text-active: #011627;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 20px rgba(130, 170, 255, 0.12);
+  --fire-core: #fff6dc;
+  --fire-mid: #ecc48d;
+  --fire-outer: #f78c6c;
+  --fire-glow: rgba(247, 140, 108, 0.50);
+  --fire-ember: #c792ea;
+  --danger: #ef5350;
+  --danger-border: rgba(239, 83, 80, 0.42);
+  --danger-bg: rgba(239, 83, 80, 0.12);
+}
+
+.theme-swatch[data-swatch="night-owl"] { background: #82aaff; }

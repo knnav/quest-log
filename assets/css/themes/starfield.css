@@ -1,0 +1,31 @@
+/* Starfield: deep space, nebula violet, starlight fire. */
+:root[data-theme="starfield"] {
+  --bg: #05060f;
+  --panel: #0d1020;
+  --panel-border: #222848;
+  --text: #e6e9ff;
+  --text-dim: #7a80a8;
+  --accent: #b39dff;
+  --accent-bright: #d6c8ff;
+  --accent-glow: rgba(179, 157, 255, 0.24);
+  --status-backlog: #7a80a8;
+  --status-backlog-bg: #161a30;
+  --status-progress: #ffd580;
+  --status-progress-bg: #35301c;
+  --status-shipped: #7fe0c0;
+  --status-shipped-bg: #163530;
+  --chip-bg: #171b33;
+  --chip-bg-active: #b39dff;
+  --chip-text-active: #05060f;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.7), 0 6px 20px rgba(179, 157, 255, 0.14);
+  --fire-core: #ffffff;
+  --fire-mid: #ffe9b0;
+  --fire-outer: #ffb066;
+  --fire-glow: rgba(255, 176, 102, 0.50);
+  --fire-ember: #6a3fbf;
+  --danger: #ff6b8b;
+  --danger-border: rgba(255, 107, 139, 0.42);
+  --danger-bg: rgba(255, 107, 139, 0.12);
+}
+
+.theme-swatch[data-swatch="starfield"] { background: #b39dff; }

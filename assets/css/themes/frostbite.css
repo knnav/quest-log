@@ -1,0 +1,30 @@
+:root[data-theme="frostbite"] {
+  --bg: #eef5fb;
+  --panel: #ffffff;
+  --panel-border: #cfe0ee;
+  --text: #1d2f3f;
+  --text-dim: #6c8496;
+  --accent: #2b8fd6;
+  --accent-bright: #1a6fb0;
+  --accent-glow: rgba(43, 143, 214, 0.22);
+  --status-backlog: #6c8496;
+  --status-backlog-bg: #e3edf5;
+  --status-progress: #d98a2b;
+  --status-progress-bg: #fbeedb;
+  --status-shipped: #3aa885;
+  --status-shipped-bg: #ddf3ea;
+  --chip-bg: #e0ecf6;
+  --chip-bg-active: #2b8fd6;
+  --chip-text-active: #ffffff;
+  --shadow: 0 1px 2px rgba(29, 47, 63, 0.08), 0 6px 20px rgba(43, 143, 214, 0.12);
+  --fire-core: #ffffff;
+  --fire-mid: #bfe8ff;
+  --fire-outer: #5ab8f0;
+  --fire-glow: rgba(90, 184, 240, 0.45);
+  --fire-ember: #1a6fb0;
+  --danger: #d64550;
+  --danger-border: rgba(214, 69, 80, 0.42);
+  --danger-bg: rgba(214, 69, 80, 0.10);
+}
+
+.theme-swatch[data-swatch="frostbite"] { background: #2b8fd6; }

@@ -1,0 +1,30 @@
+:root[data-theme="mint"] {
+  --bg: #eefaf3;
+  --panel: #ffffff;
+  --panel-border: #cbe8d6;
+  --text: #1f3a2c;
+  --text-dim: #6d8f7c;
+  --accent: #2aa86f;
+  --accent-bright: #1e8a58;
+  --accent-glow: rgba(42, 168, 111, 0.22);
+  --status-backlog: #6d8f7c;
+  --status-backlog-bg: #e2f1e8;
+  --status-progress: #d98a2b;
+  --status-progress-bg: #fbeedb;
+  --status-shipped: #2aa86f;
+  --status-shipped-bg: #dcf3e6;
+  --chip-bg: #dff1e7;
+  --chip-bg-active: #2aa86f;
+  --chip-text-active: #ffffff;
+  --shadow: 0 1px 2px rgba(31, 58, 44, 0.08), 0 6px 20px rgba(42, 168, 111, 0.12);
+  --fire-core: #fff8e6;
+  --fire-mid: #ffcf6b;
+  --fire-outer: #f0883a;
+  --fire-glow: rgba(240, 136, 58, 0.45);
+  --fire-ember: #b04a1e;
+  --danger: #d64550;
+  --danger-border: rgba(214, 69, 80, 0.42);
+  --danger-bg: rgba(214, 69, 80, 0.10);
+}
+
+.theme-swatch[data-swatch="mint"] { background: #2aa86f; }

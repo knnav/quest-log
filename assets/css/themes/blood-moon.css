@@ -1,0 +1,30 @@
+:root[data-theme="blood-moon"] {
+  --bg: #0e0608;
+  --panel: #1c0d11;
+  --panel-border: #3d1a22;
+  --text: #f0dcdc;
+  --text-dim: #9a6e76;
+  --accent: #e63946;
+  --accent-bright: #ff6b74;
+  --accent-glow: rgba(230, 57, 70, 0.26);
+  --status-backlog: #9a6e76;
+  --status-backlog-bg: #26141a;
+  --status-progress: #ffb347;
+  --status-progress-bg: #362214;
+  --status-shipped: #e9c46a;
+  --status-shipped-bg: #33291a;
+  --chip-bg: #2a141b;
+  --chip-bg-active: #e63946;
+  --chip-text-active: #0e0608;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.7), 0 6px 20px rgba(230, 57, 70, 0.16);
+  --fire-core: #ffe9e0;
+  --fire-mid: #ff8a5c;
+  --fire-outer: #e63946;
+  --fire-glow: rgba(230, 57, 70, 0.55);
+  --fire-ember: #6a0d1a;
+  --danger: #ff4d5e;
+  --danger-border: rgba(255, 77, 94, 0.45);
+  --danger-bg: rgba(255, 77, 94, 0.12);
+}
+
+.theme-swatch[data-swatch="blood-moon"] { background: #e63946; }

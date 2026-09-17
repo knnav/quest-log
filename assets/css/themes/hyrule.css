@@ -1,0 +1,31 @@
+/* Hyrule: kokiri green and triforce gold. */
+:root[data-theme="hyrule"] {
+  --bg: #0f1a12;
+  --panel: #172619;
+  --panel-border: #2f4a33;
+  --text: #e8f0d8;
+  --text-dim: #8aa088;
+  --accent: #e6c04a;
+  --accent-bright: #ffe07a;
+  --accent-glow: rgba(230, 192, 74, 0.24);
+  --status-backlog: #8aa088;
+  --status-backlog-bg: #1f3223;
+  --status-progress: #e6c04a;
+  --status-progress-bg: #35311a;
+  --status-shipped: #6fcf7a;
+  --status-shipped-bg: #1e3a24;
+  --chip-bg: #22372a;
+  --chip-bg-active: #e6c04a;
+  --chip-text-active: #0f1a12;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.6), 0 6px 20px rgba(230, 192, 74, 0.14);
+  --fire-core: #fffbe0;
+  --fire-mid: #ffe07a;
+  --fire-outer: #f0a030;
+  --fire-glow: rgba(240, 160, 48, 0.50);
+  --fire-ember: #a8481a;
+  --danger: #e85a4f;
+  --danger-border: rgba(232, 90, 79, 0.42);
+  --danger-bg: rgba(232, 90, 79, 0.12);
+}
+
+.theme-swatch[data-swatch="hyrule"] { background: #e6c04a; }

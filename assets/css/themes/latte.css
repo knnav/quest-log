@@ -1,0 +1,30 @@
+:root[data-theme="latte"] {
+  --bg: #f3ece3;
+  --panel: #fbf7f1;
+  --panel-border: #dccdbb;
+  --text: #3d2e22;
+  --text-dim: #8c7a69;
+  --accent: #a0623d;
+  --accent-bright: #7f4a2a;
+  --accent-glow: rgba(160, 98, 61, 0.22);
+  --status-backlog: #8c7a69;
+  --status-backlog-bg: #ece2d6;
+  --status-progress: #c47f2a;
+  --status-progress-bg: #f5e6cf;
+  --status-shipped: #5f8f5a;
+  --status-shipped-bg: #e2eedd;
+  --chip-bg: #ece2d6;
+  --chip-bg-active: #a0623d;
+  --chip-text-active: #fbf7f1;
+  --shadow: 0 1px 2px rgba(61, 46, 34, 0.08), 0 6px 20px rgba(160, 98, 61, 0.12);
+  --fire-core: #fff6dc;
+  --fire-mid: #f2b552;
+  --fire-outer: #d97a2a;
+  --fire-glow: rgba(217, 122, 42, 0.45);
+  --fire-ember: #8c3b1a;
+  --danger: #c2453a;
+  --danger-border: rgba(194, 69, 58, 0.42);
+  --danger-bg: rgba(194, 69, 58, 0.10);
+}
+
+.theme-swatch[data-swatch="latte"] { background: #a0623d; }

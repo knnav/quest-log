@@ -30,7 +30,27 @@ export const THEMES = [
   { id: "matrix", label: "Matrix" },
   { id: "solarized-light", label: "Solarized Light" },
   { id: "paper", label: "Paper" },
-  { id: "souls", label: "Souls" }
+  { id: "souls", label: "Souls" },
+  { id: "monokai", label: "Monokai" },
+  { id: "one-dark", label: "One Dark" },
+  { id: "everforest", label: "Everforest" },
+  { id: "kanagawa", label: "Kanagawa" },
+  { id: "ayu-mirage", label: "Ayu Mirage" },
+  { id: "night-owl", label: "Night Owl" },
+  { id: "hallownest", label: "Hallownest" },
+  { id: "blood-moon", label: "Blood Moon" },
+  { id: "sakura", label: "Sakura" },
+  { id: "latte", label: "Latte" },
+  { id: "hyrule", label: "Hyrule" },
+  { id: "vaporwave", label: "Vaporwave" },
+  { id: "abyss", label: "Abyss" },
+  { id: "magma", label: "Magma" },
+  { id: "night-city", label: "Night City" },
+  { id: "frostbite", label: "Frostbite" },
+  { id: "mint", label: "Mint" },
+  { id: "amber-crt", label: "Amber CRT" },
+  { id: "starfield", label: "Starfield" },
+  { id: "hexed", label: "Hexed" }
 ];
 
 var menuEl, buttonEl;

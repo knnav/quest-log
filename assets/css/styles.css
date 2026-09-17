@@ -14,6 +14,26 @@
 @import "themes/solarized-light.css";
 @import "themes/paper.css";
 @import "themes/souls.css";
+@import "themes/monokai.css";
+@import "themes/one-dark.css";
+@import "themes/everforest.css";
+@import "themes/kanagawa.css";
+@import "themes/ayu-mirage.css";
+@import "themes/night-owl.css";
+@import "themes/hallownest.css";
+@import "themes/blood-moon.css";
+@import "themes/sakura.css";
+@import "themes/latte.css";
+@import "themes/hyrule.css";
+@import "themes/vaporwave.css";
+@import "themes/abyss.css";
+@import "themes/magma.css";
+@import "themes/night-city.css";
+@import "themes/frostbite.css";
+@import "themes/mint.css";
+@import "themes/amber-crt.css";
+@import "themes/starfield.css";
+@import "themes/hexed.css";
 @import "flame-sprites.css";
 
 @font-face {

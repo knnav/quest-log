@@ -1,0 +1,31 @@
+/* Hallownest: void black, pale bone, and soul-blue light. */
+:root[data-theme="hallownest"] {
+  --bg: #07080c;
+  --panel: #12141c;
+  --panel-border: #262a38;
+  --text: #dfe3ec;
+  --text-dim: #7b8299;
+  --accent: #9fd8ff;
+  --accent-bright: #d4f0ff;
+  --accent-glow: rgba(159, 216, 255, 0.24);
+  --status-backlog: #7b8299;
+  --status-backlog-bg: #1a1d28;
+  --status-progress: #e9d8a6;
+  --status-progress-bg: #2e2a1e;
+  --status-shipped: #9fd8ff;
+  --status-shipped-bg: #182a36;
+  --chip-bg: #1a1d28;
+  --chip-bg-active: #9fd8ff;
+  --chip-text-active: #07080c;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.7), 0 6px 20px rgba(159, 216, 255, 0.12);
+  --fire-core: #ffffff;
+  --fire-mid: #d4f0ff;
+  --fire-outer: #6fb7e6;
+  --fire-glow: rgba(111, 183, 230, 0.55);
+  --fire-ember: #2f5f8a;
+  --danger: #ff7a59;
+  --danger-border: rgba(255, 122, 89, 0.42);
+  --danger-bg: rgba(255, 122, 89, 0.12);
+}
+
+.theme-swatch[data-swatch="hallownest"] { background: #9fd8ff; }

@@ -1,0 +1,30 @@
+:root[data-theme="monokai"] {
+  --bg: #1e1f1c;
+  --panel: #272822;
+  --panel-border: #49483e;
+  --text: #f8f8f2;
+  --text-dim: #908f7f;
+  --accent: #a6e22e;
+  --accent-bright: #c6ff5e;
+  --accent-glow: rgba(166, 226, 46, 0.22);
+  --status-backlog: #908f7f;
+  --status-backlog-bg: #33342d;
+  --status-progress: #e6db74;
+  --status-progress-bg: #3a3820;
+  --status-shipped: #a6e22e;
+  --status-shipped-bg: #2c3a1a;
+  --chip-bg: #34352e;
+  --chip-bg-active: #a6e22e;
+  --chip-text-active: #1e1f1c;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 20px rgba(166, 226, 46, 0.12);
+  --fire-core: #fff8d6;
+  --fire-mid: #e6db74;
+  --fire-outer: #fd971f;
+  --fire-glow: rgba(253, 151, 31, 0.50);
+  --fire-ember: #f92672;
+  --danger: #f92672;
+  --danger-border: rgba(249, 38, 114, 0.42);
+  --danger-bg: rgba(249, 38, 114, 0.12);
+}
+
+.theme-swatch[data-swatch="monokai"] { background: #a6e22e; }

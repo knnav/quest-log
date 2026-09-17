@@ -1,0 +1,31 @@
+/* Magma: obsidian with lava cracking through. */
+:root[data-theme="magma"] {
+  --bg: #0c0a0a;
+  --panel: #191414;
+  --panel-border: #3a2a26;
+  --text: #f2e6df;
+  --text-dim: #9a8079;
+  --accent: #ff5a1f;
+  --accent-bright: #ff8c4d;
+  --accent-glow: rgba(255, 90, 31, 0.28);
+  --status-backlog: #9a8079;
+  --status-backlog-bg: #241d1c;
+  --status-progress: #ffb02e;
+  --status-progress-bg: #362612;
+  --status-shipped: #ffd166;
+  --status-shipped-bg: #35301a;
+  --chip-bg: #261d1b;
+  --chip-bg-active: #ff5a1f;
+  --chip-text-active: #0c0a0a;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.7), 0 6px 20px rgba(255, 90, 31, 0.18);
+  --fire-core: #fff2cc;
+  --fire-mid: #ffb02e;
+  --fire-outer: #ff5a1f;
+  --fire-glow: rgba(255, 90, 31, 0.60);
+  --fire-ember: #8a1a0a;
+  --danger: #ff3b3b;
+  --danger-border: rgba(255, 59, 59, 0.45);
+  --danger-bg: rgba(255, 59, 59, 0.12);
+}
+
+.theme-swatch[data-swatch="magma"] { background: #ff5a1f; }

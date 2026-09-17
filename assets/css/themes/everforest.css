@@ -1,0 +1,30 @@
+:root[data-theme="everforest"] {
+  --bg: #272e33;
+  --panel: #2e383c;
+  --panel-border: #475258;
+  --text: #d3c6aa;
+  --text-dim: #859289;
+  --accent: #a7c080;
+  --accent-bright: #c5dba0;
+  --accent-glow: rgba(167, 192, 128, 0.22);
+  --status-backlog: #859289;
+  --status-backlog-bg: #374145;
+  --status-progress: #dbbc7f;
+  --status-progress-bg: #3f3a2c;
+  --status-shipped: #83c092;
+  --status-shipped-bg: #2f3f36;
+  --chip-bg: #3a464c;
+  --chip-bg-active: #a7c080;
+  --chip-text-active: #272e33;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 20px rgba(167, 192, 128, 0.12);
+  --fire-core: #fff4dc;
+  --fire-mid: #dbbc7f;
+  --fire-outer: #e69875;
+  --fire-glow: rgba(230, 152, 117, 0.50);
+  --fire-ember: #b3432e;
+  --danger: #e67e80;
+  --danger-border: rgba(230, 126, 128, 0.42);
+  --danger-bg: rgba(230, 126, 128, 0.12);
+}
+
+.theme-swatch[data-swatch="everforest"] { background: #a7c080; }
