@@ -15,7 +15,7 @@ import { oldestWaiting } from "../core/records.js";
 import { pickMotd } from "./motd.js";
 import { WIP_LIMIT, STALE_DAYS } from "../core/domain.js";
 
-var bonfireEl, stageLabelEl, stageNoteEl, staleEl, motdEl;
+var bonfireEls, stageLabelEls, bonfireEl, stageNoteEl, staleEl, motdEl;
 var sinceValueEl, sinceLabelEl, clockEl;
 var questStatsEl, taskStatsEl;
 var getData = null;
@@ -24,8 +24,11 @@ var tickTimer = null;
 export function initHome(dataSource) {
   getData = dataSource;
 
+  // There are two fires — the home screen's and the hearth face's — and both
+  // are painted from here so they can never disagree about the stage.
+  bonfireEls = document.querySelectorAll(".bonfire");
+  stageLabelEls = document.querySelectorAll("[data-bonfire-stage]");
   bonfireEl = document.getElementById("bonfire");
-  stageLabelEl = document.getElementById("bonfireStage");
   stageNoteEl = document.getElementById("bonfireNote");
   sinceValueEl = document.getElementById("sinceValue");
   sinceLabelEl = document.getElementById("sinceLabel");
@@ -41,7 +44,8 @@ export function initHome(dataSource) {
 
   // The fire is a CSS animation; pause it while the window is unfocused rather
   // than burning CPU in the background. Re-render on focus to catch up on the
-  // decay and clock drift that happened while we were idle.
+  // decay and clock drift that happened while we were idle. (The hearth face
+  // opts out of the pause in CSS — a companion that freezes is no companion.)
   window.addEventListener("blur", function () { document.body.classList.add("is-idle"); });
   window.addEventListener("focus", function () {
     document.body.classList.remove("is-idle");
@@ -74,8 +78,8 @@ export function renderHome() {
   var entries = completionEntries(data.quests, data.tasks);
   var stage = stageFor(fuelFor(entries, now));
 
-  bonfireEl.setAttribute("data-stage", String(stage));
-  stageLabelEl.textContent = STAGE_LABELS[stage];
+  bonfireEls.forEach(function (el) { el.setAttribute("data-stage", String(stage)); });
+  stageLabelEls.forEach(function (el) { el.textContent = STAGE_LABELS[stage]; });
   stageNoteEl.textContent = STAGE_NOTES[stage];
 
   var lastMs = lastCompletedAt(entries);

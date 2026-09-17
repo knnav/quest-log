@@ -254,69 +254,114 @@ body {
   color: var(--text-dim);
 }
 
-/* ---- the always-on-top mini window ---- */
+/* ---- the hearth face ---- */
 
-.mini {
-  -webkit-app-region: drag;
+/* The window has two faces and body[data-mode] picks one. In hearth mode the
+   whole document is the fire: the title bar, chrome and scroller vanish and
+   this block fills the (tiny) window. hearth.js drags it by hand — a CSS
+   drag region would eat the double-click on Windows. */
+.hearth-view {
+  display: none;
+  -webkit-user-select: none;
+  cursor: grab;
+  touch-action: none;
   position: relative;
-  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
+  justify-content: flex-end;
   height: 100%;
-  padding: 0 14px;
+  padding: 10px 12px 14px;
+  box-sizing: border-box;
   background: var(--panel);
   border: 1px solid var(--panel-border);
-  border-radius: 10px;
   overflow: hidden;
 }
 
-.mini-body { flex: 1; min-width: 0; }
+body[data-mode="hearth"] .hearth-view { display: flex; }
+body[data-mode="hearth"] .titlebar,
+body[data-mode="hearth"] .chrome,
+body[data-mode="hearth"] .app-scroll,
+body[data-mode="hearth"] .modal-overlay { display: none; }
 
-.mini-quest {
+/* A fixed unit here: the vh/vw formula was tuned for the board and would
+   shrink the fire to a match head in a 220px window. */
+body[data-mode="hearth"] .bonfire { --u: 2.8px; }
+
+/* The companion keeps burning when you're not looking at it — that's the job. */
+body.is-idle[data-mode="hearth"] .bonfire *,
+body.is-idle[data-mode="hearth"] .bonfire { animation-play-state: running; }
+
+.hearth-view-stage {
+  font-family: "Press Start 2P", monospace;
+  font-size: 9px;
+  line-height: 1.6;
+  color: var(--fire-outer);
+  margin: 4px 0 0;
+  text-align: center;
+}
+
+/* During a session the stage word gives way to the countdown. */
+.hearth-view.session-running .hearth-view-stage { display: none; }
+
+.hearth-view-session {
+  text-align: center;
+  margin-top: 2px;
+}
+
+.hearth-view-quest {
   margin: 0;
-  font-size: 10.5px;
+  max-width: 190px;
+  font-size: 10px;
   color: var(--text-dim);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.mini-clock {
-  margin: 2px 0 0;
-  font-size: 26px;
+.hearth-view-clock {
+  margin: 0;
+  font-size: 22px;
   font-weight: 700;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
   color: var(--text);
 }
 
-body.is-paused .mini-clock { color: var(--text-dim); }
+.hearth-view.is-paused .hearth-view-clock { color: var(--text-dim); }
 
-.mini-actions {
-  -webkit-app-region: no-drag;
+/* Pause/stop sit in the top-right and only surface on hover, so at rest the
+   face is nothing but the fire. */
+.hearth-view-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
   display: flex;
-  flex-direction: column;
-  gap: 5px;
-  flex: none;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
 }
 
-.mini-btn {
+.hearth-view-actions[hidden] { display: none; }
+.hearth-view:hover .hearth-view-actions { opacity: 1; }
+
+.hearth-btn {
+  cursor: pointer;
   font-family: inherit;
-  font-size: 10px;
+  font-size: 9px;
   line-height: 1;
-  width: 30px;
+  width: 26px;
   padding: 6px 0;
   border-radius: 5px;
   border: 1px solid var(--panel-border);
-  background: transparent;
+  background: var(--panel);
   color: var(--text-dim);
   cursor: pointer;
 }
 
-.mini-btn:hover { border-color: var(--accent); color: var(--accent); }
-.mini-btn.stop:hover { border-color: var(--danger); color: var(--danger); }
+.hearth-btn:hover { border-color: var(--accent); color: var(--accent); }
+.hearth-btn.stop:hover { border-color: var(--danger); color: var(--danger); }
 
-.mini-progress {
+.hearth-view-progress {
   position: absolute;
   left: 0;
   right: 0;
@@ -325,7 +370,7 @@ body.is-paused .mini-clock { color: var(--text-dim); }
   background: var(--panel-border);
 }
 
-.mini-progress span {
+.hearth-view-progress span {
   display: block;
   height: 100%;
   width: 0;

@@ -28,11 +28,17 @@ Tests need no Electron: `store.js` is exercised via `createStore(tmpPath)` and r
 
 ### Process boundary
 
-The renderer never touches `fs` or `ipcRenderer`. `preload.js` exposes five namespaces via `contextBridge`: `window.questLog` (CRUD + reorder for quests/tasks, `listSessions`), `window.session` (timer), `window.themeSync`, `window.motd`, `window.windowControls`. Adding a new capability means: handler in `main.js` `registerIpcHandlers()` → wrapper in `preload.js` → call from a feature module. Tests stub these globals directly on `window`.
+The renderer never touches `fs` or `ipcRenderer`. `preload.js` exposes five namespaces via `contextBridge`: `window.questLog` (CRUD + reorder for quests/tasks, `listSessions`), `window.session` (timer), `window.themeSync`, `window.motd`, `window.windowControls` (minimize/close/expand/collapse + `onModeChange`). Adding a new capability means: handler in `main.js` `registerIpcHandlers()` → wrapper in `preload.js` → call from a feature module. Tests stub these globals directly on `window`.
 
 ### The timer lives in the main process
 
-`main.js` owns the single session clock. Two windows (main `index.html` → `js/app.js`, mini always-on-top `mini.html` → `js/mini.js`) are pure views of the `view` object broadcast on `session:changed`. Neither renderer keeps its own countdown. When a session ends, `main.js` calls `store.recordSession()` and only the main window plays the chime (`session:finished`). Closing the main window kills the session and the mini window.
+`main.js` owns the single session clock. The Focus tab (`js/features/session.js`) and the hearth face (`js/features/hearth.js`) are pure views of the `view` object broadcast on `session:changed`; neither keeps its own countdown. When a session ends, `main.js` calls `store.recordSession()` and the renderer plays the chime (`session:finished`).
+
+### One window, two modes
+
+There is exactly one `BrowserWindow`. `main.js` holds `mode` (`"board"` | `"hearth"`) and switches with `collapseToHearth()` / `expandToBoard()` — `setBounds` + `setResizable` + `setAlwaysOnTop`, then `window:mode` is pushed and `hearth.js` mirrors it onto `body[data-mode]`. CSS does the rest: in hearth mode the titlebar/chrome/scroller are hidden and `#hearthView` (its own copy of the bonfire markup + session clock) fills the window. `home.js` paints every `.bonfire` / `[data-bonfire-stage]` it finds, so the two fires can't diverge.
+
+Collapse triggers: `session:start`, titlebar minimize, titlebar close, OS close. Expand: double-click on the hearth, Escape, the hearth's right-click menu, or the tray. Quit lives in the hearth's right-click menu and the tray menu (`assets/tray.png`), via `quitApp()` (destroys the window, then `app.quit()`, then a hard `app.exit` fallback). The hearth is dragged by hand — `hearth.js` sends pointer deltas over `window:drag-*` (rAF-coalesced) and `main.js` applies them with a full `setBounds` — never with `-webkit-app-region: drag`, which swallows all DOM mouse events on Windows (double-click never arrives; `hookWindowMessage` on `WM_NCLBUTTONDBLCLK` was tried and did not fire either). Two Windows-scaling traps: don't use `setPosition` per move, and keep the hearth `resizable: true` with min == max — a `resizable: false` window grows a pixel on every programmatic move. Each mode's geometry is persisted under `ui` in the store (`getUi`/`setUi`) and clamped back on-screen on restore.
 
 ### Persistence and the four timestamps (`store.js`)
 
@@ -60,8 +66,8 @@ In `quests.js`, `requestStatus()` is the only entry point for status changes fro
 
 ### Themes
 
-A theme is `data-theme="<id>"` on `<html>`. Each palette is one file in `assets/css/themes/` defining CSS variables on `:root[data-theme="…"]` plus a `.theme-swatch` rule, `@import`ed at the top of `assets/css/styles.css`. Adding a theme = new CSS file + `@import` + entry in `THEMES` in `js/ui/theme.js`. `"system"` resolves to `light` / `neon-arcade`; only the *resolved* id is pushed over `themeSync` so the mini window (which has no picker) can apply it.
+A theme is `data-theme="<id>"` on `<html>`. Each palette is one file in `assets/css/themes/` defining CSS variables on `:root[data-theme="…"]` plus a `.theme-swatch` rule, `@import`ed at the top of `assets/css/styles.css`. Adding a theme = new CSS file + `@import` + entry in `THEMES` in `js/ui/theme.js`. `"system"` resolves to `light` / `neon-arcade`; only the *resolved* id is pushed over `themeSync`, so any picker-less document can apply it (the `theme.test.mjs` bare-document case).
 
 ### Window constraints
 
-Main window is fixed 420×880, frameless, non-resizable by design (see README). Layout must fit that; the header has room for one create button, retargeted per tab.
+Board mode is frameless and resizable within `BOARD` in `main.js` (min 420×600, max width 720 — that caps the card grid at two columns on purpose). Layout must still work at 420 wide; the header has room for one create button, retargeted per tab. Hearth mode is fixed at `HEARTH` (220×210) and everything in it must fit that box.

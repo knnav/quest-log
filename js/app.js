@@ -27,6 +27,7 @@ import { initTabs, showTab } from "./ui/tabs.js";
 import { initHome, renderHome } from "./features/home.js";
 import { initGates } from "./features/gates.js";
 import { initSession, renderFocusQuests, renderToday } from "./features/session.js";
+import { initHearth } from "./features/hearth.js";
 
 function renderProgress() {
   var section = document.getElementById("questsInProgress");
@@ -119,6 +120,7 @@ initSession({
   }
 });
 initHome(homeData);
+initHearth();
 initQuests(renderProgress);
 initTasks(renderTasks);
 

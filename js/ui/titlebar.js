@@ -1,8 +1,10 @@
 // The custom title bar. The window is frameless, so the OS draws no controls
-// and these two buttons are the only way to minimise or close it.
+// and these two buttons are the only way to put the board away.
 //
 // Both go through window.windowControls, exposed by preload.js — a renderer
-// cannot move its own window. There is no maximise: the window is a fixed size.
+// cannot move its own window. Neither one quits: minimise and close both fold
+// the board into the hearth, and Quit lives in the tray. There is no maximise
+// because the board's width is capped at two columns.
 
 export function initTitlebar() {
   var titlebar = document.querySelector(".titlebar");

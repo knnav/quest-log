@@ -83,6 +83,16 @@ test("the bonfire lights from recent completions and names its stage", async () 
   assert.equal(stage, 2, "a quest and a task inside the decay window");
   assert.equal(doc.getElementById("bonfireStage").textContent, "Burning");
   assert.ok(doc.getElementById("bonfireNote").textContent.length > 0);
+
+  // The hearth face carries its own copy of the fire; it must never disagree.
+  const hearthFire = doc.querySelector("#hearthView .bonfire");
+  assert.equal(hearthFire.getAttribute("data-stage"), "2");
+  assert.equal(doc.querySelector("#hearthView [data-bonfire-stage]").textContent, "Burning");
+});
+
+test("the window boots in board mode when there is no window bridge", async () => {
+  const dom = await boot([], []);
+  assert.equal(dom.window.document.body.getAttribute("data-mode"), "board");
 });
 
 test("an empty log shows embers and no elapsed time", async () => {

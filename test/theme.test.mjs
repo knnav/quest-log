@@ -139,9 +139,9 @@ test("clicking outside the picker closes the menu", () => {
 });
 
 
-// The mini window has no theme picker. initTheme() used to run head-first into
-// menuEl.innerHTML, throw, and take the rest of that module's setup with it —
-// which is why the timer showed --:-- and none of its buttons worked.
+// A document with no theme picker (the old mini window was one). initTheme()
+// used to run head-first into menuEl.innerHTML, throw, and take the rest of
+// that module's setup with it — the timer showed --:-- and no button worked.
 function setupBare(html) {
   const dom = new JSDOM(`<!doctype html><body>${html}</body>`, { url: "http://localhost/" });
   globalThis.window = dom.window;

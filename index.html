@@ -1,11 +1,40 @@
 <title>Quest Log</title>
 <link rel="stylesheet" href="assets/css/styles.css">
 
+<!-- The hearth face. The window collapses to this alone (body[data-mode="hearth"])
+     and the whole thing is a drag region: double-click anywhere to get the
+     board back. Its bonfire mirrors the home screen's — home.js paints every
+     .bonfire it finds. -->
+<div class="hearth-view" id="hearthView">
+  <div class="bonfire" data-stage="0" aria-hidden="true">
+    <span class="fire-glow"></span>
+    <span class="fire-ash"></span>
+    <span class="fire-log log-back"></span>
+    <span class="fire-log log-l"></span>
+    <span class="fire-log log-r"></span>
+    <span class="fire-coals"></span>
+    <span class="fire-flame flame-a"></span>
+    <span class="fire-flame flame-b"></span>
+    <span class="fire-flame flame-c"></span>
+    <span class="fire-core"></span>
+  </div>
+  <p class="hearth-view-stage" data-bonfire-stage>Embers</p>
+  <div class="hearth-view-session" id="hearthSession" hidden>
+    <p class="hearth-view-quest" id="hearthQuest"></p>
+    <p class="hearth-view-clock" id="hearthClock">--:--</p>
+  </div>
+  <div class="hearth-view-actions" id="hearthActions" hidden>
+    <button class="hearth-btn" id="hearthToggle" title="Pause">II</button>
+    <button class="hearth-btn stop" id="hearthStop" title="Stop session">&#9632;</button>
+  </div>
+  <div class="hearth-view-progress"><span id="hearthBar"></span></div>
+</div>
+
 <div class="titlebar">
   <span class="titlebar-title">QUEST LOG</span>
   <div class="titlebar-controls">
-    <button class="titlebar-btn" id="minimizeBtn" title="Minimize">─</button>
-    <button class="titlebar-btn close" id="closeBtn" title="Close">✕</button>
+    <button class="titlebar-btn" id="minimizeBtn" title="Fold into the hearth">─</button>
+    <button class="titlebar-btn close" id="closeBtn" title="Fold into the hearth (quit from the tray)">✕</button>
   </div>
 </div>
 
@@ -68,7 +97,7 @@
         <span class="fire-flame flame-c"></span>
         <span class="fire-core"></span>
       </div>
-      <p class="hearth-stage" id="bonfireStage">Embers</p>
+      <p class="hearth-stage" id="bonfireStage" data-bonfire-stage>Embers</p>
       <p class="hearth-note" id="bonfireNote"></p>
     </div>
 

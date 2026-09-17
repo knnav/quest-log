@@ -27,7 +27,6 @@
       "preload.js",
       "store.js",
       "index.html",
-      "mini.html",
       "js/**/*",
       "assets/**/*",
       "fonts/**/*"

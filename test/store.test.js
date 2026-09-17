@@ -430,3 +430,25 @@ test("recording a session does not stamp any completion time", () => {
   assert.equal(after.completedAt, null, "sessions feed the record, never the fire");
   assert.equal(after.finishedAt, null);
 });
+
+test("ui prefs start empty, merge on write, and survive a restart", () => {
+  const storePath = tempStorePath();
+  const store = createStore(storePath);
+
+  assert.deepEqual(store.getUi(), {});
+
+  store.setUi({ hearth: { x: 10, y: 20 } });
+  store.setUi({ board: { x: 0, y: 0, width: 500, height: 700 } });
+
+  const reopened = createStore(storePath);
+  assert.deepEqual(reopened.getUi(), {
+    hearth: { x: 10, y: 20 },
+    board: { x: 0, y: 0, width: 500, height: 700 },
+  });
+});
+
+test("a store written before ui prefs existed reads back an empty object", () => {
+  const storePath = tempStorePath();
+  fs.writeFileSync(storePath, JSON.stringify({ quests: [], tasks: [], sessions: [] }));
+  assert.deepEqual(createStore(storePath).getUi(), {});
+});

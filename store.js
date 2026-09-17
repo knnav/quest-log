@@ -17,6 +17,7 @@ const DEFAULT_STORE = {
   ],
   tasks: [],
   sessions: [],
+  ui: {},
 };
 
 function nextOrder(list) {
@@ -102,6 +103,7 @@ function createStore(storePath) {
       if (!Array.isArray(parsed.quests)) parsed.quests = [];
       if (!Array.isArray(parsed.tasks)) parsed.tasks = [];
       if (!Array.isArray(parsed.sessions)) parsed.sessions = [];
+      if (!parsed.ui || typeof parsed.ui !== "object") parsed.ui = {};
       return parsed;
     } catch (err) {
       return JSON.parse(JSON.stringify(DEFAULT_STORE));
@@ -228,6 +230,20 @@ function createStore(storePath) {
     return session;
   }
 
+  // Window geometry: where the hearth sits and how big the board was. Kept in
+  // the same file as everything else rather than a second settings file, and
+  // merged shallowly so saving one window's bounds can't drop the other's.
+  function getUi() {
+    return readStore().ui;
+  }
+
+  function setUi(patch) {
+    const store = readStore();
+    store.ui = Object.assign({}, store.ui, patch || {});
+    writeStore(store);
+    return store.ui;
+  }
+
   return {
     getQuests,
     createQuest,
@@ -241,6 +257,8 @@ function createStore(storePath) {
     reorderTasks,
     getSessions,
     recordSession,
+    getUi,
+    setUi,
   };
 }
 
@@ -268,4 +286,6 @@ module.exports = {
   reorderTasks: (...args) => getDefaultStore().reorderTasks(...args),
   getSessions: (...args) => getDefaultStore().getSessions(...args),
   recordSession: (...args) => getDefaultStore().recordSession(...args),
+  getUi: (...args) => getDefaultStore().getUi(...args),
+  setUi: (...args) => getDefaultStore().setUi(...args),
 };
