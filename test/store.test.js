@@ -302,6 +302,61 @@ test("finishedAt survives a stray click that completedAt does not", () => {
   assert.equal(oops.finishedAt, shipped.finishedAt, "but the day you shipped is not destroyed");
 });
 
+// The defect this replaced: three clicks on a quest shipped months ago handed
+// the bonfire a fresh 3 logs, so iterating on a shipped project kept the fire
+// roaring on work that was already counted.
+test("re-shipping a quest does not re-fuel the fire", () => {
+  const store = createStore(emptyStorePath());
+  const quest = store.createQuest({ title: "Q" });
+
+  const shipped = store.updateQuest(quest.id, { status: "shipped" });
+  assert.ok(shipped.completedAt, "the first ship burns");
+
+  store.updateQuest(quest.id, { status: "backlog" });
+  store.updateQuest(quest.id, { status: "in_progress" });
+  const reshipped = store.updateQuest(quest.id, { status: "shipped" });
+
+  assert.equal(reshipped.completedAt, null, "the same win must not burn twice");
+  assert.ok(reshipped.finishedAt, "but it is still a finished quest");
+});
+
+// Reviving something from Ashes and actually shipping it is the best outcome
+// the app has, so it must not be mistaken for re-counting the letting go.
+test("shipping a quest you previously let go is a new outcome and burns", () => {
+  const store = createStore(emptyStorePath());
+  const quest = store.createQuest({ title: "Q" });
+
+  const letGo = store.updateQuest(quest.id, { status: "let_go" });
+  assert.ok(letGo.completedAt, "letting go burns as kindling");
+  assert.equal(letGo.finishedAs, "let_go");
+
+  store.updateQuest(quest.id, { status: "in_progress" });
+  const shipped = store.updateQuest(quest.id, { status: "shipped" });
+
+  assert.ok(shipped.completedAt, "shipping it afterwards is a different outcome");
+  assert.equal(shipped.finishedAs, "shipped");
+
+  store.updateQuest(quest.id, { status: "backlog" });
+  const again = store.updateQuest(quest.id, { status: "shipped" });
+  assert.equal(again.completedAt, null, "that outcome is now spent too");
+});
+
+// Tasks are the recurring half: one card gets reused for a chore, and doing the
+// chore again is work you really did.
+test("a task re-completed fuels the fire every time", () => {
+  const store = createStore(emptyStorePath());
+  const task = store.createTask({ title: "Water the plants" });
+
+  const first = store.updateTask(task.id, { status: "done" });
+  assert.ok(first.completedAt);
+
+  const cleared = store.updateTask(task.id, { status: "backlog" });
+  assert.equal(cleared.completedAt, null, "fuel stops while it is undone");
+
+  const second = store.updateTask(task.id, { status: "done" });
+  assert.ok(second.completedAt, "and the chore burns again when it is redone");
+});
+
 test("letting a quest go is a terminal state that stamps like any other finish", () => {
   const store = createStore(emptyStorePath());
   const quest = store.createQuest({ title: "Q" });

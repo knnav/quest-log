@@ -23,39 +23,61 @@ function nextOrder(list) {
   return list.reduce((max, item) => Math.max(max, item.order || 0), 0) + 1;
 }
 
-// Three different clocks, because they answer three different questions.
+// Four stamps, because they answer four different questions.
 //
-//   completedAt — fuel. A pure function of current status: set on the way into
-//                 a terminal state, cleared on the way out, so re-clicking a
-//                 status pill can never farm the bonfire.
+//   completedAt — fuel. Set on the way into a terminal state, cleared on the
+//                 way out. Under FUEL_ONCE an outcome burns a single time: a
+//                 card that already finished this way doesn't re-fuel, so
+//                 shipping, un-shipping and shipping again re-counts nothing.
 //   finishedAt  — history. Set the first time something finishes and only ever
 //                 advanced by a *newer* finish. Never cleared, so a stray click
 //                 on a status pill can't destroy the day you shipped.
+//   finishedAs  — which outcome finishedAt refers to. Letting a quest go and
+//                 later actually shipping it is a different, better outcome and
+//                 burns; re-entering the state it already reached does not.
 //   startedAt   — the first time you actually began. Never overwritten, so
 //                 bouncing in and out of progress doesn't reset the clock.
 //
 // Anything already sitting in a terminal state keeps what it had, including
 // nothing: work finished before these existed stays undated rather than being
 // backfilled to now and lighting a fire nobody earned.
-function stampTimes(before, after, terminalStatuses) {
+function stampTimes(before, after, terminalStatuses, fuelOnce) {
   const now = new Date().toISOString();
   const wasTerminal = !!before && terminalStatuses.includes(before.status);
   const isTerminal = terminalStatuses.includes(after.status);
 
+  // The same win, counted twice. Only the outcome it already reached is spent;
+  // reaching a different one is news.
+  const alreadyBurned = !!fuelOnce && !!before && !!before.finishedAt &&
+    before.finishedAs === after.status;
+
   let completedAt = null;
-  if (isTerminal) completedAt = wasTerminal ? (before.completedAt || null) : now;
+  if (isTerminal) {
+    if (wasTerminal) completedAt = before.completedAt || null;
+    else if (!alreadyBurned) completedAt = now;
+  }
 
   let finishedAt = (before && before.finishedAt) || null;
-  if (isTerminal && !wasTerminal) finishedAt = now;
+  let finishedAs = (before && before.finishedAs) || null;
+  if (isTerminal && !wasTerminal) {
+    finishedAt = now;
+    finishedAs = after.status;
+  }
 
   let startedAt = (before && before.startedAt) || null;
   if (!startedAt && after.status === "in_progress") startedAt = now;
 
-  return { completedAt, finishedAt, startedAt };
+  return { completedAt, finishedAt, finishedAs, startedAt };
 }
 
 const QUEST_TERMINAL = ["shipped", "let_go"];
 const TASK_TERMINAL = ["done"];
+
+// A quest is a scoped piece of work, so shipping it is a one-off event — the
+// next release is the next quest. Tasks are the recurring ones: one "water the
+// plants" card gets reused, and every completion of it is work you really did.
+const FUEL_ONCE = true;
+const FUEL_EVERY_TIME = false;
 
 function applyOrder(list, orderedIds) {
   orderedIds.forEach((id, index) => {
@@ -110,7 +132,7 @@ function createStore(storePath) {
       createdAt: new Date().toISOString(),
       order: nextOrder(store.quests),
     };
-    Object.assign(quest, stampTimes(null, quest, QUEST_TERMINAL));
+    Object.assign(quest, stampTimes(null, quest, QUEST_TERMINAL, FUEL_ONCE));
     store.quests.push(quest);
     writeStore(store);
     return quest;
@@ -121,7 +143,7 @@ function createStore(storePath) {
     const idx = store.quests.findIndex((q) => q.id === id);
     if (idx === -1) throw new Error(`Quest not found: ${id}`);
     const merged = Object.assign({}, store.quests[idx], data, { id });
-    Object.assign(merged, stampTimes(store.quests[idx], merged, QUEST_TERMINAL));
+    Object.assign(merged, stampTimes(store.quests[idx], merged, QUEST_TERMINAL, FUEL_ONCE));
     store.quests[idx] = merged;
     writeStore(store);
     return merged;
@@ -154,7 +176,7 @@ function createStore(storePath) {
       createdAt: new Date().toISOString(),
       order: nextOrder(store.tasks),
     };
-    Object.assign(task, stampTimes(null, task, TASK_TERMINAL));
+    Object.assign(task, stampTimes(null, task, TASK_TERMINAL, FUEL_EVERY_TIME));
     store.tasks.push(task);
     writeStore(store);
     return task;
@@ -165,7 +187,7 @@ function createStore(storePath) {
     const idx = store.tasks.findIndex((s) => s.id === id);
     if (idx === -1) throw new Error(`Task not found: ${id}`);
     const merged = Object.assign({}, store.tasks[idx], data, { id });
-    Object.assign(merged, stampTimes(store.tasks[idx], merged, TASK_TERMINAL));
+    Object.assign(merged, stampTimes(store.tasks[idx], merged, TASK_TERMINAL, FUEL_EVERY_TIME));
     store.tasks[idx] = merged;
     writeStore(store);
     return merged;
