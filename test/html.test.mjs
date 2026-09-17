@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { escapeHtml } from "../js/utils.js";
+import { escapeHtml } from "../js/core/html.js";
 
 test("escapeHtml escapes all five special characters", () => {
   assert.equal(

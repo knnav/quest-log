@@ -34,7 +34,7 @@ function memoryStorage(seed) {
 
 async function freshTabsModule() {
   moduleCounter += 1;
-  return import(`../js/tabs.js?instance=${moduleCounter}`);
+  return import(`../js/ui/tabs.js?instance=${moduleCounter}`);
 }
 
 function setup(storage) {

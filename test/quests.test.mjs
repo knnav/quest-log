@@ -1,10 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
-import { cardHtml } from "../js/quests.js";
-import { initDetail } from "../js/detail.js";
+import { cardHtml } from "../js/features/quests.js";
+import { initDetail } from "../js/ui/detail.js";
 import { DETAIL_MODAL_HTML, GATE_MODAL_HTML, rowTexts } from "./detailFixture.mjs";
-import { initGates } from "../js/gates.js";
+import { initGates } from "../js/features/gates.js";
 
 test("cardHtml escapes text, renders tags, and marks the active status button", () => {
   const html = cardHtml({
@@ -77,7 +77,7 @@ function installGlobals(dom, questLogMock) {
 
 async function freshQuestsModule() {
   moduleCounter += 1;
-  return import(`../js/quests.js?instance=${moduleCounter}`);
+  return import(`../js/features/quests.js?instance=${moduleCounter}`);
 }
 
 function backlogQuest(over) {
@@ -354,6 +354,29 @@ test("Escape closes an open quest modal", async () => {
   doc.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
 
   assert.equal(doc.getElementById("questModalOverlay").hidden, true);
+});
+
+// Clicking the backdrop closes; a click that lands inside the form must not,
+// or picking a tag mid-edit would throw the whole form away.
+test("only the backdrop closes the quest modal, not a click inside it", async () => {
+  const questLogMock = { listQuests: () => Promise.resolve([]) };
+
+  const dom = new JSDOM(FIXTURE_HTML, { url: "http://localhost/" });
+  installGlobals(dom, questLogMock);
+
+  const quests = await freshQuestsModule();
+  initGates();
+  quests.initQuests(() => {});
+  quests.openCreateQuest();
+
+  const doc = dom.window.document;
+  const overlay = doc.getElementById("questModalOverlay");
+
+  doc.getElementById("questTitle").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  assert.equal(overlay.hidden, false, "a click on a field stays open");
+
+  overlay.dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  assert.equal(overlay.hidden, true, "a click on the backdrop closes");
 });
 
 test("submitting the Add Quest form calls questLog.createQuest with parsed fields", async () => {

@@ -1,36 +1,34 @@
-import { TASK_STATUSES, TASK_STATUS_LABEL } from "./constants.js";
-import { escapeHtml } from "./utils.js";
-import { bindCardDetail } from "./detail.js";
+import { TASK_STATUSES, TASK_STATUS_LABEL, countByStatus } from "../core/domain.js";
+import { escapeHtml } from "../core/html.js";
+import { bindCardDetail } from "../ui/detail.js";
+import { createModal } from "../ui/modal.js";
 
 var latestTasks = [];
-var editingTaskId = null;
 var onChange = null;
-
-var addTaskBtn, taskModalOverlay, taskForm, taskModalTitle, taskCancelBtn;
+var taskModal = null;
 
 export function initTasks(onTasksChanged) {
   onChange = onTasksChanged;
 
-  addTaskBtn = document.getElementById("addTaskBtn");
-  taskModalOverlay = document.getElementById("taskModalOverlay");
-  taskForm = document.getElementById("taskForm");
-  taskModalTitle = document.getElementById("taskModalTitle");
-  taskCancelBtn = document.getElementById("taskCancelBtn");
-
-  addTaskBtn.addEventListener("click", function () { openTaskModal(null); });
-  taskCancelBtn.addEventListener("click", closeTaskModal);
-  taskModalOverlay.addEventListener("click", function (e) {
-    if (e.target === taskModalOverlay) closeTaskModal();
-  });
-  taskForm.addEventListener("submit", onTaskFormSubmit);
-
-  document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape" && !taskModalOverlay.hidden) closeTaskModal();
+  taskModal = createModal({
+    overlay: "taskModalOverlay",
+    form: "taskForm",
+    heading: "taskModalTitle",
+    cancel: "taskCancelBtn",
+    addButton: "addTaskBtn",
+    headings: { create: "Create Task", edit: "Edit Task" },
+    fields: [
+      { id: "taskTitle", key: "title" },
+      { id: "taskNote", key: "note" }
+    ],
+    create: function (data) { return window.questLog.createTask(data); },
+    update: function (id, data) { return window.questLog.updateTask(id, data); },
+    onSaved: refetchTasks
   });
 }
 
 export function openCreateTask() {
-  openTaskModal(null);
+  taskModal.open(null);
 }
 
 export function persistTaskOrder(ids) {
@@ -50,9 +48,7 @@ export function getAllTasks() {
 }
 
 export function getStatusCounts() {
-  var counts = { backlog: 0, in_progress: 0, done: 0 };
-  latestTasks.forEach(function (s) { counts[s.status] = (counts[s.status] || 0) + 1; });
-  return counts;
+  return countByStatus(latestTasks, TASK_STATUSES);
 }
 
 export function getTasksByStatus(status) {
@@ -90,7 +86,7 @@ export function bindTaskActions(container) {
     return {
       title: task.title,
       text: task.note,
-      onEdit: function () { openTaskModal(task); },
+      onEdit: function () { taskModal.open(task); },
       onDelete: function () { return onDeleteTask(task.id); }
     };
   });
@@ -111,33 +107,3 @@ function ingest(tasks) {
   if (onChange) onChange();
 }
 
-function openTaskModal(task) {
-  editingTaskId = task ? task.id : null;
-  taskModalTitle.textContent = task ? "Edit Task" : "Create Task";
-  document.getElementById("taskTitle").value = task ? task.title : "";
-  document.getElementById("taskNote").value = task && task.note ? task.note : "";
-  taskModalOverlay.hidden = false;
-}
-
-function closeTaskModal() {
-  taskModalOverlay.hidden = true;
-  taskForm.reset();
-  editingTaskId = null;
-}
-
-function onTaskFormSubmit(e) {
-  e.preventDefault();
-  var data = {
-    title: document.getElementById("taskTitle").value.trim(),
-    note: document.getElementById("taskNote").value.trim(),
-  };
-
-  var promise = editingTaskId
-    ? window.questLog.updateTask(editingTaskId, data)
-    : window.questLog.createTask(data);
-
-  promise.then(function () {
-    closeTaskModal();
-    return refetchTasks();
-  }).catch(function () {});
-}

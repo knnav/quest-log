@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
-import { enableDragSort } from "../js/dragSort.js";
+import { enableDragSort } from "../js/ui/dragSort.js";
 
 function setup(ids) {
   const dom = new JSDOM(`<!doctype html><body><div id="grid"></div></body>`, { url: "http://localhost/" });

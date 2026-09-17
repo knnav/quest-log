@@ -8,7 +8,7 @@
 // the failure mode this app exists to fight is starting things, not finishing
 // them, and a tool that shames you is worse than one that says nothing.
 
-import { escapeHtml } from "./utils.js";
+import { escapeHtml } from "../core/html.js";
 
 var shipOverlay, shipTitleEl, shipDodEl, shipCancelBtn, shipConfirmBtn;
 var wipOverlay, wipBodyEl, wipListEl, wipBenchBtn, wipProceedBtn, wipCancelBtn;

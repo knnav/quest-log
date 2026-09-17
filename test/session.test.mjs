@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
-import { formatRemaining, formatWorked } from "../js/sessionFormat.js";
+import { formatRemaining, formatWorked } from "../js/core/sessionFormat.js";
 
 test("formatRemaining always reads as mm:ss and never goes negative", () => {
   assert.equal(formatRemaining(25 * 60000), "25:00");
@@ -73,7 +73,7 @@ async function bootFocus(quests, calls) {
   dom.window.session = mock.api;
 
   focusCounter += 1;
-  const mod = await import(`../js/session.js?focus=${focusCounter}`);
+  const mod = await import(`../js/features/session.js?focus=${focusCounter}`);
   mod.initSession({ quests: () => quests, onEnded: () => {} });
   mod.renderFocusQuests();
   await new Promise((r) => setTimeout(r, 0));

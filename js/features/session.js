@@ -1,4 +1,5 @@
-import { formatRemaining, formatWorked } from "./sessionFormat.js";
+import { formatRemaining, formatWorked } from "../core/sessionFormat.js";
+import { msOf, spanMs } from "../core/dates.js";
 
 // The Focus tab: a plain pomodoro that happens to know what you're working on.
 // It is its own surface rather than a button on every card — a timer is a
@@ -109,7 +110,8 @@ export function renderToday(sessions) {
   midnight.setHours(0, 0, 0, 0);
 
   var today = (sessions || []).filter(function (s) {
-    return s.endedAt && new Date(s.endedAt).getTime() >= midnight.getTime();
+    var ended = msOf(s.endedAt);
+    return ended !== null && ended >= midnight.getTime();
   });
 
   if (!today.length) {
@@ -118,8 +120,7 @@ export function renderToday(sessions) {
   }
 
   var worked = today.reduce(function (total, s) {
-    var ms = new Date(s.endedAt).getTime() - new Date(s.startedAt).getTime();
-    return isFinite(ms) && ms > 0 ? total + ms : total;
+    return total + (spanMs(s.startedAt, s.endedAt) || 0);
   }, 0);
 
   todayEl.textContent = "Today: " + today.length +

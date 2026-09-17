@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
-import { initTheme, THEMES } from "../js/theme.js";
+import { initTheme, THEMES } from "../js/ui/theme.js";
 
 const FIXTURE_HTML = `<!doctype html><body>
   <div class="theme-picker">

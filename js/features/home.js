@@ -1,9 +1,10 @@
 import {
   fuelFor, stageFor, completionEntries, lastCompletedAt, elapsedLabel,
-  oldestWaiting, STAGE_LABELS, STAGE_NOTES
-} from "./fire.js";
+  STAGE_LABELS, STAGE_NOTES
+} from "../core/fire.js";
+import { oldestWaiting } from "../core/records.js";
 import { pickMotd } from "./motd.js";
-import { WIP_LIMIT, STALE_DAYS } from "./constants.js";
+import { WIP_LIMIT, STALE_DAYS } from "../core/domain.js";
 
 var bonfireEl, stageLabelEl, stageNoteEl, staleEl, motdEl;
 var sinceValueEl, sinceLabelEl, clockEl;

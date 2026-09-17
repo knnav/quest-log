@@ -1,4 +1,4 @@
-import { formatRemaining } from "./sessionFormat.js";
+import { formatRemaining } from "./core/sessionFormat.js";
 
 // The mini window draws the timer; it never owns it. Everything shown here
 // comes from the main process, so this countdown and the one in the main

@@ -1,3 +1,5 @@
+import { MS_PER_DAY, msOf } from "./dates.js";
+
 // The bonfire's fuel model.
 //
 // Finished work burns for a while and then fades, so the fire reflects what
@@ -30,8 +32,6 @@ export const STAGE_NOTES = [
   "Roaring. Go rest, you've earned the bonfire."
 ];
 
-var MS_PER_DAY = 86400000;
-
 // entries: [{ completedAt, weight }]. Anything undated (finished before the
 // fire existed) contributes nothing rather than being treated as fresh.
 export function fuelFor(entries, now) {
@@ -40,8 +40,8 @@ export function fuelFor(entries, now) {
   return (entries || []).reduce(function (total, entry) {
     if (!entry || !entry.completedAt) return total;
 
-    var doneMs = new Date(entry.completedAt).getTime();
-    if (!isFinite(doneMs)) return total;
+    var doneMs = msOf(entry.completedAt);
+    if (doneMs === null) return total;
 
     // A clock that moved backwards shouldn't hand out extra fuel, so anything
     // stamped in the future counts as "just now" rather than more than full.
@@ -80,65 +80,11 @@ export function completionEntries(quests, tasks) {
   return fromQuests.concat(fromTasks);
 }
 
-// How long, on average, quests of a given scope actually took — measured from
-// the day you started to the day you finished. The anti-self-deception number:
-// you said Weekend, the record says otherwise.
-export function scopeRecord(quests, tier, sessions) {
-  var matching = (quests || []).filter(function (q) {
-    return q.tier === tier && q.status === "shipped" && q.startedAt && q.finishedAt;
-  });
-
-  var spans = (quests || [])
-    .filter(function (q) {
-      return q.tier === tier && q.status === "shipped" && q.startedAt && q.finishedAt;
-    })
-    .map(function (q) {
-      return new Date(q.finishedAt).getTime() - new Date(q.startedAt).getTime();
-    })
-    .filter(function (ms) { return isFinite(ms) && ms >= 0; });
-
-  if (!spans.length) return null;
-
-  var mean = spans.reduce(function (a, b) { return a + b; }, 0) / spans.length;
-
-  // Elapsed days were always the soft number; worked time is the honest one.
-  var ids = {};
-  matching.forEach(function (q) { ids[q.id] = true; });
-  var workedMs = (sessions || []).reduce(function (total, s) {
-    if (!ids[s.questId] || !s.startedAt || !s.endedAt) return total;
-    var ms = new Date(s.endedAt).getTime() - new Date(s.startedAt).getTime();
-    return isFinite(ms) && ms > 0 ? total + ms : total;
-  }, 0);
-
-  return {
-    shipped: spans.length,
-    days: Math.max(1, Math.round(mean / MS_PER_DAY)),
-    workedMs: workedMs
-  };
-}
-
-// The thing that has been waiting longest without being started.
-export function oldestWaiting(quests, now) {
-  var nowMs = now instanceof Date ? now.getTime() : Date.now();
-  var oldest = null;
-
-  (quests || []).forEach(function (q) {
-    if (q.status !== "backlog" || !q.createdAt) return;
-    var ms = new Date(q.createdAt).getTime();
-    if (!isFinite(ms)) return;
-    if (!oldest || ms < oldest.ms) {
-      oldest = { ms: ms, title: q.title, days: Math.floor((nowMs - ms) / MS_PER_DAY) };
-    }
-  });
-
-  return oldest;
-}
-
 export function lastCompletedAt(entries) {
   return (entries || []).reduce(function (latest, entry) {
     if (!entry || !entry.completedAt) return latest;
-    var ms = new Date(entry.completedAt).getTime();
-    if (!isFinite(ms)) return latest;
+    var ms = msOf(entry.completedAt);
+    if (ms === null) return latest;
     return latest === null || ms > latest ? ms : latest;
   }, null);
 }

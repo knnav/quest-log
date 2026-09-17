@@ -1,22 +1,22 @@
-import { initTheme } from "./theme.js";
-import { initTitlebar } from "./titlebar.js";
-import { initMotd } from "./motd.js";
+import { initTheme } from "./ui/theme.js";
+import { initTitlebar } from "./ui/titlebar.js";
+import { initMotd } from "./features/motd.js";
 import {
   initQuests, loadQuests, refetchQuests, refreshSessions, getSessions, cardHtml,
   bindQuestActions, getInProgressQuests, openCreateQuest, getAllQuests,
   getStatusCounts as questCounts
-} from "./quests.js";
+} from "./features/quests.js";
 import {
   initTasks, loadTasks, taskCardHtml, bindTaskActions,
   getTasksByStatus, openCreateTask, persistTaskOrder,
   getAllTasks, getStatusCounts as taskCounts
-} from "./tasks.js";
-import { enableDragSort } from "./dragSort.js";
-import { initDetail } from "./detail.js";
-import { initTabs, showTab } from "./tabs.js";
-import { initHome, renderHome } from "./home.js";
-import { initGates } from "./gates.js";
-import { initSession, renderFocusQuests, renderToday } from "./session.js";
+} from "./features/tasks.js";
+import { enableDragSort } from "./ui/dragSort.js";
+import { initDetail } from "./ui/detail.js";
+import { initTabs, showTab } from "./ui/tabs.js";
+import { initHome, renderHome } from "./features/home.js";
+import { initGates } from "./features/gates.js";
+import { initSession, renderFocusQuests, renderToday } from "./features/session.js";
 
 function renderProgress() {
   var section = document.getElementById("questsInProgress");

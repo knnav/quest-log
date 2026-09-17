@@ -1,21 +1,22 @@
-import { TIERS, STATUSES, STATUS_LABEL, WIP_LIMIT } from "./constants.js";
-import { escapeHtml } from "./utils.js";
-import { enableDragSort } from "./dragSort.js";
-import { bindCardDetail } from "./detail.js";
-import { scopeRecord } from "./fire.js";
-import { formatWorked } from "./sessionFormat.js";
+import { TIERS, TIER_LABEL, STATUSES, STATUS_LABEL, WIP_LIMIT, countByStatus } from "../core/domain.js";
+import { escapeHtml } from "../core/html.js";
+import { daysSince, spanMs, MS_PER_DAY } from "../core/dates.js";
+import { enableDragSort } from "../ui/dragSort.js";
+import { bindCardDetail } from "../ui/detail.js";
+import { scopeRecord } from "../core/records.js";
+import { formatWorked } from "../core/sessionFormat.js";
 import { confirmShip, confirmWip } from "./gates.js";
+import { createModal } from "../ui/modal.js";
 
 var allTags = [];
 var activeTags = [];
 var searchTerm = "";
 var latestDocs = [];
 var latestSessions = [];
-var editingQuestId = null;
 var onChange = null;
+var questModal = null;
 
 var boardEl, filtersEl, searchEl, scopeNoteEl;
-var addQuestBtn, questModalOverlay, questForm, questModalTitle, questCancelBtn, questTierEl;
 
 export function initQuests(onQuestsChanged) {
   onChange = onQuestsChanged;
@@ -25,20 +26,34 @@ export function initQuests(onQuestsChanged) {
   searchEl = document.getElementById("questSearch");
   scopeNoteEl = document.getElementById("questScopeNote");
 
-  addQuestBtn = document.getElementById("addQuestBtn");
-  questModalOverlay = document.getElementById("questModalOverlay");
-  questForm = document.getElementById("questForm");
-  questModalTitle = document.getElementById("questModalTitle");
-  questCancelBtn = document.getElementById("questCancelBtn");
-  questTierEl = document.getElementById("questTier");
-
-  addQuestBtn.addEventListener("click", function () { openQuestModal(null); });
-  questCancelBtn.addEventListener("click", closeQuestModal);
-  questModalOverlay.addEventListener("click", function (e) {
-    if (e.target === questModalOverlay) closeQuestModal();
+  questModal = createModal({
+    overlay: "questModalOverlay",
+    form: "questForm",
+    heading: "questModalTitle",
+    cancel: "questCancelBtn",
+    addButton: "addQuestBtn",
+    headings: { create: "Add Quest", edit: "Edit Quest" },
+    fields: [
+      { id: "questTitle", key: "title" },
+      { id: "questHook", key: "hook" },
+      { id: "questTier", key: "tier", fallback: "weekend" },
+      {
+        id: "questTags", key: "tags",
+        read: function (raw) {
+          return raw.split(",").map(function (t) { return t.trim(); }).filter(Boolean);
+        },
+        write: function (tags) { return (tags || []).join(", "); }
+      },
+      { id: "questDod", key: "dod" }
+    ],
+    // The record for the scope you're looking at, refreshed as you change it.
+    onOpen: renderScopeNote,
+    create: function (data) { return window.questLog.createQuest(data); },
+    update: function (id, data) { return window.questLog.updateQuest(id, data); },
+    onSaved: refetchQuests
   });
-  questForm.addEventListener("submit", onQuestFormSubmit);
-  questTierEl.addEventListener("change", renderScopeNote);
+
+  questModal.field("tier").addEventListener("change", renderScopeNote);
 
   if (searchEl) {
     searchEl.addEventListener("input", function () {
@@ -46,14 +61,10 @@ export function initQuests(onQuestsChanged) {
       rerender();
     });
   }
-
-  document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape" && !questModalOverlay.hidden) closeQuestModal();
-  });
 }
 
 export function openCreateQuest() {
-  openQuestModal(null);
+  questModal.open(null);
 }
 
 export function loadQuests() {
@@ -112,9 +123,7 @@ export function getAllQuests() {
 }
 
 export function getStatusCounts() {
-  var counts = { backlog: 0, in_progress: 0, shipped: 0, let_go: 0 };
-  latestDocs.forEach(function (q) { counts[q.status] = (counts[q.status] || 0) + 1; });
-  return counts;
+  return countByStatus(latestDocs, STATUSES.concat("let_go"));
 }
 
 export function cardHtml(q) {
@@ -163,7 +172,7 @@ export function bindQuestActions(container) {
       tags: quest.tags || [],
       text: quest.hook,
       rows: detailRows(quest),
-      onEdit: function () { openQuestModal(quest); },
+      onEdit: function () { questModal.open(quest); },
       onDelete: function () { return onDeleteQuest(quest.id); },
       letGo: quest.status === "let_go" ? null : function () { return onLetGo(quest); }
     };
@@ -173,32 +182,33 @@ export function bindQuestActions(container) {
 function detailRows(q) {
   var rows = [{ label: "Done when", value: q.dod }];
 
-  if (q.status === "backlog" && q.createdAt) {
-    rows.push({ label: "Waiting", value: daysSince(q.createdAt) + " days in the backlog" });
+  var waiting = q.status === "backlog" ? daysSince(q.createdAt) : null;
+  if (waiting !== null) {
+    rows.push({ label: "Waiting", value: waiting + " days in the backlog" });
   }
   if (q.status === "in_progress" && q.startedAt) {
     rows.push({ label: "Started", value: relativeDay(q.startedAt) });
   }
   if (q.finishedAt && (q.status === "shipped" || q.status === "let_go")) {
+    // An undated or impossible span is left off rather than shown as nothing.
+    var took = spanDays(q.startedAt, q.finishedAt);
     rows.push({
       label: q.status === "let_go" ? "Let go" : "Shipped",
-      value: relativeDay(q.finishedAt) + (q.startedAt ? " · took " + spanDays(q.startedAt, q.finishedAt) + " days" : "")
+      value: relativeDay(q.finishedAt) + (took === null ? "" : " · took " + took + " days")
     });
   }
   return rows;
 }
 
-function daysSince(iso) {
-  return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000));
-}
-
+// At least a day, because "took 0 days" reads as though nothing happened.
 function spanDays(fromIso, toIso) {
-  var ms = new Date(toIso).getTime() - new Date(fromIso).getTime();
-  return Math.max(1, Math.round(ms / 86400000));
+  var ms = spanMs(fromIso, toIso);
+  return ms === null ? null : Math.max(1, Math.round(ms / MS_PER_DAY));
 }
 
 function relativeDay(iso) {
   var days = daysSince(iso);
+  if (days === null) return "at some point";
   if (days === 0) return "today";
   if (days === 1) return "yesterday";
   if (days < 30) return days + " days ago";
@@ -359,7 +369,7 @@ function ingest(docs) {
 // Shown right under the Scope select, at the moment you're committing to one.
 function renderScopeNote() {
   if (!scopeNoteEl) return;
-  var record = scopeRecord(latestDocs, questTierEl.value, latestSessions);
+  var record = scopeRecord(latestDocs, questModal.field("tier").value, latestSessions);
 
   if (!record) {
     scopeNoteEl.textContent = "";
@@ -368,48 +378,9 @@ function renderScopeNote() {
   }
 
   var worked = record.workedMs ? ", " + formatWorked(record.workedMs) + " of tracked work" : "";
-  scopeNoteEl.textContent = "Your " + questTierEl.options[questTierEl.selectedIndex].text.split(" \u2014")[0] +
+  scopeNoteEl.textContent = "Your " + TIER_LABEL[questModal.field("tier").value] +
     " quests have taken " + record.days + (record.days === 1 ? " day" : " days") +
     " on average (" + record.shipped + " shipped" + worked + ").";
   scopeNoteEl.hidden = false;
 }
 
-function openQuestModal(quest) {
-  editingQuestId = quest ? quest.id : null;
-  questModalTitle.textContent = quest ? "Edit Quest" : "Add Quest";
-  document.getElementById("questTitle").value = quest ? quest.title : "";
-  document.getElementById("questHook").value = quest ? quest.hook : "";
-  questTierEl.value = quest ? quest.tier : "weekend";
-  document.getElementById("questTags").value = quest && quest.tags ? quest.tags.join(", ") : "";
-  document.getElementById("questDod").value = quest ? quest.dod : "";
-  renderScopeNote();
-  questModalOverlay.hidden = false;
-}
-
-function closeQuestModal() {
-  questModalOverlay.hidden = true;
-  questForm.reset();
-  editingQuestId = null;
-}
-
-function onQuestFormSubmit(e) {
-  e.preventDefault();
-  var data = {
-    title: document.getElementById("questTitle").value.trim(),
-    hook: document.getElementById("questHook").value.trim(),
-    tier: questTierEl.value,
-    tags: document.getElementById("questTags").value.split(",")
-      .map(function (t) { return t.trim(); })
-      .filter(Boolean),
-    dod: document.getElementById("questDod").value.trim()
-  };
-
-  var promise = editingQuestId
-    ? window.questLog.updateQuest(editingQuestId, data)
-    : window.questLog.createQuest(data);
-
-  promise.then(function () {
-    closeQuestModal();
-    return refetchQuests();
-  }).catch(function () {});
-}

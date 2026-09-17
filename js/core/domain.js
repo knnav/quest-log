@@ -33,3 +33,16 @@ export const WIP_LIMIT = 3;
 
 // How long a quest can sit in the backlog before the home screen mentions it.
 export const STALE_DAYS = 30;
+
+// Tallies a list by its status field. The statuses are passed in so each type
+// gets its own zeroed shape — a quest board that never showed "Let go: 0"
+// shouldn't start just because tasks don't have that status.
+export function countByStatus(list, statuses) {
+  var counts = {};
+  statuses.forEach(function (s) { counts[s] = 0; });
+  (list || []).forEach(function (item) {
+    if (!item) return;
+    counts[item.status] = (counts[item.status] || 0) + 1;
+  });
+  return counts;
+}

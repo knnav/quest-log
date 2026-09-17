@@ -1,8 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
-import { taskCardHtml } from "../js/tasks.js";
-import { initDetail } from "../js/detail.js";
+import { taskCardHtml } from "../js/features/tasks.js";
+import { initDetail } from "../js/ui/detail.js";
 import { DETAIL_MODAL_HTML } from "./detailFixture.mjs";
 
 test("taskCardHtml escapes text and marks the active status button", () => {
@@ -61,7 +61,7 @@ function installGlobals(dom, questLogMock) {
 
 async function freshTasksModule() {
   moduleCounter += 1;
-  return import(`../js/tasks.js?instance=${moduleCounter}`);
+  return import(`../js/features/tasks.js?instance=${moduleCounter}`);
 }
 
 test("bindTaskActions wires a status click to questLog.updateTask", async () => {
@@ -261,6 +261,26 @@ test("openCreateTask opens the modal in create mode", async () => {
   assert.equal(doc.getElementById("taskModalOverlay").hidden, false);
   assert.equal(doc.getElementById("taskModalTitle").textContent, "Create Task");
   assert.equal(doc.getElementById("taskTitle").value, "");
+});
+
+test("only the backdrop closes the task modal, not a click inside it", async () => {
+  const questLogMock = { listTasks: () => Promise.resolve([]) };
+
+  const dom = new JSDOM(FIXTURE_HTML, { url: "http://localhost/" });
+  installGlobals(dom, questLogMock);
+
+  const tasks = await freshTasksModule();
+  tasks.initTasks(() => {});
+  tasks.openCreateTask();
+
+  const doc = dom.window.document;
+  const overlay = doc.getElementById("taskModalOverlay");
+
+  doc.getElementById("taskTitle").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  assert.equal(overlay.hidden, false, "a click on a field stays open");
+
+  overlay.dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  assert.equal(overlay.hidden, true, "a click on the backdrop closes");
 });
 
 test("Escape closes an open task modal", async () => {
