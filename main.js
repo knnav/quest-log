@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, Tray, ipcMain, nativeTheme, screen } = require("electron");
+const { app, BrowserWindow, Menu, Tray, dialog, ipcMain, nativeTheme, screen } = require("electron");
 const fs = require("fs");
 const path = require("path");
 const store = require("./store");
@@ -290,6 +290,34 @@ function quitApp() {
   setTimeout(() => app.exit(0), 1500).unref();
 }
 
+// The board's × and an OS close both ask before quitting: the hearth is the
+// app's resting state, so leaving for real is the unusual choice and a single
+// mis-click shouldn't end a running session. Minimise is the no-questions
+// way to put the board away. One prompt at a time — a second close while the
+// dialog is up is just the same question again.
+let confirmingQuit = false;
+function confirmQuit() {
+  const win = liveWindow();
+  if (!win || confirmingQuit) return;
+  confirmingQuit = true;
+  const running = session ? session.questTitle || "your session" : null;
+  dialog.showMessageBox(win, {
+    type: "question",
+    title: "Quit Quest Log",
+    message: "Quit Quest Log?",
+    detail: running
+      ? `A session is running (${running}) and won't be recorded. Minimise instead to keep the fire burning in the hearth.`
+      : "Minimise instead to keep the fire burning in the hearth.",
+    buttons: ["Quit", "Cancel"],
+    defaultId: 1,
+    cancelId: 1,
+    noLink: true,
+  }).then(({ response }) => {
+    confirmingQuit = false;
+    if (response === 0) quitApp();
+  }).catch(() => { confirmingQuit = false; });
+}
+
 function createWindow() {
   // Bounded rather than fixed: the board can grow to two columns of cards and
   // no further, so reaching for more work still costs a scroll.
@@ -319,11 +347,11 @@ function createWindow() {
   mainWindow = win;
   mode = "board";
   // An OS-level close (Alt+F4, the dock) means the same as the title bar's ×:
-  // fold into the hearth. Only the tray's Quit lets the window actually go.
+  // ask, then quit. quitApp() destroys the window, which skips this hook.
   win.on("close", (event) => {
     if (quitting) return;
     event.preventDefault();
-    collapseToHearth();
+    confirmQuit();
   });
   win.on("closed", () => {
     mainWindow = null;
@@ -333,8 +361,9 @@ function createWindow() {
   });
 }
 
-// The tray is the only place Quit lives: the board's close button folds it
-// into the hearth, so without this there would be no way out of the app.
+// The tray also carries Quit: the board's × is out of reach when only the
+// hearth is on screen, so this and the hearth's right-click menu are the
+// exits from that state.
 function createTray() {
   tray = new Tray(path.join(__dirname, "assets", "tray.png"));
   tray.setToolTip("Quest Log");
@@ -366,10 +395,9 @@ function registerIpcHandlers() {
     return JSON.parse(raw);
   });
 
-  // Minimise and close both mean "fold into the hearth" — the app never
-  // leaves the screen unless you quit it from the tray.
+  // Minimise folds into the hearth; close asks and then really quits.
   ipcMain.on("window:minimize", collapseToHearth);
-  ipcMain.on("window:close", collapseToHearth);
+  ipcMain.on("window:close", confirmQuit);
   ipcMain.on("window:expand", expandToBoard);
   ipcMain.on("window:collapse", collapseToHearth);
   ipcMain.handle("window:get-mode", () => mode);

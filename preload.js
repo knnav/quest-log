@@ -45,8 +45,8 @@ contextBridge.exposeInMainWorld("motd", {
   list: () => ipcRenderer.invoke("motd:list"),
 });
 
-// Minimise and close both fold the board into the hearth; main.js decides
-// what they mean, the renderer just reports the click.
+// Minimise folds the board into the hearth; close asks and then quits.
+// main.js decides what they mean, the renderer just reports the click.
 contextBridge.exposeInMainWorld("windowControls", {
   minimize: () => ipcRenderer.send("window:minimize"),
   close: () => ipcRenderer.send("window:close"),

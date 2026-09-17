@@ -2,9 +2,9 @@
 // and these two buttons are the only way to put the board away.
 //
 // Both go through window.windowControls, exposed by preload.js — a renderer
-// cannot move its own window. Neither one quits: minimise and close both fold
-// the board into the hearth, and Quit lives in the tray. There is no maximise
-// because the board's width is capped at two columns.
+// cannot move its own window. Minimise folds the board into the hearth; close
+// asks first and then really quits (main.js owns the prompt). There is no
+// maximise because the board's width is capped at two columns.
 
 export function initTitlebar() {
   var titlebar = document.querySelector(".titlebar");
