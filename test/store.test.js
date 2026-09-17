@@ -36,9 +36,48 @@ test("backfills a missing tasks array for stores written before tasks existed", 
   assert.deepEqual(store.getTasks(), []);
 });
 
+test("migrates duration tiers to effort tiers on load and writes the file back once", () => {
+  const storePath = tempStorePath();
+  fs.writeFileSync(storePath, JSON.stringify({
+    quests: [
+      { id: "a", title: "A", tier: "weekend", status: "backlog", order: 1 },
+      { id: "b", title: "B", tier: "medium", status: "backlog", order: 2 },
+      { id: "c", title: "C", tier: "ongoing", status: "shipped", order: 3 },
+      { id: "d", title: "D", tier: "hard", status: "backlog", order: 4 },
+    ],
+    tasks: [],
+  }));
+
+  const store = createStore(storePath);
+  assert.deepEqual(store.getQuests().map((q) => q.tier), ["easy", "medium", "hard", "hard"]);
+
+  // Persisted, not just patched in memory: a fresh store over the same file
+  // sees the new keys without needing to migrate again.
+  const onDisk = JSON.parse(fs.readFileSync(storePath, "utf-8"));
+  assert.deepEqual(onDisk.quests.map((q) => q.tier), ["easy", "medium", "hard", "hard"]);
+});
+
+test("a file already on effort tiers is not rewritten on load", () => {
+  const storePath = tempStorePath();
+  fs.writeFileSync(storePath, JSON.stringify({
+    quests: [{ id: "a", title: "A", tier: "easy", status: "backlog", order: 1 }],
+    tasks: [],
+  }));
+  const before = fs.statSync(storePath).mtimeMs;
+
+  createStore(storePath).getQuests();
+  assert.equal(fs.statSync(storePath).mtimeMs, before);
+});
+
+test("createQuest defaults a missing tier to easy", () => {
+  const store = createStore(emptyStorePath());
+  const quest = store.createQuest({ title: "Untiered" });
+  assert.equal(quest.tier, "easy");
+});
+
 test("createQuest assigns an id, defaults, and order 1 for the first quest", () => {
   const store = createStore(emptyStorePath());
-  const quest = store.createQuest({ title: "Test Quest", hook: "h", tier: "weekend", tags: ["a"], dod: "done" });
+  const quest = store.createQuest({ title: "Test Quest", hook: "h", tier: "easy", tags: ["a"], dod: "done" });
 
   assert.ok(quest.id);
   assert.equal(quest.order, 1);

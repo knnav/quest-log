@@ -6,18 +6,13 @@
 // it testable by passing a fixed `now`.
 
 import { MS_PER_DAY, msOf } from "./dates.js";
+import { TASK_WORTH, LET_GO_WORTH, questWorth } from "./domain.js";
 
 export const DECAY_DAYS = 3;
 
-// Relative worth of one completion of each kind.
-export const QUEST_WEIGHT = 3;
-export const TASK_WEIGHT = 1;
-
-// Letting a quest go is terminal too, so it carries weight — less than
-// shipping. store.js grants it once per outcome, so it cannot be farmed.
-export const LET_GO_WEIGHT = 1;
-
 // Fuel needed to reach stages 1..4. Stage 0 is embers, and is always reachable.
+// Measured in outcome worth (domain.js): an easy quest alone lights kindling,
+// a medium one shipped today is a roaring fire on its own.
 export const STAGE_THRESHOLDS = [1, 3, 6, 10];
 
 export const STAGE_LABELS = ["Embers", "Kindling", "Burning", "Blazing", "Roaring"];
@@ -53,20 +48,22 @@ export function stageFor(fuel) {
 }
 
 // Flattens quests and tasks into the { completedAt, weight } shape fuelFor
-// wants, applying each type's own terminal statuses and weights.
+// wants, applying each type's own terminal statuses and the worth table —
+// a shipped quest burns by its tier, so a hard ship blazes and an easy one
+// flickers.
 export function completionEntries(quests, tasks) {
   var fromQuests = (quests || [])
     .filter(function (q) { return q.completedAt && (q.status === "shipped" || q.status === "let_go"); })
     .map(function (q) {
       return {
         completedAt: q.completedAt,
-        weight: q.status === "let_go" ? LET_GO_WEIGHT : QUEST_WEIGHT
+        weight: q.status === "let_go" ? LET_GO_WORTH : questWorth(q.tier)
       };
     });
 
   var fromTasks = (tasks || [])
     .filter(function (s) { return s.status === "done" && s.completedAt; })
-    .map(function (s) { return { completedAt: s.completedAt, weight: TASK_WEIGHT }; });
+    .map(function (s) { return { completedAt: s.completedAt, weight: TASK_WORTH }; });
 
   return fromQuests.concat(fromTasks);
 }

@@ -14,7 +14,7 @@
 // the In Progress block is filtered, so the home screen and focus picker are
 // left alone rather than rebuilt (and the motd re-rolled) on every keystroke.
 
-import { TIERS, TIER_LABEL, STATUSES, STATUS_LABEL, WIP_LIMIT, countByStatus } from "../core/domain.js";
+import { TIERS, TIER_LABEL, DEFAULT_TIER, STATUSES, STATUS_LABEL, WIP_LIMIT, countByStatus } from "../core/domain.js";
 import { escapeHtml } from "../core/html.js";
 import { daysSince, spanMs, msOf, MS_PER_DAY } from "../core/dates.js";
 import { enableDragSort } from "../ui/dragSort.js";
@@ -54,7 +54,7 @@ export function initQuests(onQuestsChanged, onQuestFilterChanged) {
     fields: [
       { id: "questTitle", key: "title" },
       { id: "questHook", key: "hook" },
-      { id: "questTier", key: "tier", fallback: "weekend" },
+      { id: "questTier", key: "tier", fallback: DEFAULT_TIER },
       {
         id: "questTags", key: "tags",
         read: function (raw) {

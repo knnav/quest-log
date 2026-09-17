@@ -313,9 +313,17 @@ body[data-mode="hearth"] .app-scroll,
 body[data-mode="hearth"] .modal-overlay { display: none; }
 
 /* A fixed unit here: the vh/vw formula was tuned for the board and would
-   shrink the fire to a match head in a 220px window. Sized so a roaring fire
-   plus a three-line quote and its attribution still fit the 210px box. */
-body[data-mode="hearth"] .bonfire { --u: 2.6px; }
+   shrink the fire to a match head in a 220px window. Tuned for the largest
+   fire again: at full growth the box is 156px, which with the quote is a
+   little more than the 210px window — the rule below lets the spark headroom
+   at the top take the clipping. */
+body[data-mode="hearth"] .bonfire { --u: calc(1.8px * var(--growth)); }
+
+/* When a grown fire and the quote no longer both fit, the fire gives: the
+   column is bottom-aligned, so its overflow is the spark headroom at the top
+   of the box, which the window clips. Nothing here shrinks — a squeezed
+   quote loses its last line, which is the attribution. */
+.hearth-view > * { flex-shrink: 0; }
 
 /* The companion keeps burning when you're not looking at it — that's the job. */
 body.is-idle[data-mode="hearth"] .bonfire *,
@@ -416,6 +424,19 @@ body.is-idle[data-mode="hearth"] .bonfire { animation-play-state: running; }
     opacity: 0.85;
   }
 }
+
+/* The ledger sits in the top-left, out of the fire's way and clear of the
+   buttons on the right. Sized so the bar and a two-digit level fit in half
+   the width. */
+.hearth-view-xp {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  gap: 6px;
+}
+
+.hearth-view-xp .xp-level { font-size: 8px; }
+.hearth-view-xp .xp-bar { width: 56px; height: 4px; }
 
 /* Pause/stop sit in the top-right and only surface on hover, so at rest the
    face is nothing but the fire. */
@@ -653,6 +674,63 @@ body.is-panel { background: var(--panel); }
 
 .hearth-note { max-width: 36ch; }
 
+/* ---- the XP ledger ---- */
+
+/* Level, bar, count in one row. The bar fills in the fire's colour and flashes
+   on a level-up (home.js toggles is-levelup) — the only place the ledger
+   makes a fuss, and only for a moment. */
+.xp {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+}
+
+.xp-level {
+  font-family: "Press Start 2P", monospace;
+  font-size: 9px;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.xp-bar {
+  flex: 0 0 auto;
+  width: 120px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--panel-border);
+  overflow: hidden;
+}
+
+.xp-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--fire-outer);
+  transition: width 0.6s ease;
+}
+
+.xp-count {
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.xp.is-levelup .xp-level { color: var(--fire-outer); }
+.xp.is-levelup .xp-fill { animation: xp-flash 0.5s ease-in-out 3; }
+
+@keyframes xp-flash {
+  50% { opacity: 0.2; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xp-fill { transition: none; }
+  .xp.is-levelup .xp-fill { animation: none; }
+}
+
+.hearth-xp { margin-top: 6px; }
+
 /* ---- since / clock ---- */
 
 .since {
@@ -793,9 +871,17 @@ body.is-panel { background: var(--panel); }
 
 /* Every dimension below is a multiple of --u, so the whole fire scales as one
    object with the window instead of sitting at a fixed size in a big space.
-   Bounded by height and width both, then clamped so it never gets silly. */
+   Bounded by height and width both, then clamped so it never gets silly.
+   --growth is the level (home.js sets it from core/xp.js, 1 to 1.8): the
+   stage says how the last few days went, the size says how far you've come.
+   The coefficients are tuned for the *largest* fire — at 1.8 the height term
+   is 0.9vh, which is what the Home screen can hold above the ledger, quote
+   and footer at the default 420×880 without scrolling — so a level-1 fire
+   is deliberately small. It scales the ceiling too, or a big window would
+   hide the growth. */
 .bonfire {
-  --u: clamp(2.6px, min(0.72vh, 1.75vw), 7px);
+  --growth: 1;
+  --u: clamp(1.8px, min(0.5vh, 1.22vw) * var(--growth), 4.9px * var(--growth));
 
   position: relative;
   width: calc(52 * var(--u));

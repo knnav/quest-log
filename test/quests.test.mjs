@@ -50,9 +50,9 @@ const FIXTURE_HTML = `<!doctype html><html><body>
         <input id="questTitle">
         <textarea id="questHook"></textarea>
         <select id="questTier">
-          <option value="weekend">Tier 1</option>
+          <option value="easy">Tier 1</option>
           <option value="medium">Tier 2</option>
-          <option value="ongoing">Tier 3</option>
+          <option value="hard">Tier 3</option>
         </select>
         <p id="questScopeNote" hidden></p>
         <input id="questTags">
@@ -82,7 +82,7 @@ async function freshQuestsModule() {
 
 function backlogQuest(over) {
   return Object.assign({
-    id: "q1", title: "T", hook: "H", tier: "weekend", tags: [],
+    id: "q1", title: "T", hook: "H", tier: "easy", tags: [],
     dod: "D", status: "backlog", order: 1,
   }, over || {});
 }
@@ -186,7 +186,7 @@ test("moving to backlog or in-progress needs no gate", async () => {
 
 test("bindQuestActions wires delete to confirm() + questLog.deleteQuest", async () => {
   const calls = [];
-  const quest = { id: "q1", title: "T", hook: "H", tier: "weekend", tags: [], dod: "D", status: "backlog", order: 1 };
+  const quest = { id: "q1", title: "T", hook: "H", tier: "easy", tags: [], dod: "D", status: "backlog", order: 1 };
   const questLogMock = {
     deleteQuest: (id) => { calls.push(id); return Promise.resolve(); },
     listQuests: () => Promise.resolve([quest]),
@@ -214,7 +214,7 @@ test("bindQuestActions wires delete to confirm() + questLog.deleteQuest", async 
 
 test("bindQuestActions skips deleteQuest when confirm() is cancelled", async () => {
   const calls = [];
-  const quest = { id: "q1", title: "T", hook: "H", tier: "weekend", tags: [], dod: "D", status: "backlog", order: 1 };
+  const quest = { id: "q1", title: "T", hook: "H", tier: "easy", tags: [], dod: "D", status: "backlog", order: 1 };
   const questLogMock = {
     deleteQuest: (id) => { calls.push(id); return Promise.resolve(); },
     listQuests: () => Promise.resolve([quest]),
@@ -239,7 +239,7 @@ test("bindQuestActions skips deleteQuest when confirm() is cancelled", async () 
 });
 
 test("cards carry no buttons at all — edit and delete live in the detail modal", async () => {
-  const quest = { id: "q1", title: "Existing Quest", hook: "h", tier: "weekend", tags: ["Tag1"], dod: "d", status: "backlog", order: 1 };
+  const quest = { id: "q1", title: "Existing Quest", hook: "h", tier: "easy", tags: ["Tag1"], dod: "d", status: "backlog", order: 1 };
   const questLogMock = { listQuests: () => Promise.resolve([quest]) };
 
   const dom = new JSDOM(FIXTURE_HTML, { url: "http://localhost/" });
@@ -263,7 +263,7 @@ test("cards carry no buttons at all — edit and delete live in the detail modal
 
 test("clicking a quest card opens the detail modal, and its Edit button opens the form", async () => {
   const quest = {
-    id: "q1", title: "Existing Quest", hook: "hook text", tier: "weekend",
+    id: "q1", title: "Existing Quest", hook: "hook text", tier: "easy",
     tags: ["Tag1"], dod: "dod text", status: "backlog", order: 1,
   };
   const questLogMock = { listQuests: () => Promise.resolve([quest]) };
@@ -571,7 +571,7 @@ test("let-go quests collect under Ashes, shipped ones under the Hall of Fame", a
 
   const doc = dom.window.document;
   const headings = Array.from(doc.querySelectorAll("#board .tier-title")).map((el) => el.textContent);
-  assert.deepEqual(headings, ["Weekend", "Hall of Fame", "Ashes"]);
+  assert.deepEqual(headings, ["Easy", "Hall of Fame", "Ashes"]);
 
   const ashes = doc.querySelector("#board .ashes-tier");
   assert.equal(ashes.querySelector(".card-title").textContent, "Abandoned");
@@ -663,12 +663,12 @@ test("the quest form reports how long that scope has actually taken you", async 
   const questLogMock = {
     listQuests: () => Promise.resolve([
       backlogQuest({
-        id: "a", status: "shipped", tier: "weekend",
+        id: "a", status: "shipped", tier: "easy",
         startedAt: new Date(Date.now() - 6 * day).toISOString(),
         finishedAt: new Date(Date.now() - 0 * day).toISOString(),
       }),
       backlogQuest({
-        id: "b", status: "shipped", tier: "weekend",
+        id: "b", status: "shipped", tier: "easy",
         startedAt: new Date(Date.now() - 4 * day).toISOString(),
         finishedAt: new Date(Date.now() - 0 * day).toISOString(),
       }),

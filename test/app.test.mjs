@@ -67,8 +67,8 @@ function boot(quests, tasks, options) {
 }
 
 const QUESTS = [
-  { id: "q1", title: "Shipped one", hook: "h", tier: "weekend", tags: ["a"], dod: "d", status: "shipped", order: 1, completedAt: new Date(Date.now() - 2 * 3600000).toISOString() },
-  { id: "q2", title: "Doing it", hook: "h", tier: "weekend", tags: [], dod: "d", status: "in_progress", order: 2, completedAt: null },
+  { id: "q1", title: "Shipped one", hook: "h", tier: "easy", tags: ["a"], dod: "d", status: "shipped", order: 1, completedAt: new Date(Date.now() - 2 * 3600000).toISOString() },
+  { id: "q2", title: "Doing it", hook: "h", tier: "easy", tags: [], dod: "d", status: "in_progress", order: 2, completedAt: null },
   { id: "q3", title: "Waiting", hook: "h", tier: "medium", tags: [], dod: "d", status: "backlog", order: 3, completedAt: null },
 ];
 
@@ -104,6 +104,89 @@ test("the bonfire lights from recent completions and names its stage", async () 
   // The hearth face carries its own copy of the fire; it must never disagree.
   const hearthFire = doc.querySelector("#hearthView .bonfire");
   assert.equal(hearthFire.getAttribute("data-stage"), "2");
+});
+
+test("the ledger banks the whole history and shows the distance to the next level", async () => {
+  // Three easy ships (9) and one hard (25) is 34 XP: level 4 (33) with one
+  // into the 13 to level 5. Old and reopened outcomes count — this is
+  // history, not the fire.
+  const long = new Date(Date.now() - 40 * DAY).toISOString();
+  const quests = [
+    { id: "a", title: "A", hook: "h", tier: "easy", tags: [], dod: "d", status: "shipped", order: 1, finishedAt: long, finishedAs: "shipped" },
+    { id: "b", title: "B", hook: "h", tier: "easy", tags: [], dod: "d", status: "shipped", order: 2, finishedAt: long, finishedAs: "shipped" },
+    { id: "c", title: "C", hook: "h", tier: "easy", tags: [], dod: "d", status: "backlog", order: 3, finishedAt: long, finishedAs: "shipped" },
+    { id: "d", title: "D", hook: "h", tier: "hard", tags: [], dod: "d", status: "shipped", order: 4, finishedAt: long, finishedAs: "shipped" },
+  ];
+  const dom = await boot(quests, []);
+  const doc = dom.window.document;
+
+  assert.equal(doc.getElementById("bonfire").getAttribute("data-stage"), "0",
+    "forty days on, the fire has forgotten all of it");
+
+  const levels = Array.from(doc.querySelectorAll("[data-xp-level]")).map((el) => el.textContent);
+  assert.deepEqual(levels, ["Lv 4", "Lv 4"], "home row and hearth corner agree");
+
+  // The level sizes both fires through one variable; the stage is separate.
+  const growths = Array.from(doc.querySelectorAll(".bonfire")).map((el) => el.style.getPropertyValue("--growth"));
+  assert.equal(growths.length, 2);
+  assert.equal(growths[0], growths[1]);
+  assert.ok(Number(growths[0]) > 1.1 && Number(growths[0]) < 1.5, `level 4 growth, got ${growths[0]}`);
+  assert.equal(doc.getElementById("xp").querySelector("[data-xp-count]").textContent, "1 / 13");
+  assert.equal(doc.getElementById("xp").querySelector("[data-xp-fill]").style.width, "8%");
+});
+
+test("a threshold crossed between the two boot loads is not a level-up", async () => {
+  // Quests alone are level 1 (9 XP); with the task, level 2. Both are
+  // history, so nothing just happened.
+  const long = new Date(Date.now() - 40 * DAY).toISOString();
+  const quests = [1, 2, 3].map((n) => (
+    { id: "q" + n, title: "Q" + n, hook: "h", tier: "easy", tags: [], dod: "d", status: "shipped", order: n, finishedAt: long, finishedAs: "shipped" }
+  ));
+  const tasks = [{ id: "t1", title: "Old", note: "", status: "done", order: 1, finishedAt: long }];
+  const dom = await boot(quests, tasks);
+  const doc = dom.window.document;
+
+  assert.equal(doc.getElementById("xp").querySelector("[data-xp-level]").textContent, "Lv 2");
+  assert.equal(doc.getElementById("xp").classList.contains("is-levelup"), false);
+});
+
+test("crossing a level threshold rings the chime and lights the ledger for a moment", async () => {
+  // Nine XP banked: one more is level 2.
+  const long = new Date(Date.now() - 40 * DAY).toISOString();
+  const quests = [1, 2, 3].map((n) => (
+    { id: "q" + n, title: "Q" + n, hook: "h", tier: "easy", tags: [], dod: "d", status: "shipped", order: n, finishedAt: long, finishedAs: "shipped" }
+  ));
+  const tasks = [{ id: "t1", title: "Last one", note: "", status: "backlog", order: 1 }];
+  const dom = await boot(quests, tasks);
+  const doc = dom.window.document;
+
+  // The chime is WebAudio; a fake context records that it was asked to play.
+  let rang = 0;
+  dom.window.AudioContext = function () {
+    this.state = "running";
+    this.currentTime = 0;
+    this.destination = {};
+    this.createOscillator = () => ({ frequency: {}, connect() {}, start() { rang += 1; }, stop() {} });
+    this.createGain = () => ({
+      gain: { setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {} },
+      connect() {},
+    });
+  };
+  // The store would stamp the finish; the stub does the same so the refetch sees it.
+  dom.window.questLog.updateTask = (id, data) => {
+    Object.assign(tasks[0], data, { finishedAt: new Date().toISOString(), completedAt: new Date().toISOString() });
+    return Promise.resolve(tasks[0]);
+  };
+
+  assert.equal(doc.getElementById("xp").querySelector("[data-xp-level]").textContent, "Lv 1");
+
+  doc.querySelector('#backlogTasksGrid [data-status="done"]').click();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  assert.equal(doc.getElementById("xp").querySelector("[data-xp-level]").textContent, "Lv 2");
+  assert.ok(doc.getElementById("xp").classList.contains("is-levelup"));
+  assert.ok(doc.querySelector("#hearthView [data-xp]").classList.contains("is-levelup"));
+  assert.equal(rang, 3, "one triad");
 });
 
 test("the quote is painted under the stage label and into the hearth face alike", async () => {
@@ -159,10 +242,10 @@ test("the board is split into timeboxes and a Hall of Fame", async () => {
   const dom = await boot(QUESTS, SIDE_QUESTS);
   const doc = dom.window.document;
 
-  // The only backlog quest here is the Fortnight one; the Weekend quests are
+  // The only backlog quest here is the Medium one; the Easy quests are
   // in progress and shipped, so they live elsewhere.
   const headings = Array.from(doc.querySelectorAll("#board .tier-title")).map((el) => el.textContent);
-  assert.deepEqual(headings, ["Fortnight", "Hall of Fame"],
+  assert.deepEqual(headings, ["Medium", "Hall of Fame"],
     "backlog quests sit under their timebox, shipped ones under the trophy case");
 
   const sections = Array.from(doc.querySelectorAll("#board .tier"));
@@ -175,23 +258,23 @@ test("the board is split into timeboxes and a Hall of Fame", async () => {
 
 test("timebox headings drop the word Tier", async () => {
   const quests = [
-    { id: "a", title: "A", hook: "h", tier: "weekend", tags: [], dod: "d", status: "backlog", order: 1 },
+    { id: "a", title: "A", hook: "h", tier: "easy", tags: [], dod: "d", status: "backlog", order: 1 },
     { id: "b", title: "B", hook: "h", tier: "medium", tags: [], dod: "d", status: "backlog", order: 2 },
-    { id: "c", title: "C", hook: "h", tier: "ongoing", tags: [], dod: "d", status: "backlog", order: 3 },
+    { id: "c", title: "C", hook: "h", tier: "hard", tags: [], dod: "d", status: "backlog", order: 3 },
   ];
   const dom = await boot(quests, []);
 
   const headings = Array.from(dom.window.document.querySelectorAll("#board .tier-title"))
     .map((el) => el.textContent);
-  assert.deepEqual(headings, ["Weekend", "Fortnight", "Ongoing"]);
+  assert.deepEqual(headings, ["Easy", "Medium", "Hard"]);
 });
 
 test("a tag filter covers the whole tab, In Progress block included", async () => {
   const quests = [
-    { id: "q1", title: "Tagged doing", hook: "h", tier: "weekend", tags: ["elixir"], dod: "d", status: "in_progress", order: 1 },
-    { id: "q2", title: "Untagged doing", hook: "h", tier: "weekend", tags: [], dod: "d", status: "in_progress", order: 2 },
-    { id: "q3", title: "Tagged waiting", hook: "h", tier: "weekend", tags: ["elixir"], dod: "d", status: "backlog", order: 3 },
-    { id: "q4", title: "Untagged waiting", hook: "h", tier: "weekend", tags: [], dod: "d", status: "backlog", order: 4 },
+    { id: "q1", title: "Tagged doing", hook: "h", tier: "easy", tags: ["elixir"], dod: "d", status: "in_progress", order: 1 },
+    { id: "q2", title: "Untagged doing", hook: "h", tier: "easy", tags: [], dod: "d", status: "in_progress", order: 2 },
+    { id: "q3", title: "Tagged waiting", hook: "h", tier: "easy", tags: ["elixir"], dod: "d", status: "backlog", order: 3 },
+    { id: "q4", title: "Untagged waiting", hook: "h", tier: "easy", tags: [], dod: "d", status: "backlog", order: 4 },
   ];
   const dom = await boot(quests, []);
   const doc = dom.window.document;
@@ -274,8 +357,8 @@ test("Ctrl+N switches to the tab that will show the new item", async () => {
 test("the home screen calls out the longest-waiting quest", async () => {
   const old = new Date(Date.now() - 94 * DAY).toISOString();
   const quests = [
-    { id: "a", title: "Presskit", hook: "h", tier: "weekend", tags: [], dod: "d", status: "backlog", order: 1, createdAt: old },
-    { id: "b", title: "Fresh", hook: "h", tier: "weekend", tags: [], dod: "d", status: "backlog", order: 2, createdAt: new Date().toISOString() },
+    { id: "a", title: "Presskit", hook: "h", tier: "easy", tags: [], dod: "d", status: "backlog", order: 1, createdAt: old },
+    { id: "b", title: "Fresh", hook: "h", tier: "easy", tags: [], dod: "d", status: "backlog", order: 2, createdAt: new Date().toISOString() },
   ];
   const dom = await boot(quests, []);
   const note = dom.window.document.getElementById("staleNote");
@@ -287,7 +370,7 @@ test("the home screen calls out the longest-waiting quest", async () => {
 
 test("nothing stale means no line at all", async () => {
   const quests = [
-    { id: "a", title: "Fresh", hook: "h", tier: "weekend", tags: [], dod: "d", status: "backlog", order: 1, createdAt: new Date().toISOString() },
+    { id: "a", title: "Fresh", hook: "h", tier: "easy", tags: [], dod: "d", status: "backlog", order: 1, createdAt: new Date().toISOString() },
   ];
   const dom = await boot(quests, []);
 
@@ -299,7 +382,7 @@ test("the Let go count appears only once something has been let go", async () =>
   assert.ok(!plain.window.document.getElementById("questStats").textContent.includes("Let go"));
 
   const withAshes = await boot(
-    QUESTS.concat([{ id: "q4", title: "Gone", hook: "h", tier: "weekend", tags: [], dod: "d", status: "let_go", order: 4, finishedAt: new Date().toISOString() }]),
+    QUESTS.concat([{ id: "q4", title: "Gone", hook: "h", tier: "easy", tags: [], dod: "d", status: "let_go", order: 4, finishedAt: new Date().toISOString() }]),
     SIDE_QUESTS
   );
   assert.match(withAshes.window.document.getElementById("questStats").textContent, /Let go1/);

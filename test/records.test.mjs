@@ -13,21 +13,21 @@ function ago(ms) {
 test("scopeRecord averages start-to-finish for shipped quests of one scope", () => {
   const day = DAYS;
   const quests = [
-    { tier: "weekend", status: "shipped", startedAt: ago(10 * day), finishedAt: ago(4 * day) },
-    { tier: "weekend", status: "shipped", startedAt: ago(8 * day), finishedAt: ago(4 * day) },
+    { tier: "easy", status: "shipped", startedAt: ago(10 * day), finishedAt: ago(4 * day) },
+    { tier: "easy", status: "shipped", startedAt: ago(8 * day), finishedAt: ago(4 * day) },
     { tier: "medium", status: "shipped", startedAt: ago(30 * day), finishedAt: ago(10 * day) },
-    { tier: "weekend", status: "backlog", startedAt: ago(9 * day), finishedAt: null },
-    { tier: "weekend", status: "shipped", startedAt: null, finishedAt: ago(1 * day) },
+    { tier: "easy", status: "backlog", startedAt: ago(9 * day), finishedAt: null },
+    { tier: "easy", status: "shipped", startedAt: null, finishedAt: ago(1 * day) },
   ];
 
-  assert.deepEqual(scopeRecord(quests, "weekend"), { shipped: 2, days: 5, workedMs: 0 });
+  assert.deepEqual(scopeRecord(quests, "easy"), { shipped: 2, days: 5, workedMs: 0 });
   assert.deepEqual(scopeRecord(quests, "medium"), { shipped: 1, days: 20, workedMs: 0 });
-  assert.equal(scopeRecord(quests, "ongoing"), null, "no data means no claim");
+  assert.equal(scopeRecord(quests, "hard"), null, "no data means no claim");
 });
 
 test("scopeRecord adds up real worked time from sessions", () => {
   const quests = [
-    { id: "a", tier: "weekend", status: "shipped", startedAt: ago(6 * DAYS), finishedAt: ago(1 * DAYS) },
+    { id: "a", tier: "easy", status: "shipped", startedAt: ago(6 * DAYS), finishedAt: ago(1 * DAYS) },
     { id: "b", tier: "medium", status: "shipped", startedAt: ago(6 * DAYS), finishedAt: ago(1 * DAYS) },
   ];
   const sessions = [
@@ -38,7 +38,7 @@ test("scopeRecord adds up real worked time from sessions", () => {
     { questId: "ghost", startedAt: ago(2 * DAYS), endedAt: ago(2 * DAYS - 99 * 60000) },
   ];
 
-  const weekend = scopeRecord(quests, "weekend", sessions);
+  const weekend = scopeRecord(quests, "easy", sessions);
   assert.equal(weekend.workedMs, 75 * 60000, "only that scope's finished sessions count");
 
   assert.equal(scopeRecord(quests, "medium", sessions).workedMs, 10 * 60000);
@@ -46,11 +46,11 @@ test("scopeRecord adds up real worked time from sessions", () => {
 
 test("elapsed days and worked time are different numbers on purpose", () => {
   const quests = [
-    { id: "a", tier: "weekend", status: "shipped", startedAt: ago(6 * DAYS), finishedAt: ago(0) },
+    { id: "a", tier: "easy", status: "shipped", startedAt: ago(6 * DAYS), finishedAt: ago(0) },
   ];
   const sessions = [{ questId: "a", startedAt: ago(3 * DAYS), endedAt: ago(3 * DAYS - 90 * 60000) }];
 
-  const record = scopeRecord(quests, "weekend", sessions);
+  const record = scopeRecord(quests, "easy", sessions);
   assert.equal(record.days, 6, "six calendar days");
   assert.equal(record.workedMs, 90 * 60000, "but an hour and a half of actual work");
 });

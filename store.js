@@ -8,7 +8,7 @@ const DEFAULT_STORE = {
       id: "welcome",
       title: "Welcome to Quest Log",
       hook: "Scoped drops for a green graph — this board is for side-project ideas small enough to actually ship. Each quest gets a Definition of Done before it gets a first commit.",
-      tier: "weekend",
+      tier: "easy",
       tags: ["Tutorial"],
       dod: "Click a status pill below to cycle Backlog → In Progress → Shipped, then use + Create Quest up top to create your first real idea. Edit or delete this card any time from its header.",
       status: "backlog",
@@ -19,6 +19,22 @@ const DEFAULT_STORE = {
   sessions: [],
   ui: {},
 };
+
+// Quest tiers were once durations (weekend / fortnight / ongoing) and are now
+// effort (easy / medium / hard). The keys are persisted on every quest, so an
+// old file is rewritten on load. "medium" kept its key and needs no entry.
+const TIER_MIGRATION = { weekend: "easy", ongoing: "hard" };
+
+function migrateTiers(quests) {
+  let changed = false;
+  quests.forEach((quest) => {
+    if (quest && TIER_MIGRATION[quest.tier]) {
+      quest.tier = TIER_MIGRATION[quest.tier];
+      changed = true;
+    }
+  });
+  return changed;
+}
 
 function nextOrder(list) {
   return list.reduce((max, item) => Math.max(max, item.order || 0), 0) + 1;
@@ -115,6 +131,9 @@ function createStore(storePath) {
       if (!Array.isArray(parsed.tasks)) parsed.tasks = [];
       if (!Array.isArray(parsed.sessions)) parsed.sessions = [];
       if (!parsed.ui || typeof parsed.ui !== "object") parsed.ui = {};
+      // Written straight back so the migration runs once per file, not on
+      // every launch.
+      if (migrateTiers(parsed.quests)) writeStore(parsed);
       return parsed;
     } catch (err) {
       return JSON.parse(JSON.stringify(DEFAULT_STORE));
@@ -152,7 +171,7 @@ function createStore(storePath) {
       id: crypto.randomUUID(),
       title: data.title || "",
       hook: data.hook || "",
-      tier: data.tier || "weekend",
+      tier: data.tier || "easy",
       tags: Array.isArray(data.tags) ? data.tags : [],
       dod: data.dod || "",
       status: data.status || "backlog",

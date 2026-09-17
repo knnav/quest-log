@@ -191,7 +191,9 @@ function primeAudio() {
 
 // A C major triad, arpeggiated at 170ms and left to ring for 1.7s. Synthesised
 // rather than played from a file, so the bundle carries no audio asset.
-function chime() {
+// Exported for the ledger's level-up (home.js), which borrows it rather than
+// adding a second sound.
+export function chime() {
   primeAudio();
   if (!audio) return;
 

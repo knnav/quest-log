@@ -24,9 +24,9 @@ import {
 import { enableDragSort } from "./ui/dragSort.js";
 import { initDetail } from "./ui/detail.js";
 import { initTabs, showTab } from "./ui/tabs.js";
-import { initHome, renderHome } from "./features/home.js";
+import { initHome, renderHome, armLedger } from "./features/home.js";
 import { initGates } from "./features/gates.js";
-import { initSession, renderFocusQuests, renderToday } from "./features/session.js";
+import { initSession, renderFocusQuests, renderToday, chime } from "./features/session.js";
 import { initHearth } from "./features/hearth.js";
 import { wipItems } from "./core/wip.js";
 
@@ -138,7 +138,7 @@ initSession({
     });
   }
 });
-initHome(homeData);
+initHome(homeData, { onLevelUp: chime });
 initHearth();
 initQuests(renderProgress, renderProgressGrid);
 initTasks(renderTasks);
@@ -150,6 +150,7 @@ renderToday([]);
 
 Promise.all([loadQuests(), loadTasks()]).then(function () {
   renderToday(getSessions());
+  armLedger();
 }).catch(function () {
   document.getElementById("board").innerHTML = '<div class="empty-state">Could not load the quest log right now.</div>';
 });
