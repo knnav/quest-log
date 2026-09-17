@@ -5,7 +5,7 @@ import { JSDOM } from "jsdom";
 const HEARTH_HTML = `
 <div class="hearth-view" id="hearthView">
   <div class="bonfire" data-stage="0"></div>
-  <p class="hearth-view-stage" data-bonfire-stage>Embers</p>
+  <p class="hearth-view-quote" data-motd></p>
   <div class="hearth-view-session" id="hearthSession" hidden>
     <p id="hearthQuest"></p>
     <p id="hearthClock">--:--</p>

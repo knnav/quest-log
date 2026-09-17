@@ -1,5 +1,5 @@
 // The Home screen: the two stat columns, the bonfire, the clock, the
-// stale-quest line and the message of the day.
+// stale-quest line and the quote of the moment.
 //
 // It owns no data. initHome takes a `dataSource` callback and re-reads it on
 // every render, so quests.js and tasks.js just call renderHome() after they
@@ -12,10 +12,10 @@ import {
   STAGE_LABELS, STAGE_NOTES
 } from "../core/fire.js";
 import { oldestWaiting } from "../core/records.js";
-import { pickMotd } from "./motd.js";
+import { pickMotd, motdHtml } from "./motd.js";
 import { WIP_LIMIT, STALE_DAYS } from "../core/domain.js";
 
-var bonfireEls, stageLabelEls, bonfireEl, stageNoteEl, staleEl, motdEl;
+var bonfireEls, stageLabelEls, motdEls, bonfireEl, stageNoteEl, staleEl;
 var sinceValueEl, sinceLabelEl, clockEl;
 var questStatsEl, taskStatsEl;
 var getData = null;
@@ -28,6 +28,8 @@ export function initHome(dataSource) {
   // are painted from here so they can never disagree about the stage.
   bonfireEls = document.querySelectorAll(".bonfire");
   stageLabelEls = document.querySelectorAll("[data-bonfire-stage]");
+  // Likewise the quote: the home footer and the hearth face show the same one.
+  motdEls = document.querySelectorAll("[data-motd]");
   bonfireEl = document.getElementById("bonfire");
   stageNoteEl = document.getElementById("bonfireNote");
   sinceValueEl = document.getElementById("sinceValue");
@@ -36,7 +38,6 @@ export function initHome(dataSource) {
   questStatsEl = document.getElementById("questStats");
   taskStatsEl = document.getElementById("taskStats");
   staleEl = document.getElementById("staleNote");
-  motdEl = document.getElementById("motd");
 
   if (!bonfireEl) return;
 
@@ -96,7 +97,9 @@ export function renderHome() {
   clockEl.textContent = formatClock(now);
 
   renderStale(data, now);
-  if (motdEl) motdEl.textContent = pickMotd(situationOf(data, stage));
+
+  var html = motdHtml(pickMotd(situationOf(data, stage)));
+  motdEls.forEach(function (el) { el.innerHTML = html; });
 }
 
 // Surfaces the longest-waiting backlog quest once it passes STALE_DAYS.

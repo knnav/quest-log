@@ -87,7 +87,18 @@ test("the bonfire lights from recent completions and names its stage", async () 
   // The hearth face carries its own copy of the fire; it must never disagree.
   const hearthFire = doc.querySelector("#hearthView .bonfire");
   assert.equal(hearthFire.getAttribute("data-stage"), "2");
-  assert.equal(doc.querySelector("#hearthView [data-bonfire-stage]").textContent, "Burning");
+});
+
+test("the quote is painted into the footer and the hearth face alike", async () => {
+  const dom = await boot(QUESTS, SIDE_QUESTS);
+  const doc = dom.window.document;
+
+  const footer = doc.getElementById("motd");
+  const hearth = doc.querySelector("#hearthView [data-motd]");
+  assert.equal(footer.querySelector(".motd-text").textContent, "a line");
+  assert.equal(hearth.querySelector(".motd-text").textContent, "a line");
+  // A plain-string line carries no attribution.
+  assert.equal(hearth.querySelector(".motd-by"), null);
 });
 
 test("the window boots in board mode when there is no window bridge", async () => {

@@ -1,38 +1,61 @@
 {
   "default": [
-    "Ship the small thing. The big thing was never going to happen anyway.",
-    "A finished task beats a legendary quest still in the backlog.",
-    "Scope it down until it's boring enough to finish.",
-    "Done is a feature. Add it to this one.",
-    "The graph doesn't care how ambitious the idea was — only that it's green.",
-    "Every commit is a vote for finishing. Cast one today.",
-    "Pick the quest you're least afraid of. Start there.",
-    "Perfect is the boss fight you keep avoiding. Skip it — ship instead.",
-    "Small quests, shipped consistently, beat one masterpiece, shipped never.",
-    "You don't need permission to start. You need a Definition of Done."
+    { "text": "The impediment to action advances action. What stands in the way becomes the way.", "by": "Marcus Aurelius" },
+    { "text": "Concentrate every minute on doing what's in front of you with precise and genuine seriousness.", "by": "Marcus Aurelius" },
+    { "text": "First say to yourself what you would be; and then do what you have to do.", "by": "Epictetus" },
+    { "text": "Don't explain your philosophy. Embody it.", "by": "Epictetus" },
+    { "text": "It is not that we have a short time to live, but that we waste a lot of it.", "by": "Seneca" },
+    { "text": "We suffer more often in imagination than in reality.", "by": "Seneca" },
+    { "text": "Great acts are made up of small deeds.", "by": "Laozi" },
+    { "text": "Do the difficult things while they are easy and do the great things while they are small.", "by": "Laozi" },
+    { "text": "Nature does not hurry, yet everything is accomplished.", "by": "Laozi" },
+    { "text": "When walking, walk. When eating, eat.", "by": "Zen proverb" },
+    { "text": "Before enlightenment, chop wood, carry water. After enlightenment, chop wood, carry water.", "by": "Zen proverb" },
+    { "text": "In the beginner's mind there are many possibilities, but in the expert's there are few.", "by": "Shunryu Suzuki" },
+    { "text": "Flow with whatever may happen, and let your mind be free.", "by": "Zhuangzi" },
+    { "text": "Muddy water is best cleared by leaving it alone.", "by": "Alan Watts" },
+    { "text": "You have power over your mind, not outside events. Realize this, and you will find strength.", "by": "Marcus Aurelius" }
   ],
   "empty": [
-    "Empty log. That is either a fresh start or a very good week.",
-    "Nothing here yet. Write down one idea and what done looks like."
+    { "text": "In the beginner's mind there are many possibilities, but in the expert's there are few.", "by": "Shunryu Suzuki" },
+    { "text": "The usefulness of a pot comes from its emptiness.", "by": "Laozi" },
+    { "text": "Empty your cup so that it may be filled.", "by": "Zen proverb" },
+    { "text": "A journey of a thousand miles begins beneath one's feet.", "by": "Laozi" },
+    { "text": "Begin at once to live.", "by": "Seneca" }
   ],
   "idle": [
-    "Nothing in flight. Pick one thing and start it.",
-    "The fire runs on finished work. Nothing is moving right now.",
-    "No quest, no task, no excuse. Choose one."
+    { "text": "Waste no more time arguing what a good man should be. Be one.", "by": "Marcus Aurelius" },
+    { "text": "How long are you going to wait before you demand the best for yourself?", "by": "Epictetus" },
+    { "text": "The journey of a thousand miles begins with a single step.", "by": "Laozi" },
+    { "text": "While we wait for life, life passes.", "by": "Seneca" },
+    { "text": "What stands in the way becomes the way.", "by": "Marcus Aurelius" },
+    { "text": "Don't explain your philosophy. Embody it.", "by": "Epictetus" }
   ],
   "overloaded": [
-    "A lot in flight. Finishing one beats nudging four.",
-    "You have started more than you can hold. Bench something.",
-    "Every open quest is a tab in your head. Close one."
+    { "text": "If you seek tranquillity, do less. Or, more accurately, do what's essential.", "by": "Marcus Aurelius" },
+    { "text": "Ask yourself at every moment: is this necessary?", "by": "Marcus Aurelius" },
+    { "text": "To attain knowledge, add things every day. To attain wisdom, remove things every day.", "by": "Laozi" },
+    { "text": "To be everywhere is to be nowhere.", "by": "Seneca" },
+    { "text": "Manifest plainness, embrace simplicity, reduce selfishness, have few desires.", "by": "Laozi" },
+    { "text": "Nature does not hurry, yet everything is accomplished.", "by": "Laozi" },
+    { "text": "It is not the man who has too little, but the man who craves more, who is poor.", "by": "Seneca" }
   ],
   "cold": [
-    "The fire is down to embers. One small finish relights it.",
-    "Coals only. Ship the smallest thing you have.",
-    "Nothing has burned in days. Start with something you can finish today."
+    { "text": "The journey of a thousand miles begins with a single step.", "by": "Laozi" },
+    { "text": "A tree that fills a man's arms grows from a tender shoot.", "by": "Laozi" },
+    { "text": "Great acts are made up of small deeds.", "by": "Laozi" },
+    { "text": "Begin at once to live, and count each separate day as a separate life.", "by": "Seneca" },
+    { "text": "Every new beginning comes from some other beginning's end.", "by": "Seneca" },
+    { "text": "Fall seven times, stand up eight.", "by": "Zen proverb" },
+    { "text": "Do the difficult things while they are easy and do the great things while they are small.", "by": "Laozi" }
   ],
   "roaring": [
-    "Roaring. Go rest — the fire will keep for a while.",
-    "That is what a good week looks like. Do not spend it starting five more.",
-    "Well fed. Sit down at the bonfire for a minute."
+    { "text": "When the work is done, retire. This is the way of heaven.", "by": "Laozi" },
+    { "text": "Knowing when to stop keeps you from danger.", "by": "Laozi" },
+    { "text": "Fill your bowl to the brim and it will spill.", "by": "Laozi" },
+    { "text": "He who knows that enough is enough will always have enough.", "by": "Laozi" },
+    { "text": "Sit quietly, doing nothing. Spring comes, and the grass grows by itself.", "by": "Zen proverb" },
+    { "text": "Be content with what you have; rejoice in the way things are.", "by": "Laozi" },
+    { "text": "Nature does not hurry, yet everything is accomplished.", "by": "Laozi" }
   ]
 }

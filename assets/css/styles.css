@@ -297,7 +297,7 @@ body.session-done .focus-clock { color: var(--fire-outer); }
   align-items: center;
   justify-content: flex-end;
   height: 100%;
-  padding: 10px 12px 14px;
+  padding: 6px 12px 12px;
   box-sizing: border-box;
   background: var(--panel);
   border: 1px solid var(--panel-border);
@@ -311,24 +311,41 @@ body[data-mode="hearth"] .app-scroll,
 body[data-mode="hearth"] .modal-overlay { display: none; }
 
 /* A fixed unit here: the vh/vw formula was tuned for the board and would
-   shrink the fire to a match head in a 220px window. */
-body[data-mode="hearth"] .bonfire { --u: 2.8px; }
+   shrink the fire to a match head in a 220px window. Sized so a roaring fire
+   plus a three-line quote and its attribution still fit the 210px box. */
+body[data-mode="hearth"] .bonfire { --u: 2.6px; }
 
 /* The companion keeps burning when you're not looking at it — that's the job. */
 body.is-idle[data-mode="hearth"] .bonfire *,
 body.is-idle[data-mode="hearth"] .bonfire { animation-play-state: running; }
 
-.hearth-view-stage {
-  font-family: "Press Start 2P", monospace;
-  font-size: 9px;
-  line-height: 1.6;
-  color: var(--fire-outer);
+/* The quote under the fire. Clamped to four lines (three of text plus the
+   attribution) because the window can't grow to fit a long one. The pixel
+   font is skipped on purpose — a sentence in it is unreadable at this size. */
+.hearth-view-quote {
   margin: 4px 0 0;
+  max-width: 196px;
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--text-dim);
   text-align: center;
+  font-style: italic;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-/* During a session the stage word gives way to the countdown. */
-.hearth-view.session-running .hearth-view-stage { display: none; }
+.hearth-view-quote .motd-by {
+  display: block;
+  margin-top: 2px;
+  font-size: 9px;
+  font-style: normal;
+  color: var(--fire-outer);
+}
+
+/* During a session the quote gives way to the countdown. */
+.hearth-view.session-running .hearth-view-quote { display: none; }
 
 .hearth-view-session {
   text-align: center;
@@ -364,7 +381,7 @@ body.is-idle[data-mode="hearth"] .bonfire { animation-play-state: running; }
    offset shifts with the size so the halo stays centred on the coals rather
    than climbing off them; the window's overflow clips the rest. */
 .hearth-view.is-alarm { cursor: pointer; }
-.hearth-view.is-alarm .hearth-view-stage { display: none; }
+.hearth-view.is-alarm .hearth-view-quote { display: none; }
 .hearth-view.is-alarm .hearth-view-clock { color: var(--fire-outer); }
 
 .hearth-view.is-alarm .fire-glow {
