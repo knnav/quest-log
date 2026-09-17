@@ -13,6 +13,7 @@
 @import "themes/matrix.css";
 @import "themes/solarized-light.css";
 @import "themes/paper.css";
+@import "flame-sprites.css";
 
 @font-face {
   font-family: "JetBrains Mono";
@@ -604,7 +605,9 @@ body.is-idle[data-mode="hearth"] .bonfire { animation-play-state: running; }
   /* Tall enough for a roaring fire and no taller — the box has to fit stage 4,
      so lower stages keep some headroom above the flame by design. */
   height: calc(48 * var(--u));
-  /* --base is the coal line: every flame's visible foot sits on it. */
+  /* --base is the coal line: the flame sprite's bottom row sits on it.
+     --flame is the nominal flame height per stage (the sprites are drawn to
+     roughly match it); it sets how far the sparks climb. */
   --base: calc(7.5 * var(--u));
   --flame: 0px;
   --flame-opacity: 0;
@@ -679,62 +682,59 @@ body.is-idle[data-mode="hearth"] .bonfire { animation-play-state: running; }
   animation: ember-breathe 3.7s ease-in-out infinite;
 }
 
-/* A square teardrop (sharp corner top-left) rotated 45deg points straight up.
-   scaleY sits to the LEFT of rotate so it applies after it, in the parent's
-   space — stretching the flame vertically instead of skewing it into a
-   lozenge. Without that stretch all three layers read as concentric circles.
-   The 0.42 offset cancels the height the scale adds below the box. */
-.fire-flame {
-  bottom: calc(var(--base) + var(--w) * 0.42);
-  width: var(--w);
-  height: var(--w);
+/* The flame is pixel art: one square, with the sprite drawn as one
+   box-shadow per pixel in flame-sprites.css (generated from ASCII frames by
+   scripts/pixel-flame.js) in multiples of --p. The pixel is rounded to whole
+   device pixels so adjacent shadows butt up without hairline seams. Each
+   stage has its own sprite rather than scaling one — a small fire should
+   have fewer pixels, not finer ones. Four frames at a steady 3fps: fast
+   enough to live, slow enough not to strobe. */
+.fire-px {
+  --p: round(calc(1.4 * var(--u)), 1px);
+  --o: var(--fire-outer);
+  --m: var(--fire-mid);
+  --c: var(--fire-core);
+  bottom: calc(var(--base) - var(--p));
+  width: var(--p);
+  height: var(--p);
+  margin-left: calc(-0.5 * var(--p));
+  background: transparent;
   opacity: var(--flame-opacity);
-  border-radius: 0 50% 50% 50%;
-  transform: translateX(-50%) scaleY(1.3) rotate(45deg);
-  transition: width 0.9s ease, height 0.9s ease, opacity 0.9s ease, bottom 0.9s ease;
+  transition: opacity 0.9s ease;
+  animation: none 1.4s steps(1) infinite;
 }
 
-.flame-a {
-  --w: var(--flame);
-  background: var(--fire-outer);
-  filter: blur(calc(1.2 * var(--u)));
-  animation: flicker 2.6s ease-in-out infinite;
-}
-
-.flame-b {
-  --w: calc(var(--flame) * 0.62);
-  background: var(--fire-mid);
-  filter: blur(calc(0.7 * var(--u)));
-  animation: flicker 1.9s ease-in-out infinite reverse;
-}
-
-.flame-c {
-  --w: calc(var(--flame) * 0.32);
+/* Sparks: five motes that climb out of the fire, wander, and go out. Each
+   has its own clock and drift so the pattern never visibly loops. They ride
+   --flame for height and --flame-opacity for brightness, so at stage 0 they
+   simply don't exist — coals don't throw sparks. They're born halfway up the
+   flame so most of their flight is in the dark above it, where they read. */
+.fire-spark {
+  bottom: calc(var(--base) + var(--flame) * 0.55);
+  width: calc(1.1 * var(--u));
+  height: calc(1.1 * var(--u));
+  margin-left: calc(-0.55 * var(--u));
   background: var(--fire-core);
-  filter: blur(calc(0.35 * var(--u)));
-  animation: flicker 1.4s ease-in-out infinite;
+  box-shadow: 0 0 0 calc(0.35 * var(--u)) var(--fire-mid);
+  opacity: 0;
+  animation: spark var(--dur) ease-out infinite;
+  animation-delay: var(--delay);
 }
 
-.fire-core {
-  bottom: calc(var(--base) - 0.9 * var(--u));
-  width: calc(var(--flame) * 0.62);
-  height: calc(var(--flame) * 0.26);
-  transform: translateX(-50%);
-  border-radius: 50%;
-  background: var(--fire-core);
-  opacity: calc(var(--flame-opacity) * 0.75);
-  filter: blur(calc(1.4 * var(--u)));
-  transition: width 0.9s ease, height 0.9s ease, opacity 0.9s ease;
-}
+.spark-1 { --dur: 3.4s; --delay: 0s;    --drift: calc(-4.5 * var(--u)); --rise: calc(var(--flame) * 1.35); }
+.spark-2 { --dur: 4.1s; --delay: -1.3s; --drift: calc(3.4 * var(--u));  --rise: calc(var(--flame) * 1.1); }
+.spark-3 { --dur: 3.0s; --delay: -2.1s; --drift: calc(-1.6 * var(--u)); --rise: calc(var(--flame) * 1.5); }
+.spark-4 { --dur: 4.6s; --delay: -0.7s; --drift: calc(5.2 * var(--u));  --rise: calc(var(--flame) * 1.0); }
+.spark-5 { --dur: 3.7s; --delay: -2.9s; --drift: calc(-2.8 * var(--u)); --rise: calc(var(--flame) * 1.25); }
 
-/* Low amplitude on purpose — a strobing fire is a photosensitivity problem,
-   and this window can sit open all day. Every keyframe repeats the base
-   transform, so scaleY has to stay in front of rotate here too. */
-@keyframes flicker {
-  0%, 100% { transform: translateX(-50%) scaleY(1.30) rotate(45deg) scale(1.00, 1); }
-  25%      { transform: translateX(-52%) scaleY(1.38) rotate(45deg) scale(0.94, 1); }
-  50%      { transform: translateX(-48%) scaleY(1.24) rotate(45deg) scale(1.05, 1); }
-  75%      { transform: translateX(-51%) scaleY(1.33) rotate(45deg) scale(0.97, 1); }
+/* Sparks fade in fast, wander against their drift halfway up, then shrink
+   and go out before they reach the top of the box. */
+@keyframes spark {
+  0%   { transform: translate(0, 0) scale(1); opacity: 0; }
+  10%  { opacity: var(--flame-opacity); }
+  50%  { transform: translate(calc(var(--drift) * -0.35), calc(var(--rise) * -0.5)) scale(0.9); }
+  80%  { opacity: calc(var(--flame-opacity) * 0.55); }
+  100% { transform: translate(var(--drift), calc(var(--rise) * -1)) scale(0.35); opacity: 0; }
 }
 
 @keyframes breathe {
