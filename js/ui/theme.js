@@ -29,7 +29,8 @@ export const THEMES = [
   { id: "synthwave", label: "Synthwave" },
   { id: "matrix", label: "Matrix" },
   { id: "solarized-light", label: "Solarized Light" },
-  { id: "paper", label: "Paper" }
+  { id: "paper", label: "Paper" },
+  { id: "souls", label: "Souls" }
 ];
 
 var menuEl, buttonEl;

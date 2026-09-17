@@ -1,0 +1,31 @@
+/* Souls: ash and charred stone, lit only by the bonfire. */
+:root[data-theme="souls"] {
+  --bg: #0a0908;
+  --panel: #1a1f1a;
+  --panel-border: #2f3a31;
+  --text: #d9cfb8;
+  --text-dim: #857a68;
+  --accent: #e08a2e;
+  --accent-bright: #ffb454;
+  --accent-glow: rgba(224, 138, 46, 0.26);
+  --status-backlog: #8f857a;
+  --status-backlog-bg: #222923;
+  --status-progress: #e08a2e;
+  --status-progress-bg: #2c1d0e;
+  --status-shipped: #b8a86a;
+  --status-shipped-bg: #26241a;
+  --chip-bg: #232a24;
+  --chip-bg-active: #e08a2e;
+  --chip-text-active: #0a0908;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.7), 0 6px 20px rgba(224, 138, 46, 0.14);
+  --fire-core: #fff4d6;
+  --fire-mid: #ffb454;
+  --fire-outer: #e0641e;
+  --fire-glow: rgba(224, 100, 30, 0.55);
+  --fire-ember: #8a2a12;
+  --danger: #c93a2a;
+  --danger-border: rgba(201, 58, 42, 0.45);
+  --danger-bg: rgba(201, 58, 42, 0.12);
+}
+
+.theme-swatch[data-swatch="souls"] { background: #e08a2e; }
