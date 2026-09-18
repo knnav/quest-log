@@ -1,6 +1,7 @@
 /* Hexed: witch's purple and poison green. */
 :root[data-theme="hexed"] {
   --bg: #120c1a;
+  --peace-bg: #08050c;
   --panel: #1c1328;
   --panel-border: #372748;
   --text: #ece0f8;

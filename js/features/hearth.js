@@ -1,17 +1,23 @@
 // The hearth face: what the window shows when it is collapsed into the tiny
-// always-on-top resident.
+// always-on-top resident — and, in peace mode, the same face covering the
+// whole display.
 //
 // A pure view, like the Focus tab. The mode comes from main.js over
 // window.windowControls and is mirrored onto body[data-mode], which is all the
-// CSS needs to swap the board for the hearth. The countdown comes from the
-// `view` pushed over window.session — this holds no timer of its own.
+// CSS needs to swap the board for the hearth or the hearth for peace. The
+// countdown comes from the `view` pushed over window.session — this holds no
+// timer of its own.
 //
-// The whole face can be dragged, a double-click anywhere brings the board
-// back, right-click opens a small menu, Escape is the keyboard way out. The
-// drag itself lives in ui/windowDrag.js, shared with the In Flight panel —
-// read the note there (and the one above `dragging` in main.js) before
-// reaching for a CSS drag region instead. The pause/stop buttons only appear
-// while a session is running.
+// In hearth mode the whole face can be dragged, a double-click anywhere
+// brings the board back, right-click opens a small menu, Escape is the
+// keyboard way out. The drag itself lives in ui/windowDrag.js, shared with
+// the In Flight panel — read the note there (and the one above `dragging` in
+// main.js) before reaching for a CSS drag region instead. The pause/stop
+// buttons only appear while a session is running.
+//
+// Peace mode is deliberately deaf to all of that: there is nothing to drag a
+// display-sized window to, and one way out — Escape or the × — is the point.
+// Leaving goes back to whichever face it came from; main.js remembers which.
 //
 // A finished session that nobody has acknowledged puts the face in `is-alarm`:
 // it pulses, the drag is switched off, and the next click is the
@@ -20,10 +26,15 @@
 import { formatRemaining } from "../core/sessionFormat.js";
 import { enableWindowDrag } from "../ui/windowDrag.js";
 
-var viewEl, sessionEl, questEl, clockEl, actionsEl, toggleBtn, stopBtn, barEl;
+var viewEl, sessionEl, questEl, clockEl, actionsEl, toggleBtn, stopBtn, barEl, peaceCloseBtn;
 var lastView = { active: false };
+var onModeChange = null;
 
-export function initHearth() {
+// `hooks.onModeChange` runs after every mode switch — home.js repaints the
+// quote from the peace pool on the way in and back from the board's on the
+// way out, and it has no other way to hear about the switch.
+export function initHearth(hooks) {
+  onModeChange = hooks && hooks.onModeChange ? hooks.onModeChange : null;
   viewEl = document.getElementById("hearthView");
   if (!viewEl) return;
 
@@ -34,11 +45,12 @@ export function initHearth() {
   toggleBtn = document.getElementById("hearthToggle");
   stopBtn = document.getElementById("hearthStop");
   barEl = document.getElementById("hearthBar");
+  peaceCloseBtn = document.getElementById("peaceClose");
 
   applyMode("board");
 
   viewEl.addEventListener("dblclick", function (e) {
-    if (e.target.closest("button")) return;
+    if (e.target.closest("button") || inPeace()) return;
     if (window.windowControls) window.windowControls.expand();
   });
 
@@ -49,17 +61,27 @@ export function initHearth() {
 
   viewEl.addEventListener("contextmenu", function (e) {
     e.preventDefault();
+    if (inPeace()) return;
     if (window.windowControls && window.windowControls.hearthMenu) window.windowControls.hearthMenu();
   });
 
   // Not while the alarm is on: that click is for acknowledging, and must not
-  // be spent nudging the window a few pixels instead.
-  enableWindowDrag(viewEl, { blocked: function () { return !!lastView.awaitingAck; } });
+  // be spent nudging the window a few pixels instead. And not in peace, where
+  // the window is the display.
+  enableWindowDrag(viewEl, { blocked: function () { return !!lastView.awaitingAck || inPeace(); } });
 
   document.addEventListener("keydown", function (e) {
-    if (e.key !== "Escape" || document.body.getAttribute("data-mode") !== "hearth") return;
-    if (window.windowControls) window.windowControls.expand();
+    if (e.key !== "Escape" || !window.windowControls) return;
+    var mode = document.body.getAttribute("data-mode");
+    if (mode === "hearth") window.windowControls.expand();
+    else if (mode === "peace") window.windowControls.leavePeace();
   });
+
+  if (peaceCloseBtn) {
+    peaceCloseBtn.addEventListener("click", function () {
+      if (window.windowControls) window.windowControls.leavePeace();
+    });
+  }
 
   toggleBtn.addEventListener("click", function () {
     if (!window.session) return;
@@ -82,7 +104,12 @@ export function initHearth() {
 }
 
 export function applyMode(mode) {
-  document.body.setAttribute("data-mode", mode === "hearth" ? "hearth" : "board");
+  document.body.setAttribute("data-mode", mode === "hearth" || mode === "peace" ? mode : "board");
+  if (onModeChange) onModeChange(mode);
+}
+
+function inPeace() {
+  return document.body.getAttribute("data-mode") === "peace";
 }
 
 function render(view) {

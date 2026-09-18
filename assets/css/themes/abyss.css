@@ -1,6 +1,7 @@
 /* Abyss: deep-sea black and bioluminescent teal. */
 :root[data-theme="abyss"] {
   --bg: #020a10;
+  --peace-bg: #010407;
   --panel: #07141d;
   --panel-border: #113040;
   --text: #d0f0f8;

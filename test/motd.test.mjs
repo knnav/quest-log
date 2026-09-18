@@ -1,5 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const MOTD_PATH = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "assets", "motd.json");
 
 let moduleCounter = 0;
 
@@ -9,6 +14,17 @@ function load(data) {
   moduleCounter += 1;
   return import(`../js/features/motd.js?instance=${moduleCounter}`);
 }
+
+// The shipped file. Peace mode reads only its own pool, so that pool has to
+// exist and be big enough not to repeat every other visit.
+test("the shipped motd.json has a peace pool of its own", () => {
+  const data = JSON.parse(fs.readFileSync(MOTD_PATH, "utf-8"));
+  assert.ok(Array.isArray(data.peace) && data.peace.length >= 10, "peace pool");
+  data.peace.forEach((line) => {
+    assert.equal(typeof line.text, "string");
+    assert.ok(line.text.length > 0);
+  });
+});
 
 test("quotes carry an attribution and are picked from the situation's pool", async () => {
   const motd = await load({

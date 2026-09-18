@@ -1,6 +1,7 @@
 /* Hallownest: void black, pale bone, and soul-blue light. */
 :root[data-theme="hallownest"] {
   --bg: #07080c;
+  --peace-bg: #030405;
   --panel: #12141c;
   --panel-border: #262a38;
   --text: #dfe3ec;

@@ -1,6 +1,7 @@
 /* Amber CRT: monochrome phosphor on black glass. */
 :root[data-theme="amber-crt"] {
   --bg: #0d0900;
+  --peace-bg: #080500;
   --panel: #171000;
   --panel-border: #3a2a00;
   --text: #ffb000;

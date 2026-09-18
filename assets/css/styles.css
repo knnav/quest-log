@@ -566,6 +566,174 @@ body.is-idle[data-mode="hearth"] .bonfire { animation-play-state: running; }
   transition: width 1s linear;
 }
 
+/* ---- peace ---- */
+
+/* The hearth face again, covering the display: for when everything else on
+   the screen is the problem. The fire in the middle, one line under it, an
+   × in the corner, and nothing that counts, nudges or asks. The board and
+   the panel are gone the same way they are in hearth mode. */
+body[data-mode="peace"] .hearth-view { display: flex; }
+body[data-mode="peace"] .titlebar,
+body[data-mode="peace"] .chrome,
+body[data-mode="peace"] .app-scroll,
+body[data-mode="peace"] .modal-overlay { display: none; }
+
+/* Always dark, whatever the theme: a lit room is not the point. Each palette
+   sets its own --peace-bg, a shade below its darkest surface, so the fire
+   still belongs to the theme. Not a drag region and not a grab cursor — the
+   window is the display, there is nowhere to move it to. */
+body[data-mode="peace"] .hearth-view {
+  justify-content: center;
+  gap: 4vh;
+  padding: 0 24px;
+  cursor: default;
+  background: var(--peace-bg, #000);
+  border: none;
+}
+
+/* Nothing that scores. The ledger and the pause/stop buttons go; the session
+   clock stays (a session you are in the middle of is still yours) but small,
+   dim and nameless, with no progress bar counting under it. */
+body[data-mode="peace"] .hearth-view-xp,
+body[data-mode="peace"] .hearth-view-actions,
+body[data-mode="peace"] .hearth-view-progress,
+body[data-mode="peace"] .hearth-view-quest { display: none; }
+
+body[data-mode="peace"] .hearth-view-session {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 5vh;
+  margin: 0;
+}
+
+body[data-mode="peace"] .hearth-view-clock {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-dim);
+  opacity: 0.6;
+}
+
+/* The line under the fire: bigger, unclamped, and it stays up during a
+   session — here the clock does not replace it. Lit by the fire rather than
+   inked in the theme's text colour: a light theme's ink is dark by design and
+   would vanish on this floor. */
+body[data-mode="peace"] .hearth-view .hearth-view-quote {
+  display: block;
+  max-width: 460px;
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 0;
+  color: var(--fire-core);
+  opacity: 0.62;
+  -webkit-line-clamp: unset;
+}
+
+body[data-mode="peace"] .hearth-view-quote .motd-by {
+  margin-top: 8px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+/* The fire, sized to the display rather than the board's window formula,
+   which caps out at a fire meant for a 720px-wide board. Still scaled by
+   --growth: how far you have come is the one reading that stays. */
+body[data-mode="peace"] .bonfire {
+  --u: calc(min(0.8vh, 1.6vw) * var(--growth));
+}
+
+/* The ash bed is drawn in the panel border colour, which on a light theme is
+   a pale grey — a smear on this floor. Embers instead, faint. */
+body[data-mode="peace"] .fire-ash {
+  background: radial-gradient(ellipse, var(--fire-ember) 0%, transparent 72%);
+  opacity: 0.45;
+}
+
+/* The halo is unhooked from the stage. The flame stays honest — it is the
+   last three days, and a fire that lies here would be worthless everywhere
+   else — but the glow around it is full at every stage, so a cold fire in a
+   dark room reads as a warm hearth and not an empty one. Same at level 1: the
+   glow is fixed to the roaring size, not to the fire's own unit. */
+body[data-mode="peace"] .bonfire {
+  --glow: 64vh;
+  --glow-opacity: 0.85;
+}
+
+/* It breathes at a box-breathing pace — four in, four held, four out, four
+   held — instead of the hearth's own rhythm. No instructions, no counter:
+   anyone who knows the pattern can fall into it, nobody else will notice.
+   Centred on the coals rather than sitting on the box's bottom edge, or a
+   halo this size would float above the fire. A finished session's alarm
+   keeps this rhythm too (the "Done" and the click to acknowledge still
+   work): the alarm's own swell is sized for a 220px window and would shrink
+   this one. */
+body[data-mode="peace"] .hearth-view .fire-glow {
+  bottom: calc(var(--base) - var(--glow) / 2);
+  animation: peace-breathe 16s ease-in-out infinite;
+}
+
+body[data-mode="peace"] .fire-coals {
+  animation: peace-breathe-coals 16s ease-in-out infinite;
+}
+
+@keyframes peace-breathe {
+  0%   { opacity: calc(var(--glow-opacity) * 0.55); }
+  25%  { opacity: var(--glow-opacity); }
+  50%  { opacity: var(--glow-opacity); }
+  75%  { opacity: calc(var(--glow-opacity) * 0.55); }
+  100% { opacity: calc(var(--glow-opacity) * 0.55); }
+}
+
+@keyframes peace-breathe-coals {
+  0%   { opacity: 0.7; }
+  25%  { opacity: 0.95; }
+  50%  { opacity: 0.95; }
+  75%  { opacity: 0.7; }
+  100% { opacity: 0.7; }
+}
+
+/* Like the hearth, the fire keeps burning when the window loses focus: it is
+   the only thing on the screen. */
+body.is-idle[data-mode="peace"] .bonfire *,
+body.is-idle[data-mode="peace"] .bonfire { animation-play-state: running; }
+
+/* The way out, top-right. Faint until hovered so at rest it is barely there,
+   but always visible — a hidden exit is its own kind of pressure. */
+.peace-close {
+  display: none;
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 14px;
+  opacity: 0.45;
+  cursor: pointer;
+  transition: opacity 0.2s ease, background 0.2s ease;
+}
+
+body[data-mode="peace"] .peace-close { display: flex; }
+.peace-close:hover { opacity: 1; background: rgba(255, 255, 255, 0.06); }
+
+/* Reduced motion: the halo holds at full breath, the alarm's static swell
+   (which is sized for the hearth) included. */
+@media (prefers-reduced-motion: reduce) {
+  body[data-mode="peace"] .hearth-view .fire-glow,
+  body[data-mode="peace"] .hearth-view .fire-coals { animation: none !important; }
+  body[data-mode="peace"] .hearth-view .fire-glow {
+    width: var(--glow);
+    height: var(--glow);
+    bottom: calc(var(--base) - var(--glow) / 2);
+    opacity: var(--glow-opacity);
+  }
+}
+
 /* ---- the In Flight panel (inflight.html, its own window) ---- */
 
 /* The second window, and the whole of its document. It is sized to its

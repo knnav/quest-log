@@ -4,8 +4,10 @@
 <!-- The hearth face. The window collapses to this alone (body[data-mode="hearth"])
      and the whole thing is a drag region: double-click anywhere to get the
      board back. Its bonfire mirrors the home screen's — home.js paints every
-     .bonfire it finds. -->
+     .bonfire it finds. In peace mode (body[data-mode="peace"]) the same face
+     covers the display, with only the × (and Escape) as the way back. -->
 <div class="hearth-view" id="hearthView">
+  <button class="peace-close" id="peaceClose" title="Leave peace (Esc)" aria-label="Leave peace">✕</button>
   <div class="bonfire" data-stage="0" aria-hidden="true">
     <span class="fire-glow"></span>
     <span class="fire-ash"></span>
@@ -50,6 +52,14 @@
         <rect x="12.5" y="7" width="6.5" height="5" rx="1" fill="currentColor" stroke="none"/>
       </svg>
       <span class="sr-only">In Flight panel</span>
+    </button>
+    <!-- Peace: the display, the fire, a line — for when the screen is too
+         much. Escape or the × brings the board back. -->
+    <button class="titlebar-btn" id="peaceBtn" title="Peace: just the fire, full screen (Esc to come back)">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+        <path d="M17.5 5.2A8.5 8.5 0 1 0 19.8 15"/>
+      </svg>
+      <span class="sr-only">Peace</span>
     </button>
     <button class="titlebar-btn" id="minimizeBtn" title="Fold into the hearth">─</button>
     <button class="titlebar-btn close" id="closeBtn" title="Quit Quest Log">✕</button>

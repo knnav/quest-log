@@ -1,6 +1,7 @@
 :root,
 :root[data-theme="light"] {
   --bg: #f6f3ff;
+  --peace-bg: #0b0811;
   --panel: #ffffff;
   --panel-border: #e1e1e1;
   --text: #1c1330;

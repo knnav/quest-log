@@ -11,6 +11,9 @@
 // flag (the tray and the hearth's menu can flip it too) and this redraws.
 // What it controls is whether the panel appears in mini mode, so the tooltip
 // says so — from the board, flipping it changes nothing you can see yet.
+//
+// The fourth is peace: the fire alone, over the whole display. A window mode
+// like the other two, so it sits with the window controls.
 
 export function initTitlebar() {
   var titlebar = document.querySelector(".titlebar");
@@ -21,6 +24,15 @@ export function initTitlebar() {
   initPanelButton();
 
   if (!window.windowControls) return;
+  var peaceBtn = document.getElementById("peaceBtn");
+  if (peaceBtn) {
+    if (window.windowControls.peace) {
+      peaceBtn.addEventListener("click", function () { window.windowControls.peace(); });
+    } else {
+      // An older preload without the bridge: no mode to enter.
+      peaceBtn.hidden = true;
+    }
+  }
   document.getElementById("minimizeBtn")
     .addEventListener("click", function () { window.windowControls.minimize(); });
   document.getElementById("closeBtn")
