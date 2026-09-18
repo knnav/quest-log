@@ -68,6 +68,16 @@ export function completionEntries(quests, tasks) {
   return fromQuests.concat(fromTasks);
 }
 
+// True once the last drop is old enough that every entry has decayed to
+// nothing: the fire is out, and the home screen stops counting the hours
+// since. The threshold is DECAY_DAYS itself, so the copy can say "out" only
+// when it is true. No drops at all is not "out" — that is "nothing yet".
+export function fireOut(lastMs, now) {
+  if (lastMs === null || lastMs === undefined) return false;
+  var nowMs = now instanceof Date ? now.getTime() : Date.now();
+  return nowMs - lastMs >= DECAY_DAYS * MS_PER_DAY;
+}
+
 export function lastCompletedAt(entries) {
   return (entries || []).reduce(function (latest, entry) {
     if (!entry || !entry.completedAt) return latest;

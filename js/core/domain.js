@@ -76,6 +76,13 @@ export const WIP_LIMIT = 3;
 // How long a quest can sit in the backlog before the home screen mentions it.
 export const STALE_DAYS = 30;
 
+// How long the log can go unopened before coming back gets a landing card
+// (ui/reentry.js) instead of the whole board at once. The same three days
+// the fire takes to go out (fire.js DECAY_DAYS), on purpose: the card says
+// the fire is out, and it must never say so while it is still burning. A long
+// weekend is not a broken streak, but it is still a lot to walk back into.
+export const AWAY_DAYS = 3;
+
 // Tallies a list by its status field. `statuses` seeds the result with zeros,
 // so callers get every key they asked for and none they didn't — quests and
 // tasks have different status sets and must not inherit each other's rows.

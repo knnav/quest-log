@@ -12,6 +12,9 @@ contextBridge.exposeInMainWorld("questLog", {
   deleteTask: (id) => ipcRenderer.invoke("quest-log:delete-task", id),
   reorderTasks: (ids) => ipcRenderer.invoke("quest-log:reorder-tasks", ids),
   listSessions: () => ipcRenderer.invoke("quest-log:list-sessions"),
+  // When the log was last looked at before this launch (ISO, or null on a
+  // first run). main.js keeps the stamp; core/reentry.js reads it.
+  lastSeenAt: () => ipcRenderer.invoke("quest-log:last-seen"),
 });
 
 contextBridge.exposeInMainWorld("session", {

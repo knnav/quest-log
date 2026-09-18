@@ -37,6 +37,11 @@ function boot(quests, tasks, options) {
     updateQuest: () => Promise.resolve({}),
     updateTask: () => Promise.resolve({}),
   };
+  // The pre-launch stamp main.js hands over; absent from the bridge when
+  // the test doesn't say, the way a preload from before it would be.
+  if ("lastSeenAt" in options) {
+    win.questLog.lastSeenAt = () => Promise.resolve(options.lastSeenAt);
+  }
   win.motd = { list: () => Promise.resolve({ default: ["a line"], peace: ["be still"] }) };
   // What main.js sends after the hearth menu's "New quest" / "New task", and
   // the mode it pushes on every switch.
@@ -139,9 +144,10 @@ test("the ledger banks the whole history and shows the distance to the next leve
   assert.deepEqual(levels, ["Lv 4", "Lv 4"], "home row and hearth corner agree");
 
   // The level sizes both fires through one variable; the stage is separate.
+  // Three fires: the home screen's, the hearth face's and the landing card's.
   const growths = Array.from(doc.querySelectorAll(".bonfire")).map((el) => el.style.getPropertyValue("--growth"));
-  assert.equal(growths.length, 2);
-  assert.equal(growths[0], growths[1]);
+  assert.equal(growths.length, 3);
+  assert.ok(growths.every((g) => g === growths[0]), "every fire is the same size");
   assert.ok(Number(growths[0]) > 1.1 && Number(growths[0]) < 1.5, `level 4 growth, got ${growths[0]}`);
   assert.equal(doc.getElementById("xp").querySelector("[data-xp-count]").textContent, "1 / 13");
   assert.equal(doc.getElementById("xp").querySelector("[data-xp-fill]").style.width, "8%");
@@ -262,6 +268,97 @@ test("the elapsed readout counts from the most recent completion", async () => {
 
   assert.equal(doc.getElementById("sinceValue").textContent, "2h 0m");
   assert.equal(doc.getElementById("sinceLabel").textContent, "since your last drop");
+});
+
+test("past the fire's decay the readout stops counting and just says the state", async () => {
+  const quests = [
+    { id: "q1", title: "Old", hook: "h", tier: "hard", tags: [], dod: "d", status: "shipped", order: 1, completedAt: new Date(Date.now() - 9 * DAY).toISOString() },
+  ];
+  const dom = await boot(quests, []);
+  const doc = dom.window.document;
+
+  assert.equal(doc.getElementById("sinceValue").textContent, "\u2014");
+  assert.equal(doc.getElementById("sinceLabel").textContent, "the fire\u2019s out \u2014 light it whenever");
+});
+
+// ---- the landing after time away ----
+
+const REENTRY_QUESTS = [
+  { id: "q1", title: "Doing it", hook: "h", tier: "easy", tags: [], dod: "d", status: "in_progress", order: 2, startedAt: new Date(Date.now() - 10 * DAY).toISOString() },
+  { id: "q2", title: "Also this", hook: "h", tier: "easy", tags: [], dod: "d", status: "in_progress", order: 1 },
+  { id: "q3", title: "Waiting", hook: "h", tier: "medium", tags: [], dod: "d", status: "backlog", order: 3 },
+  { id: "q4", title: "Shipped one", hook: "h", tier: "easy", tags: [], dod: "d", status: "shipped", order: 4 },
+];
+
+test("coming back after days away lands on the card, with what was left in flight", async () => {
+  const dom = await boot(REENTRY_QUESTS, [], { lastSeenAt: new Date(Date.now() - 4 * DAY).toISOString() });
+  const doc = dom.window.document;
+
+  const card = doc.getElementById("reentry");
+  assert.equal(card.hidden, false);
+  assert.equal(doc.getElementById("reentryFlight").hidden, false);
+  assert.equal(doc.getElementById("reentryAsk").textContent, "2 quests are still in flight. Do they still matter?");
+  // Board order, not age; no counts, days or status on the rows.
+  const rows = Array.from(doc.querySelectorAll("#reentryRows .reentry-row")).map((el) => el.textContent);
+  assert.deepEqual(rows, ["Also this", "Doing it"]);
+  assert.doesNotMatch(card.textContent, /\d+ days?/);
+
+  // The card's own fire is painted with the others.
+  assert.equal(card.querySelector(".bonfire").getAttribute("data-stage"), "0");
+
+  // Ctrl+N is not a way in.
+  doc.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "n", ctrlKey: true, bubbles: true }));
+  assert.equal(doc.getElementById("questsScreen").hidden, true);
+
+  doc.getElementById("reentryGo").click();
+  assert.equal(card.hidden, true);
+});
+
+test("a row on the landing card opens that quest's detail, where Let go lives", async () => {
+  const dom = await boot(REENTRY_QUESTS, [], { lastSeenAt: new Date(Date.now() - 4 * DAY).toISOString() });
+  const doc = dom.window.document;
+
+  doc.querySelector('#reentryRows [data-id="q1"]').click();
+  assert.equal(doc.getElementById("reentry").hidden, true);
+
+  const overlay = doc.getElementById("detailModalOverlay");
+  assert.equal(overlay.hidden, false);
+  assert.equal(doc.getElementById("detailTitle").textContent, "Doing it");
+  assert.equal(doc.getElementById("detailLetGoBtn").hidden, false);
+});
+
+test("with nothing in flight the landing card asks nothing", async () => {
+  const dom = await boot([REENTRY_QUESTS[2], REENTRY_QUESTS[3]], [], { lastSeenAt: new Date(Date.now() - 4 * DAY).toISOString() });
+  const doc = dom.window.document;
+
+  assert.equal(doc.getElementById("reentry").hidden, false);
+  assert.equal(doc.getElementById("reentryFlight").hidden, true);
+  assert.equal(doc.querySelectorAll("#reentryRows li").length, 0);
+});
+
+test("a day away, a first run and an older preload all land on the board as usual", async () => {
+  let dom = await boot(REENTRY_QUESTS, [], { lastSeenAt: new Date(Date.now() - 1 * DAY).toISOString() });
+  assert.equal(dom.window.document.getElementById("reentry").hidden, true, "a day is not away");
+
+  dom = await boot(REENTRY_QUESTS, [], { lastSeenAt: null });
+  assert.equal(dom.window.document.getElementById("reentry").hidden, true, "a first run is a beginning");
+
+  dom = await boot(REENTRY_QUESTS, []);
+  assert.equal(dom.window.document.getElementById("reentry").hidden, true, "no stamp on the bridge");
+});
+
+test("Escape takes the landing card down, and leaving the board does too", async () => {
+  let dom = await boot(REENTRY_QUESTS, [], { lastSeenAt: new Date(Date.now() - 4 * DAY).toISOString() });
+  let doc = dom.window.document;
+  doc.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+  assert.equal(doc.getElementById("reentry").hidden, true);
+
+  dom = await boot(REENTRY_QUESTS, [], { lastSeenAt: new Date(Date.now() - 4 * DAY).toISOString() });
+  doc = dom.window.document;
+  dom.pushMode("hearth");
+  assert.equal(doc.getElementById("reentry").hidden, true);
+  dom.pushMode("board");
+  assert.equal(doc.getElementById("reentry").hidden, true, "not waiting behind the expand");
 });
 
 test("an in-progress quest appears once, in its own block and not on the board", async () => {

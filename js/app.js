@@ -23,10 +23,12 @@ import {
 } from "./features/tasks.js";
 import { initStandup, renderStandup } from "./features/standup.js";
 import { enableDragSort } from "./ui/dragSort.js";
-import { initDetail } from "./ui/detail.js";
+import { initDetail, showDetail } from "./ui/detail.js";
 import { initTabs, showTab } from "./ui/tabs.js";
 import { initHome, renderHome, armLedger } from "./features/home.js";
 import { initLevelUp } from "./ui/levelUp.js";
+import { initReentry, showReentry, hideReentry, isReentryOpen } from "./ui/reentry.js";
+import { isAway, stillInFlight } from "./core/reentry.js";
 import { initGates } from "./features/gates.js";
 import { initSession, renderFocusQuests, renderToday, chime } from "./features/session.js";
 import { initHearth } from "./features/hearth.js";
@@ -135,8 +137,8 @@ function initShortcuts() {
   document.addEventListener("keydown", function (e) {
     if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== "n") return;
     // Not in peace: a form would open unseen under it, and the Escape meant
-    // to leave would close the form as well.
-    if (anyModalOpen() || document.body.getAttribute("data-mode") === "peace") return;
+    // to leave would close the form as well. Same under the landing card.
+    if (anyModalOpen() || isReentryOpen() || document.body.getAttribute("data-mode") === "peace") return;
     e.preventDefault();
     startCreate(e.shiftKey ? "task" : "quest");
   });
@@ -146,6 +148,18 @@ function initShortcuts() {
   if (window.windowControls && window.windowControls.onCreate) {
     window.windowControls.onCreate(startCreate);
   }
+}
+
+// Coming back after AWAY_DAYS away lands on the card instead of the board.
+// Asked once, after the first loads, so the fire on it is already painted
+// and the in-flight rows are real. A preload without the stamp (or a first
+// run) is simply not away.
+function landIfAway() {
+  if (!window.questLog.lastSeenAt) return;
+  return window.questLog.lastSeenAt().then(function (lastSeenAt) {
+    if (!isAway(lastSeenAt, new Date())) return;
+    showReentry(stillInFlight(getAllQuests()));
+  });
 }
 
 initTheme();
@@ -174,8 +188,22 @@ initLevelUp();
 initHome(homeData, { onLevelUp: chime });
 initStandup(standupData, { quest: questDetail, task: taskDetail });
 // The quote comes from a different pool in peace mode, so every switch
-// repaints it.
-initHearth({ onModeChange: renderHome });
+// repaints it. Leaving the board takes the landing card down with it: the
+// hearth is a fine answer to "welcome back", and the card must not be
+// waiting behind the next expand.
+initHearth({
+  onModeChange: function (mode) {
+    renderHome();
+    if (mode !== "board") hideReentry();
+  }
+});
+// A row on the landing card opens the same detail modal the boards use.
+initReentry({
+  onQuest: function (id) {
+    var detail = questDetail(id);
+    if (detail) showDetail(detail);
+  }
+});
 initQuests(renderProgress, renderProgressGrid);
 initTasks(renderTasks);
 // Static markup, so bound once; the quest board binds its own on each render.
@@ -189,6 +217,7 @@ renderToday([]);
 Promise.all([loadQuests(), loadTasks()]).then(function () {
   renderToday(getSessions());
   armLedger();
+  return landIfAway();
 }).catch(function () {
   document.getElementById("board").innerHTML = '<div class="empty-state">Could not load the quest log right now.</div>';
 });
