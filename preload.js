@@ -81,4 +81,9 @@ contextBridge.exposeInMainWorld("windowControls", {
   onModeChange: (callback) => {
     ipcRenderer.on("window:mode", (event, mode) => callback(mode));
   },
+  // The hearth menu's "New quest" / "New task": main.js has already expanded
+  // to the board, this says which form to open.
+  onCreate: (callback) => {
+    ipcRenderer.on("window:create", (event, kind) => callback(kind));
+  },
 });

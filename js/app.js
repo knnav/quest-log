@@ -118,22 +118,32 @@ function anyModalOpen() {
   return !!document.querySelector(".modal-overlay:not([hidden])");
 }
 
+// Switch tabs before opening the form: new items land in a backlog, so
+// creating one from another tab would otherwise appear to do nothing.
+function startCreate(kind) {
+  if (anyModalOpen()) return;
+  if (kind === "task") {
+    showTab("tasks");
+    openCreateTask();
+  } else {
+    showTab("quests");
+    openCreateQuest();
+  }
+}
+
 function initShortcuts() {
   document.addEventListener("keydown", function (e) {
     if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== "n") return;
     if (anyModalOpen()) return;
     e.preventDefault();
-
-    // Switch tabs before opening the form: new items land in a backlog, so
-    // creating one from another tab would otherwise appear to do nothing.
-    if (e.shiftKey) {
-      showTab("tasks");
-      openCreateTask();
-    } else {
-      showTab("quests");
-      openCreateQuest();
-    }
+    startCreate(e.shiftKey ? "task" : "quest");
   });
+
+  // The hearth's right-click menu: main.js expands to the board first, then
+  // says which form to open.
+  if (window.windowControls && window.windowControls.onCreate) {
+    window.windowControls.onCreate(startCreate);
+  }
 }
 
 initTheme();

@@ -38,6 +38,8 @@ function boot(quests, tasks, options) {
     updateTask: () => Promise.resolve({}),
   };
   win.motd = { list: () => Promise.resolve(["a line"]) };
+  // What main.js sends after the hearth menu's "New quest" / "New task".
+  win.windowControls = { onCreate: (cb) => { dom.create = cb; } };
   win.matchMedia = () => ({ matches: false, addEventListener() {} });
 
   // The panel lives in another window, so the board only ever pushes to it.
@@ -355,6 +357,25 @@ test("Ctrl+N switches to the tab that will show the new item", async () => {
   doc.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "N", ctrlKey: true, shiftKey: true, bubbles: true }));
   assert.equal(doc.getElementById("tasksScreen").hidden, false);
   assert.equal(doc.getElementById("taskModalOverlay").hidden, false);
+});
+
+test("the hearth menu's create opens the form on the right tab", async () => {
+  const dom = await boot(QUESTS, SIDE_QUESTS);
+  const doc = dom.window.document;
+
+  dom.create("task");
+  assert.equal(doc.getElementById("tasksScreen").hidden, false);
+  assert.equal(doc.getElementById("taskModalOverlay").hidden, false);
+
+  // A form already open is left alone rather than covered.
+  dom.create("quest");
+  assert.equal(doc.getElementById("questModalOverlay").hidden, true);
+  assert.equal(doc.getElementById("tasksScreen").hidden, false);
+
+  doc.getElementById("taskCancelBtn").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  dom.create("quest");
+  assert.equal(doc.getElementById("questsScreen").hidden, false);
+  assert.equal(doc.getElementById("questModalOverlay").hidden, false);
 });
 
 

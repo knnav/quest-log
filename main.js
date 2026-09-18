@@ -548,11 +548,23 @@ function endDrag() {
   else if (mode === "hearth") rememberBounds();
 }
 
+// "New quest" / "New task" from the hearth: no form fits in 220×210, so the
+// board comes back with the form already open. The mode push goes out first,
+// so the renderer is on the board before it hears which form to open.
+function createFromHearth(kind) {
+  expandToBoard();
+  const win = liveWindow();
+  if (win) win.webContents.send("window:create", kind);
+}
+
 function showHearthMenu() {
   const win = liveWindow();
   if (!win) return;
   Menu.buildFromTemplate([
     { label: "Open board", click: expandToBoard },
+    { label: "New quest", click: () => createFromHearth("quest") },
+    { label: "New task", click: () => createFromHearth("task") },
+    { type: "separator" },
     {
       label: "In Flight panel in mini mode",
       type: "checkbox",
