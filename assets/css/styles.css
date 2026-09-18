@@ -734,6 +734,169 @@ body[data-mode="peace"] .peace-close { display: flex; }
   }
 }
 
+/* ---- the re-entry card ---- */
+
+/* The landing after AWAY_DAYS away (core/reentry.js): peace mode's room, in
+   front of the board. Below the title bar rather than over it, so minimise
+   and close still work — going to the hearth instead of the board is a
+   valid way to come back. Above the modals and under the level-up card. */
+.reentry {
+  position: fixed;
+  top: 36px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 150;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow-y: auto;
+  background: var(--peace-bg, #000);
+}
+
+.reentry[hidden] { display: none; }
+
+/* The board is the only face it belongs to. In the other two it has no
+   room, and hearth mode is its own kind of soft landing. */
+body[data-mode="hearth"] .reentry,
+body[data-mode="peace"] .reentry { display: none; }
+
+.reentry-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+  max-width: 420px;
+  margin: auto 0;
+  text-align: center;
+}
+
+/* The same fire as peace, sized for the board's window instead of the
+   display, with the halo unhooked from the stage and breathing at the same
+   pace — see the peace section for why. Level still scales it. */
+.reentry .bonfire {
+  --u: calc(min(0.62vh, 1.2vw) * var(--growth));
+  --glow: 60vh;
+  --glow-opacity: 0.85;
+  margin-bottom: 6px;
+}
+
+.reentry .fire-ash {
+  background: radial-gradient(ellipse, var(--fire-ember) 0%, transparent 72%);
+  opacity: 0.45;
+}
+
+.reentry .fire-glow {
+  bottom: calc(var(--base) - var(--glow) / 2);
+  animation: peace-breathe 16s ease-in-out infinite;
+}
+
+.reentry .fire-coals {
+  animation: peace-breathe-coals 16s ease-in-out infinite;
+}
+
+/* Lit by the fire, like the peace line: the theme's ink is not made for
+   this floor. Everything else on the card is a shade of the same. */
+.reentry-line {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--fire-core);
+  opacity: 0.72;
+}
+
+.reentry-flight {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.reentry-flight[hidden] { display: none; }
+
+.reentry-ask {
+  margin: 0 0 4px;
+  font-size: 12px;
+  color: var(--fire-core);
+  opacity: 0.5;
+}
+
+.reentry-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Rows, not cards, and no status, tier, days or star on them — a title and
+   the question above is all the card has to say. Drawn in white-on-floor
+   rather than the theme's panel colour, which on a light theme would be a
+   bright block in a dark room. */
+.reentry-row {
+  display: block;
+  width: 100%;
+  padding: 9px 12px;
+  font-family: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  color: var(--fire-core);
+  opacity: 0.8;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.reentry-row:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.reentry-hint {
+  margin: 2px 0 0;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--text-dim);
+  opacity: 0.7;
+}
+
+/* Not the primary gradient: nothing on this card should pull. Scoped under
+   .reentry to outrank .btn, which is declared further down. */
+.reentry .reentry-go {
+  margin-top: 8px;
+  color: var(--fire-core);
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.reentry .reentry-go:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--fire-core);
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reentry .fire-glow,
+  .reentry .fire-coals { animation: none !important; }
+  .reentry .fire-glow {
+    width: var(--glow);
+    height: var(--glow);
+    bottom: calc(var(--base) - var(--glow) / 2);
+    opacity: var(--glow-opacity);
+  }
+}
+
 /* ---- the In Flight panel (inflight.html, its own window) ---- */
 
 /* The second window, and the whole of its document. It is sized to its

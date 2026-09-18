@@ -64,6 +64,24 @@ let mode = "board";
 // to the same one, so it never has to decide what the user wanted.
 let peaceFrom = "board";
 
+// When the log was last looked at, as it stood before this launch. Read once
+// at startup before the stamp is refreshed; the renderer asks for it and
+// decides (core/reentry.js) whether this counts as coming back from away.
+// Null on a first run, which is a beginning and not a return.
+let seenBefore = null;
+
+// The stamp itself lives under `ui` with the window geometry. Refreshed on
+// launch, on every focus and blur, and on quit — "seen" means the window was
+// used, not that the process was alive, so a board left open under other
+// windows for a fortnight still reads as away.
+function readSeenBefore() {
+  seenBefore = store.getUi().lastSeenAt || null;
+}
+
+function touchSeen() {
+  store.setUi({ lastSeenAt: new Date().toISOString() });
+}
+
 function sessionView() {
   if (!session) {
     return { active: false, awaitingAck: !!finished, questTitle: finished ? finished.questTitle : "" };
@@ -707,6 +725,8 @@ function createWindow() {
     clearFinished();
     session = null;
   });
+  win.on("focus", touchSeen);
+  win.on("blur", touchSeen);
 }
 
 // The tray also carries Quit: the board's × is out of reach when only the
@@ -842,6 +862,7 @@ function registerIpcHandlers() {
   ipcMain.handle("theme:get", () => currentTheme);
 
   ipcMain.handle("quest-log:list-sessions", () => store.getSessions());
+  ipcMain.handle("quest-log:last-seen", () => seenBefore);
 
   // The In Flight panel. The board pushes the rows and owns the switch; the
   // panel window reads, hides and resizes itself.
@@ -855,6 +876,10 @@ function registerIpcHandlers() {
 }
 
 app.whenReady().then(() => {
+  // Before the window: the stamp on disk is the last visit, and the window's
+  // first focus would overwrite it.
+  readSeenBefore();
+  touchSeen();
   registerIpcHandlers();
   createWindow();
   createTray();
@@ -867,7 +892,10 @@ app.whenReady().then(() => {
   });
 });
 
-app.on("before-quit", () => { quitting = true; });
+app.on("before-quit", () => {
+  quitting = true;
+  touchSeen();
+});
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();

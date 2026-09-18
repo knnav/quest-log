@@ -8,7 +8,7 @@
 // It also re-renders on a timer, because the window stays open for days.
 
 import {
-  fuelFor, stageFor, completionEntries, lastCompletedAt, elapsedLabel,
+  fuelFor, stageFor, completionEntries, lastCompletedAt, elapsedLabel, fireOut,
   STAGE_LABELS
 } from "../core/fire.js";
 import { totalXp, levelFor, growthFor } from "../core/xp.js";
@@ -129,9 +129,16 @@ export function renderHome() {
   var lastMs = lastCompletedAt(entries);
   var since = elapsedLabel(lastMs, now);
 
+  // The counter has a ceiling. A few hours since the last drop is context;
+  // a few weeks is a number that only says how long you were gone, and the
+  // fire is out by then anyway (fireOut is the same threshold the fuel
+  // decays on) — so past it the line just says the state, and stops counting.
   if (since === null) {
     sinceValueEl.textContent = "—";
     sinceLabelEl.textContent = "nothing finished yet";
+  } else if (fireOut(lastMs, now)) {
+    sinceValueEl.textContent = "—";
+    sinceLabelEl.textContent = "the fire’s out — light it whenever";
   } else {
     sinceValueEl.textContent = since;
     sinceLabelEl.textContent = "since your last drop";

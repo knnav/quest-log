@@ -354,6 +354,38 @@
   </div>
 </div>
 
+<!-- The landing after a while away: the fire, one line, and whatever was
+     left in flight, in front of the board rather than the board itself.
+     Outside .app-scroll like the level-up card, but under the title bar, so
+     dropping to the hearth instead is still a way in. ui/reentry.js runs it;
+     app.js shows it once, after the first loads, when core/reentry.js says
+     the log was away. Its bonfire is painted by home.js like the others. -->
+<div class="reentry" id="reentry" hidden role="dialog" aria-label="Welcome back">
+  <div class="reentry-card">
+    <div class="bonfire" data-stage="0" aria-hidden="true">
+      <span class="fire-glow"></span>
+      <span class="fire-ash"></span>
+      <span class="fire-log log-back"></span>
+      <span class="fire-log log-l"></span>
+      <span class="fire-log log-r"></span>
+      <span class="fire-coals"></span>
+      <span class="fire-px"></span>
+      <span class="fire-spark spark-1"></span>
+      <span class="fire-spark spark-2"></span>
+      <span class="fire-spark spark-3"></span>
+      <span class="fire-spark spark-4"></span>
+      <span class="fire-spark spark-5"></span>
+    </div>
+    <p class="reentry-line">Welcome back. The fire&rsquo;s out &mdash; light it again with one thing.</p>
+    <div class="reentry-flight" id="reentryFlight" hidden>
+      <p class="reentry-ask" id="reentryAsk"></p>
+      <ul class="reentry-rows" id="reentryRows"></ul>
+      <p class="reentry-hint">Open one to decide. Or don&rsquo;t &mdash; they&rsquo;ll keep.</p>
+    </div>
+    <button type="button" class="btn reentry-go" id="reentryGo">Open the board</button>
+  </div>
+</div>
+
 <!-- The level-up card: over everything, briefly, and in both modes (it is
      outside .app-scroll and .hearth-view on purpose). ui/levelUp.js runs it;
      home.js asks for it. Never interactive, so it can't be in the way. -->
