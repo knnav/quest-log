@@ -2,20 +2,22 @@
 // callers don't render it, they hand showDetail a plain description and it
 // fills the single #detailModalOverlay in index.html.
 //
-// Actions are passed in as callbacks. onDelete, letGo, archive and restore
-// return a boolean — true means the action went through and the modal should
-// close — so the caller owns its own confirmation and a cancelled action
-// leaves the modal up.
+// Actions are passed in as callbacks. onDelete, letGo, archive, restore,
+// prioritize and deprioritize return a boolean — true means the action went
+// through and the modal should close — so the caller owns its own
+// confirmation and a cancelled action leaves the modal up.
 
 import { escapeHtml } from "../core/html.js";
 
 var overlay, titleEl, tagsEl, textEl, rowsEl, closeBtn, editBtn, deleteBtn, letGoBtn;
-var archiveBtn, restoreBtn;
+var archiveBtn, restoreBtn, prioritizeBtn, deprioritizeBtn;
 var pendingEdit = null;
 var pendingDelete = null;
 var pendingLetGo = null;
 var pendingArchive = null;
 var pendingRestore = null;
+var pendingPrioritize = null;
+var pendingDeprioritize = null;
 
 export function initDetail() {
   overlay = document.getElementById("detailModalOverlay");
@@ -31,6 +33,8 @@ export function initDetail() {
   letGoBtn = document.getElementById("detailLetGoBtn");
   archiveBtn = document.getElementById("detailArchiveBtn");
   restoreBtn = document.getElementById("detailRestoreBtn");
+  prioritizeBtn = document.getElementById("detailPrioritizeBtn");
+  deprioritizeBtn = document.getElementById("detailDeprioritizeBtn");
 
   closeBtn.addEventListener("click", closeDetail);
   overlay.addEventListener("click", function (e) {
@@ -60,13 +64,21 @@ export function initDetail() {
     if (pendingRestore && pendingRestore()) closeDetail();
   });
 
+  prioritizeBtn.addEventListener("click", function () {
+    if (pendingPrioritize && pendingPrioritize()) closeDetail();
+  });
+
+  deprioritizeBtn.addEventListener("click", function () {
+    if (pendingDeprioritize && pendingDeprioritize()) closeDetail();
+  });
+
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape" && !overlay.hidden) closeDetail();
   });
 }
 
 // detail: { title, tags, text, rows: [{ label, value }], onEdit, onDelete,
-//           letGo, archive, restore }
+//           letGo, archive, restore, prioritize, deprioritize }
 // Each action is optional; its button is hidden when the callback is absent.
 // Rows with an empty value are dropped, so callers can build them unconditionally.
 export function showDetail(detail) {
@@ -77,6 +89,8 @@ export function showDetail(detail) {
   pendingLetGo = detail.letGo || null;
   pendingArchive = detail.archive || null;
   pendingRestore = detail.restore || null;
+  pendingPrioritize = detail.prioritize || null;
+  pendingDeprioritize = detail.deprioritize || null;
 
   titleEl.textContent = detail.title || "";
 
@@ -106,6 +120,8 @@ export function showDetail(detail) {
   letGoBtn.hidden = !pendingLetGo;
   archiveBtn.hidden = !pendingArchive;
   restoreBtn.hidden = !pendingRestore;
+  prioritizeBtn.hidden = !pendingPrioritize;
+  deprioritizeBtn.hidden = !pendingDeprioritize;
   overlay.hidden = false;
 }
 
@@ -117,6 +133,8 @@ export function closeDetail() {
   pendingLetGo = null;
   pendingArchive = null;
   pendingRestore = null;
+  pendingPrioritize = null;
+  pendingDeprioritize = null;
 }
 
 // Makes every `selector` card in `container` open its detail view. Clicks that

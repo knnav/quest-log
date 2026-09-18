@@ -125,6 +125,60 @@ test("rows that did not fit are counted", async () => {
   assert.equal(doc.querySelector(".panel-more"), null, "no overflow, no line");
 });
 
+// ---- next up ----
+
+const NEXT_UP = {
+  rows: [{ kind: "quest", title: "Doing" }],
+  nextUp: [{ kind: "quest", title: "Then this" }, { kind: "task", title: "And that" }],
+  hidden: 0,
+};
+
+const nextUpRows = (doc) =>
+  Array.from(doc.querySelectorAll("#panelNextUpList .panel-row-title")).map((el) => el.textContent);
+
+test("next-up rows are drawn under their own heading, apart from what is in flight", async () => {
+  const { doc, push } = await setup();
+  push(NEXT_UP);
+
+  const section = doc.getElementById("panelNextUp");
+  assert.equal(section.hidden, false);
+  assert.match(section.querySelector(".panel-subhead").textContent, /NEXT UP/);
+  assert.deepEqual(nextUpRows(doc), ["Then this", "And that"]);
+  assert.deepEqual(
+    Array.from(doc.querySelectorAll("#panelList .panel-row-title")).map((el) => el.textContent),
+    ["Doing"], "the in-flight list holds only what is in flight");
+});
+
+test("the next-up section is hidden when nothing is queued, and on a push without it", async () => {
+  const { doc, push } = await setup();
+  push(NEXT_UP);
+  push({ rows: [{ kind: "quest", title: "Doing" }], nextUp: [], hidden: 0 });
+  assert.equal(doc.getElementById("panelNextUp").hidden, true);
+  assert.deepEqual(nextUpRows(doc), []);
+
+  push(IN_FLIGHT);
+  assert.equal(doc.getElementById("panelNextUp").hidden, true);
+});
+
+test("a queue with nothing in flight is not 'nothing in flight'", async () => {
+  const { doc, push } = await setup();
+  push({ rows: [], nextUp: [{ kind: "task", title: "Soon" }], hidden: 0 });
+
+  assert.equal(doc.getElementById("panelEmpty").hidden, true);
+  assert.equal(doc.getElementById("panelNextUp").hidden, false);
+});
+
+test("the overflow line sits under whichever list comes last", async () => {
+  const { doc, push } = await setup();
+  push({ rows: [{ kind: "quest", title: "One" }], nextUp: [{ kind: "task", title: "Two" }], hidden: 2 });
+  assert.equal(doc.querySelector("#panelNextUpList .panel-more").textContent, "+2 more");
+  assert.equal(doc.querySelector("#panelList .panel-more"), null);
+
+  push({ rows: [{ kind: "quest", title: "One" }], nextUp: [], hidden: 1 });
+  assert.equal(doc.querySelector("#panelList .panel-more").textContent, "+1 more");
+  assert.equal(doc.querySelector("#panelNextUpList .panel-more"), null);
+});
+
 test("titles are escaped", async () => {
   const { doc, push } = await setup();
   push({ rows: [{ kind: "quest", title: '<img src=x onerror="boom">' }], hidden: 0 });

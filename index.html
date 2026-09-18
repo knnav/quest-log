@@ -191,6 +191,13 @@
       <div class="grid" id="progressTasksGrid"></div>
     </section>
 
+    <!-- Starred backlog tasks: the queue for the next free slot. The quest
+         board renders the same section into #board. -->
+    <section class="tier next-up-tier" id="nextUpTasks" hidden>
+      <div class="tier-head"><h2 class="tier-title">Next up</h2></div>
+      <div class="grid" id="nextUpTasksGrid"></div>
+    </section>
+
     <section class="tier" id="backlogTasks" hidden>
       <div class="tier-head"><h2 class="tier-title">Backlog</h2></div>
       <div class="grid" id="backlogTasksGrid"></div>
@@ -222,9 +229,12 @@
   <div class="modal">
     <!-- Archive hides a finished card and keeps its record; Restore is the
          way back. Only one of the two ever shows. Housekeeping, so it sits
-         up by the title rather than in the action row with Edit. -->
+         up by the title rather than in the action row with Edit. The next-up
+         pair works the same way on open cards. -->
     <div class="detail-head">
       <h2 id="detailTitle"></h2>
+      <button type="button" class="quiet-action" id="detailPrioritizeBtn">Mark next up</button>
+      <button type="button" class="quiet-action" id="detailDeprioritizeBtn">Unmark</button>
       <button type="button" class="quiet-action" id="detailArchiveBtn">Archive</button>
       <button type="button" class="quiet-action" id="detailRestoreBtn">Restore</button>
     </div>

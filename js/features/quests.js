@@ -20,12 +20,13 @@
 // left alone rather than rebuilt (and the motd re-rolled) on every keystroke.
 
 import {
-  TIERS, TIER_LABEL, DEFAULT_TIER, STATUSES, STATUS_LABEL, WIP_LIMIT, countByStatus, isQuestTerminal
+  TIERS, TIER_LABEL, DEFAULT_TIER, STATUSES, STATUS_LABEL, WIP_LIMIT, countByStatus, isQuestTerminal, isImportant
 } from "../core/domain.js";
 import { escapeHtml } from "../core/html.js";
 import { daysSince, spanMs, msOf, MS_PER_DAY } from "../core/dates.js";
 import { enableDragSort } from "../ui/dragSort.js";
 import { bindCardDetail } from "../ui/detail.js";
+import { starHtml } from "../ui/star.js";
 import { scopeRecord } from "../core/records.js";
 import { formatWorked } from "../core/sessionFormat.js";
 import { confirmShip, confirmWip } from "./gates.js";
@@ -187,16 +188,20 @@ export function cardHtml(q) {
 
   var classes = "card quest-card" +
     (q.status === "let_go" ? " let-go-card" : "") +
-    (isArchived(q) ? " archived-card" : "");
+    (isArchived(q) ? " archived-card" : "") +
+    (isImportant(q) ? " important-card" : "");
 
   // An archived card is read-only until it is restored: no pills, so nothing
   // on it can change a status the store would then un-archive it for.
   var statusRow = isArchived(q) ? "" : '<div class="status-row">' + statusBtns + '</div>';
 
+  // Only an open card can be next up; the store ignores the flag on finished ones.
+  var star = isArchived(q) || isQuestTerminal(q.status) ? "" : starHtml(q);
+
   return (
     '<div class="' + classes + '" data-id="' + q.id + '" data-drag-id="' + q.id + '">' +
     '<div class="card-head">' +
-    '<h3 class="card-title">' + escapeHtml(q.title) + '</h3>' +
+    '<h3 class="card-title">' + escapeHtml(q.title) + '</h3>' + star +
     '</div>' +
     '<div class="tags">' + tags + '</div>' +
     finished +
@@ -209,6 +214,12 @@ export function bindQuestActions(container) {
   container.querySelectorAll(".quest-card .status-btn").forEach(function (btn) {
     btn.addEventListener("click", function () {
       requestStatus(btn.getAttribute("data-id"), btn.getAttribute("data-status"));
+    });
+  });
+
+  container.querySelectorAll(".quest-card .star-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      setImportant(btn.getAttribute("data-id"), btn.getAttribute("data-important") !== "1");
     });
   });
 
@@ -235,7 +246,13 @@ export function bindQuestActions(container) {
       archive: !archived && isQuestTerminal(quest.status)
         ? function () { archiveQuests([quest.id]); return true; }
         : null,
-      restore: archived ? function () { restoreQuest(quest.id); return true; } : null
+      restore: archived ? function () { restoreQuest(quest.id); return true; } : null,
+      prioritize: !archived && !isQuestTerminal(quest.status) && !isImportant(quest)
+        ? function () { setImportant(quest.id, true); return true; }
+        : null,
+      deprioritize: isImportant(quest)
+        ? function () { setImportant(quest.id, false); return true; }
+        : null
     };
   });
 }
@@ -328,6 +345,10 @@ function restoreQuest(id) {
   window.questLog.updateQuest(id, { archivedAt: null }).then(refetchQuests).catch(function () {});
 }
 
+function setImportant(id, flag) {
+  window.questLog.updateQuest(id, { important: !!flag }).then(refetchQuests).catch(function () {});
+}
+
 function onArchiveSection(status) {
   var ids = latestDocs
     .filter(function (q) { return q.status === status && !isArchived(q) && matchesFilter(q); })
@@ -411,13 +432,20 @@ function renderBoard(quests) {
   var archived = sortByFinishedDesc(quests.filter(isArchived).filter(matchesFilter));
   var visible = active.filter(matchesFilter);
 
-  // Sections are mutually exclusive by status, so every quest appears exactly
-  // once: in progress (rendered by app.js above this board), its scope section,
-  // the Hall of Fame, Ashes, or the Archive.
+  // Sections are mutually exclusive, so every quest appears exactly once: in
+  // progress (rendered by app.js above this board), Next up, its scope
+  // section, the Hall of Fame, Ashes, or the Archive. Next up pulls the
+  // starred backlog cards out of their scope tiers: it is the queue for the
+  // next free slot, and a queue needs its own order, so it gets its own grid.
   var html = "";
+  var nextUp = visible
+    .filter(function (q) { return q.status === "backlog" && isImportant(q); })
+    .sort(byOrder);
+  if (nextUp.length) html += tierSection("Next up", nextUp, "next-up-tier");
+
   TIERS.forEach(function (tier) {
     var inTier = visible
-      .filter(function (q) { return q.status === "backlog" && q.tier === tier.key; })
+      .filter(function (q) { return q.status === "backlog" && q.tier === tier.key && !isImportant(q); })
       .sort(byOrder);
     if (!inTier.length) return;
     html += tierSection(tier.title, inTier);

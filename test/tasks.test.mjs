@@ -234,8 +234,8 @@ test("the detail modal's Edit button prefills the form with the existing title a
   tasks.bindTaskActions(grid);
 
   const buttons = Array.from(grid.querySelectorAll(".task-card button"));
-  assert.ok(buttons.every((b) => b.classList.contains("status-btn")),
-    "the only buttons left on a card are its status pills");
+  assert.ok(buttons.every((b) => b.classList.contains("status-btn") || b.classList.contains("star-btn")),
+    "the only buttons left on a card are its status pills and the star");
 
   grid.querySelector(".task-card").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
   doc.getElementById("detailEditBtn").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
@@ -427,4 +427,75 @@ test("archiveDoneTasks sweeps every done task after a confirm, and none without"
 
   tasks.archiveDoneTasks();
   assert.deepEqual(calls.map((c) => c[0]), ["a", "b"], "the already-archived and the open one are left alone");
+});
+
+// ---- next up ----
+
+const openTask = (over) => Object.assign({ id: "t1", title: "T", note: "", status: "backlog", order: 1 }, over || {});
+
+test("taskCardHtml carries the next-up star on open tasks only, lit when marked", () => {
+  const plain = taskCardHtml(openTask());
+  assert.match(plain, /star-btn/);
+  assert.ok(!plain.includes("star-btn on"));
+  assert.match(plain, /data-important="0"/);
+
+  const marked = taskCardHtml(openTask({ important: true }));
+  assert.match(marked, /star-btn on/);
+  assert.match(marked, /important-card/);
+  assert.match(marked, /data-important="1"/);
+
+  assert.ok(taskCardHtml(openTask({ status: "in_progress", important: true })).includes("star-btn on"));
+  assert.ok(!taskCardHtml(doneTask()).includes("star-btn"), "a done task cannot be next up");
+  assert.ok(!taskCardHtml(doneTask({ archivedAt: "2026-09-11T00:00:00.000Z" })).includes("star-btn"));
+});
+
+test("starred backlog tasks leave Backlog for the next-up view", async () => {
+  const { tasks } = await bootTasks([
+    openTask({ id: "a", title: "Plain", order: 1 }),
+    openTask({ id: "b", title: "Starred later", order: 3, important: true }),
+    openTask({ id: "c", title: "Starred sooner", order: 2, important: true }),
+    openTask({ id: "d", title: "Started", status: "in_progress", order: 4, important: true }),
+  ]);
+
+  assert.deepEqual(tasks.getNextUpTasks().map((t) => t.id), ["c", "b"], "drag order, not star order");
+  assert.deepEqual(tasks.getTasksByStatus("backlog").map((t) => t.id), ["a"]);
+  assert.deepEqual(tasks.getTasksByStatus("in_progress").map((t) => t.id), ["d"], "a started task is in flight, not queued");
+});
+
+test("the star and the detail view mark and unmark a task", async () => {
+  const calls = [];
+  const { dom, doc, tasks } = await bootTasks([
+    openTask({ id: "open", title: "Open", order: 1 }),
+    openTask({ id: "starred", title: "Starred", order: 2, important: true }),
+    doneTask({ id: "done", title: "Done", order: 3 }),
+  ], {
+    updateTask: (id, data) => { calls.push([id, data]); return Promise.resolve({}); },
+  });
+
+  const grid = doc.getElementById("taskGrid");
+  grid.innerHTML = tasks.getAllTasks().map(tasks.taskCardHtml).join("");
+  tasks.bindTaskActions(grid);
+  const cardFor = (id) => grid.querySelector(`.task-card[data-id="${id}"]`);
+  const markBtn = doc.getElementById("detailPrioritizeBtn");
+  const unmarkBtn = doc.getElementById("detailDeprioritizeBtn");
+
+  click(dom, cardFor("open").querySelector(".star-btn"));
+  assert.deepEqual(calls[0], ["open", { important: true }]);
+  assert.equal(doc.getElementById("detailModalOverlay").hidden, true, "the star is not the card");
+
+  click(dom, cardFor("starred"));
+  assert.equal(markBtn.hidden, true);
+  assert.equal(unmarkBtn.hidden, false);
+  click(dom, unmarkBtn);
+  assert.deepEqual(calls[1], ["starred", { important: false }]);
+  assert.equal(doc.getElementById("detailModalOverlay").hidden, true);
+
+  click(dom, cardFor("open"));
+  assert.equal(markBtn.hidden, false);
+  assert.equal(unmarkBtn.hidden, true);
+  click(dom, doc.getElementById("detailCloseBtn"));
+
+  click(dom, cardFor("done"));
+  assert.equal(markBtn.hidden, true, "a done task cannot be next up");
+  assert.equal(unmarkBtn.hidden, true);
 });

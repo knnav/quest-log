@@ -57,6 +57,13 @@ export function isQuestTerminal(status) {
   return status === "shipped" || status === "let_go";
 }
 
+// The next-up mark: a flag on open quests and tasks, not a fourth status. It
+// says what to pick up when a slot frees, so it never bypasses WIP_LIMIT.
+// store.js clears it on finishing; records from before it existed lack it.
+export function isImportant(item) {
+  return !!(item && item.important);
+}
+
 export const TASK_STATUSES = ["backlog", "in_progress", "done"];
 
 export const TASK_STATUS_LABEL = { backlog: "Backlog", in_progress: "In Progress", done: "Done" };

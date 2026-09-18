@@ -97,6 +97,15 @@ function keepArchive(record, terminalStatuses) {
   return terminalStatuses.includes(record.status) && record.archivedAt ? record.archivedAt : null;
 }
 
+// The mirror image of the archive flag: `important` marks what is next up, so
+// a next-up card is always an open one. Finishing drops it and setting it on a
+// finished card is ignored. It survives backlog ↔ in progress, so a card that
+// falls back out of progress is still the one to pick up first. Records from
+// before the flag existed simply lack it and read as false.
+function keepImportant(record, terminalStatuses) {
+  return !terminalStatuses.includes(record.status) && !!record.important;
+}
+
 const QUEST_TERMINAL = ["shipped", "let_go"];
 const TASK_TERMINAL = ["done"];
 
@@ -188,6 +197,7 @@ function createStore(storePath) {
       createdAt: new Date().toISOString(),
       order: nextOrder(store.quests),
       archivedAt: null,
+      important: false,
     };
     Object.assign(quest, stampTimes(null, quest, QUEST_TERMINAL, FUEL_ONCE));
     store.quests.push(quest);
@@ -202,6 +212,7 @@ function createStore(storePath) {
     const merged = Object.assign({}, store.quests[idx], data, { id });
     Object.assign(merged, stampTimes(store.quests[idx], merged, QUEST_TERMINAL, FUEL_ONCE));
     merged.archivedAt = keepArchive(merged, QUEST_TERMINAL);
+    merged.important = keepImportant(merged, QUEST_TERMINAL);
     store.quests[idx] = merged;
     writeStore(store);
     return merged;
@@ -234,6 +245,7 @@ function createStore(storePath) {
       createdAt: new Date().toISOString(),
       order: nextOrder(store.tasks),
       archivedAt: null,
+      important: false,
     };
     Object.assign(task, stampTimes(null, task, TASK_TERMINAL, FUEL_EVERY_TIME));
     store.tasks.push(task);
@@ -248,6 +260,7 @@ function createStore(storePath) {
     const merged = Object.assign({}, store.tasks[idx], data, { id });
     Object.assign(merged, stampTimes(store.tasks[idx], merged, TASK_TERMINAL, FUEL_EVERY_TIME));
     merged.archivedAt = keepArchive(merged, TASK_TERMINAL);
+    merged.important = keepImportant(merged, TASK_TERMINAL);
     store.tasks[idx] = merged;
     writeStore(store);
     return merged;
