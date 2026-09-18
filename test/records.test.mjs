@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { scopeRecord, oldestWaiting } from "../js/core/records.js";
+import { scopeRecord, oldestWaiting, standup, standupSince } from "../js/core/records.js";
 
 const NOW = new Date("2026-09-16T12:00:00.000Z");
 const HOURS = 3600000;
@@ -69,4 +69,105 @@ test("oldestWaiting finds the longest-untouched backlog quest", () => {
 
   assert.equal(oldestWaiting([], NOW), null);
   assert.equal(oldestWaiting([{ title: "x", status: "shipped", createdAt: ago(9 * DAYS) }], NOW), null);
+});
+
+// ---- the standup ----
+//
+// Built through local Date parts, so the day boundaries hold in any zone.
+// September 2026: Fri 11, Sat 12, Sun 13, Mon 14, Tue 15, Wed 16.
+function local(day, hour, minute) {
+  return new Date(2026, 8, day, hour || 0, minute || 0);
+}
+
+function iso(day, hour, minute) {
+  return local(day, hour, minute).toISOString();
+}
+
+test("standupSince reaches back to the last weekday, weekend included", () => {
+  assert.equal(standupSince(local(16, 10)), local(15).getTime(), "Wednesday looks to Tuesday");
+  assert.equal(standupSince(local(15, 10)), local(14).getTime(), "Tuesday looks to Monday");
+  assert.equal(standupSince(local(14, 9)), local(11).getTime(), "Monday looks past the weekend to Friday");
+  assert.equal(standupSince(local(13, 9)), local(11).getTime(), "so does Sunday");
+  assert.equal(standupSince(local(12, 9)), local(11).getTime(), "and Saturday, to yesterday");
+});
+
+test("standup lists what is in flight, quests first, in board order", () => {
+  const quests = [
+    { id: "q2", title: "Second", status: "in_progress", order: 2, startedAt: iso(15, 9) },
+    { id: "q1", title: "First", status: "in_progress", order: 1, startedAt: iso(10, 9) },
+    { id: "q3", title: "Waiting", status: "backlog", order: 3 },
+  ];
+  const tasks = [
+    { id: "t1", title: "Printer", status: "in_progress", order: 1, startedAt: null },
+    { id: "t2", title: "Done thing", status: "done", order: 2 },
+  ];
+
+  const view = standup(quests, tasks, [], local(16, 10));
+  assert.deepEqual(view.inFlight, [
+    { kind: "quest", id: "q1", title: "First", startedAt: iso(10, 9) },
+    { kind: "quest", id: "q2", title: "Second", startedAt: iso(15, 9) },
+    { kind: "task", id: "t1", title: "Printer", startedAt: null },
+  ]);
+});
+
+test("standup groups what finished by day, newest first, back to the last weekday", () => {
+  // A Monday: the window is Friday through today.
+  const now = local(14, 9, 30);
+  const quests = [
+    { id: "a", title: "Shipped Friday", status: "shipped", finishedAs: "shipped", finishedAt: iso(11, 16) },
+    { id: "b", title: "Let go Saturday", status: "let_go", finishedAs: "let_go", finishedAt: iso(12, 11) },
+    { id: "c", title: "Shipped Thursday", status: "shipped", finishedAs: "shipped", finishedAt: iso(10, 16) },
+    { id: "d", title: "Old record, no finishedAs", status: "shipped", finishedAt: iso(11, 9) },
+  ];
+  const tasks = [
+    { id: "t1", title: "Early", status: "done", finishedAs: "done", finishedAt: iso(14, 8, 5) },
+    { id: "t2", title: "Later", status: "done", finishedAs: "done", finishedAt: iso(14, 9, 0) },
+    { id: "t3", title: "Undated", status: "done", finishedAt: null },
+  ];
+
+  const view = standup(quests, tasks, [], now);
+  assert.deepEqual(view.days.map((d) => d.label), ["Today", "Saturday", "Friday"],
+    "Sunday had nothing and is left out; Thursday is before the window");
+
+  assert.deepEqual(view.days[0].items.map((r) => r.title), ["Later", "Early"], "newest first within a day");
+  assert.deepEqual(view.days[0].items[0], { kind: "task", id: "t2", title: "Later", outcome: "done", at: local(14, 9).getTime() });
+  assert.deepEqual(view.days[1].items.map((r) => r.outcome), ["let_go"]);
+  assert.deepEqual(view.days[2].items.map((r) => [r.title, r.outcome]), [
+    ["Shipped Friday", "shipped"],
+    ["Old record, no finishedAs", "shipped"],
+  ]);
+});
+
+test("a reopened quest is in flight, not finished, even with a finishedAt in the window", () => {
+  const now = local(16, 14);
+  const quests = [
+    { id: "a", title: "Bounced", status: "in_progress", finishedAs: "shipped", finishedAt: iso(16, 9), startedAt: iso(15, 9) },
+  ];
+
+  const view = standup(quests, [], [], now);
+  assert.deepEqual(view.inFlight.map((r) => r.id), ["a"]);
+  assert.deepEqual(view.days[0].items, [], "not listed twice");
+});
+
+test("today is always there, and a day earns its place with sessions alone", () => {
+  const now = local(16, 14);
+  const sessions = [
+    { questId: null, startedAt: iso(15, 9), endedAt: iso(15, 9, 25) },
+    { questId: "q", startedAt: iso(15, 10), endedAt: iso(15, 10, 50) },
+    { questId: "q", startedAt: iso(9, 10), endedAt: iso(9, 10, 50) },
+    { questId: "q", startedAt: iso(16, 10), endedAt: null },
+  ];
+
+  const view = standup([], [], sessions, now);
+  assert.deepEqual(view.days.map((d) => [d.label, d.items.length, d.sessions, d.workedMs]), [
+    ["Today", 0, 0, 0],
+    ["Yesterday", 0, 2, 75 * 60000],
+  ]);
+  assert.equal(view.days[1].start, local(15).getTime());
+});
+
+test("an empty log is an empty standup with today in it", () => {
+  const view = standup([], [], [], local(16, 14));
+  assert.deepEqual(view.inFlight, []);
+  assert.deepEqual(view.days.map((d) => d.label), ["Today"]);
 });

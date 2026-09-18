@@ -67,6 +67,7 @@
     <button class="tab" data-tab="quests" role="tab" aria-selected="false">Quests</button>
     <button class="tab" data-tab="tasks" role="tab" aria-selected="false">Tasks</button>
     <button class="tab" data-tab="focus" role="tab" aria-selected="false">Focus<span class="tab-dot" id="focusDot" hidden></span></button>
+    <button class="tab" data-tab="standup" role="tab" aria-selected="false">Standup</button>
   </nav>
   <div class="chrome-actions">
     <button class="btn primary" id="addQuestBtn" title="Create a quest (Ctrl+N)">+ Quest</button>
@@ -220,6 +221,12 @@
     </details>
 
     <div class="empty-state" id="tasksEmpty" hidden>No tasks yet.</div>
+  </section>
+
+  <!-- Read-only: what is in flight and what finished, by day, back to the
+       last weekday. features/standup.js renders the whole thing into here. -->
+  <section class="screen" id="standupScreen" hidden>
+    <div id="standup"></div>
   </section>
 
 </div>

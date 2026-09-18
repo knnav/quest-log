@@ -23,7 +23,7 @@ import {
   TIERS, TIER_LABEL, DEFAULT_TIER, STATUSES, STATUS_LABEL, WIP_LIMIT, countByStatus, isQuestTerminal, isImportant
 } from "../core/domain.js";
 import { escapeHtml } from "../core/html.js";
-import { daysSince, spanMs, msOf, MS_PER_DAY } from "../core/dates.js";
+import { daysSince, relativeDay, spanMs, msOf, MS_PER_DAY } from "../core/dates.js";
 import { enableDragSort } from "../ui/dragSort.js";
 import { bindCardDetail } from "../ui/detail.js";
 import { starHtml } from "../ui/star.js";
@@ -230,31 +230,36 @@ export function bindQuestActions(container) {
     });
   });
 
-  bindCardDetail(container, ".quest-card", function (id) {
-    var quest = latestDocs.filter(function (q) { return q.id === id; })[0];
-    if (!quest) return null;
-    var archived = isArchived(quest);
-    return {
-      title: quest.title,
-      tags: quest.tags || [],
-      text: quest.hook,
-      rows: detailRows(quest),
-      onEdit: function () { questModal.open(quest); },
-      onDelete: function () { return onDeleteQuest(quest.id); },
-      letGo: quest.status === "let_go" || archived ? null : function () { return onLetGo(quest); },
-      // Only a finished card can be put away; the store enforces the same.
-      archive: !archived && isQuestTerminal(quest.status)
-        ? function () { archiveQuests([quest.id]); return true; }
-        : null,
-      restore: archived ? function () { restoreQuest(quest.id); return true; } : null,
-      prioritize: !archived && !isQuestTerminal(quest.status) && !isImportant(quest)
-        ? function () { setImportant(quest.id, true); return true; }
-        : null,
-      deprioritize: isImportant(quest)
-        ? function () { setImportant(quest.id, false); return true; }
-        : null
-    };
-  });
+  bindCardDetail(container, ".quest-card", questDetail);
+}
+
+// The detail view of one quest, by id, for ui/detail.js — every action wired
+// to this module's own writes. Exported so a view outside this tab (the
+// standup) can open the same modal without this module rendering it.
+export function questDetail(id) {
+  var quest = latestDocs.filter(function (q) { return q.id === id; })[0];
+  if (!quest) return null;
+  var archived = isArchived(quest);
+  return {
+    title: quest.title,
+    tags: quest.tags || [],
+    text: quest.hook,
+    rows: detailRows(quest),
+    onEdit: function () { questModal.open(quest); },
+    onDelete: function () { return onDeleteQuest(quest.id); },
+    letGo: quest.status === "let_go" || archived ? null : function () { return onLetGo(quest); },
+    // Only a finished card can be put away; the store enforces the same.
+    archive: !archived && isQuestTerminal(quest.status)
+      ? function () { archiveQuests([quest.id]); return true; }
+      : null,
+    restore: archived ? function () { restoreQuest(quest.id); return true; } : null,
+    prioritize: !archived && !isQuestTerminal(quest.status) && !isImportant(quest)
+      ? function () { setImportant(quest.id, true); return true; }
+      : null,
+    deprioritize: isImportant(quest)
+      ? function () { setImportant(quest.id, false); return true; }
+      : null
+  };
 }
 
 function detailRows(q) {
@@ -282,16 +287,6 @@ function detailRows(q) {
 function spanDays(fromIso, toIso) {
   var ms = spanMs(fromIso, toIso);
   return ms === null ? null : Math.max(1, Math.round(ms / MS_PER_DAY));
-}
-
-function relativeDay(iso) {
-  var days = daysSince(iso);
-  if (days === null) return "at some point";
-  if (days === 0) return "today";
-  if (days === 1) return "yesterday";
-  if (days < 30) return days + " days ago";
-  var months = Math.round(days / 30);
-  return months === 1 ? "a month ago" : months + " months ago";
 }
 
 // The single entry point for status changes from the board. Both gates live

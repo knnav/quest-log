@@ -551,3 +551,88 @@ test("a star click on the board writes the flag and nothing else", async () => {
   assert.deepEqual(calls, [["q3", { important: true }]]);
   assert.equal(doc.getElementById("detailModalOverlay").hidden, true);
 });
+
+// ---- standup ----
+
+test("the Standup tab lists what is in flight and what finished, by day", async () => {
+  // Timestamps sit at a fixed hour of today and yesterday, so the row text
+  // is deterministic; the sessions bridge is optional and stubbed here.
+  const today = new Date();
+  today.setHours(10, 30, 0, 0);
+  const yesterday = new Date(today.getTime() - DAY);
+  yesterday.setHours(16, 5, 0, 0);
+  const longAgo = new Date(Date.now() - 40 * DAY).toISOString();
+
+  const quests = [
+    { id: "q1", title: "Doing it", hook: "h", tier: "easy", tags: [], dod: "d", status: "in_progress", order: 1, startedAt: yesterday.toISOString() },
+    { id: "q2", title: "Fresh ship", hook: "h", tier: "easy", tags: [], dod: "d", status: "shipped", order: 2, finishedAt: today.toISOString(), finishedAs: "shipped" },
+    { id: "q3", title: "Ancient ship", hook: "h", tier: "easy", tags: [], dod: "d", status: "shipped", order: 3, finishedAt: longAgo, finishedAs: "shipped" },
+  ];
+  const tasks = [
+    { id: "t1", title: "Plants", note: "watered", status: "done", order: 1, finishedAt: yesterday.toISOString(), finishedAs: "done" },
+    { id: "t2", title: "Printer", note: "", status: "in_progress", order: 2, startedAt: today.toISOString() },
+  ];
+  const dom = await boot(quests, tasks);
+  const doc = dom.window.document;
+  dom.window.questLog.listSessions = () => Promise.resolve([
+    { questId: "q1", startedAt: yesterday.toISOString(), endedAt: new Date(yesterday.getTime() + 25 * 60000).toISOString() },
+  ]);
+
+  doc.querySelector('.tab[data-tab="standup"]').dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  assert.equal(doc.getElementById("standupScreen").hidden, false);
+  assert.equal(doc.getElementById("addQuestBtn").hidden, false, "the create button stays");
+
+  const headings = Array.from(doc.querySelectorAll("#standup .tier-title")).map((el) => el.textContent);
+  // Yesterday may be a weekend day, in which case the window reaches further
+  // back; the first three headings are the fixed part.
+  assert.deepEqual(headings.slice(0, 3), ["In flight", "Today", "Yesterday"]);
+
+  const rowsOf = (n) => Array.from(doc.querySelectorAll("#standup .standup-tier")[n].querySelectorAll(".standup-row"))
+    .map((row) => [row.getAttribute("data-kind"), row.querySelector(".standup-title").textContent, row.querySelector(".standup-when").textContent]);
+
+  assert.deepEqual(rowsOf(0), [
+    ["quest", "Doing it", "Started yesterday"],
+    ["task", "Printer", "Started today"],
+  ]);
+  assert.deepEqual(rowsOf(1), [["quest", "Fresh ship", "Shipped 10:30"]]);
+  assert.deepEqual(rowsOf(2), [["task", "Plants", "Done 16:05"]]);
+  assert.ok(!doc.getElementById("standup").textContent.includes("Ancient ship"), "forty days ago is not standup material");
+
+  // A row opens the same detail modal a card does.
+  doc.querySelector('#standup .standup-row[data-id="t1"]').dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+  assert.equal(doc.getElementById("detailModalOverlay").hidden, false);
+  assert.equal(doc.getElementById("detailTitle").textContent, "Plants");
+  assert.equal(doc.getElementById("detailText").textContent, "watered");
+});
+
+test("an empty standup still has today in it", async () => {
+  const dom = await boot([], []);
+  const doc = dom.window.document;
+
+  const headings = Array.from(doc.querySelectorAll("#standup .tier-title")).map((el) => el.textContent);
+  assert.deepEqual(headings, ["In flight", "Today"]);
+  assert.deepEqual(
+    Array.from(doc.querySelectorAll("#standup .standup-empty")).map((el) => el.textContent),
+    ["Nothing in flight.", "Nothing finished yet."]
+  );
+});
+
+test("a finished session shows up in the standup's day total", async () => {
+  const dom = await boot(QUESTS, SIDE_QUESTS);
+  const doc = dom.window.document;
+  const ended = new Date();
+  dom.window.questLog.listSessions = () => Promise.resolve([
+    { questId: "q2", startedAt: new Date(ended.getTime() - 50 * 60000).toISOString(), endedAt: ended.toISOString() },
+  ]);
+
+  assert.equal(doc.querySelector("#standup .standup-sessions"), null, "nothing yet");
+
+  // The session-end path app.js runs: refresh sessions, then refetch quests,
+  // which re-renders the standup with the sessions it now has. quests.js is
+  // imported plainly so this is the instance the booted app.js wired up.
+  const { refreshSessions, refetchQuests } = await import("../js/features/quests.js");
+  await refreshSessions();
+  await refetchQuests();
+
+  assert.equal(doc.querySelector("#standup .standup-sessions").textContent, "1 session · 50m");
+});
