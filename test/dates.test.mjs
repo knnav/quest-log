@@ -1,6 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { msOf, spanMs, daysSince, MS_PER_DAY } from "../js/core/dates.js";
+import {
+  msOf, spanMs, daysSince, relativeDay, startOfDay, dayBefore, clockOf, MS_PER_DAY
+} from "../js/core/dates.js";
 
 // These replaced five hand-rolled copies of the same arithmetic, each with a
 // slightly different guard. The guard is the point of the extraction.
@@ -30,4 +32,35 @@ test("daysSince floors at zero so a future stamp reads as today", () => {
   assert.equal(daysSince("2026-01-01T00:00:00.000Z", now), 9);
   assert.equal(daysSince("2026-02-01T00:00:00.000Z", now), 0, "a clock that ran ahead");
   assert.equal(daysSince(null, now), null);
+});
+
+test("relativeDay reads in calendar days, then months, and never as nothing", () => {
+  // Local parts, so the day boundary is the local one in any zone.
+  const now = new Date(2026, 2, 10, 9, 0);
+  const at = (day, hour) => new Date(2026, 2, day, hour).toISOString();
+  const ago = (days) => new Date(now.getTime() - days * MS_PER_DAY).toISOString();
+
+  assert.equal(relativeDay(at(10, 8), now), "today");
+  assert.equal(relativeDay(at(9, 17), now), "yesterday", "sixteen hours ago, but a different day");
+  assert.equal(relativeDay(at(11, 2), now), "today", "a clock that ran ahead");
+  assert.equal(relativeDay(ago(12), now), "12 days ago");
+  assert.equal(relativeDay(ago(31), now), "a month ago");
+  assert.equal(relativeDay(ago(95), now), "3 months ago");
+  assert.equal(relativeDay(null, now), "at some point");
+});
+
+// Local-time helpers, built through local Date parts so they hold in any zone.
+test("startOfDay and dayBefore step by calendar day in local time", () => {
+  const noon = new Date(2026, 2, 15, 12, 30).getTime();
+  const midnight = new Date(2026, 2, 15, 0, 0).getTime();
+
+  assert.equal(startOfDay(noon), midnight);
+  assert.equal(startOfDay(midnight), midnight, "already at midnight");
+  assert.equal(dayBefore(midnight), new Date(2026, 2, 14).getTime());
+  assert.equal(dayBefore(new Date(2026, 2, 1).getTime()), new Date(2026, 1, 28).getTime(), "crosses a month");
+});
+
+test("clockOf is the zero-padded wall-clock time", () => {
+  assert.equal(clockOf(new Date(2026, 0, 1, 9, 5).getTime()), "09:05");
+  assert.equal(clockOf(new Date(2026, 0, 1, 14, 2)), "14:02", "a Date works too");
 });

@@ -1,4 +1,4 @@
-// The four top-level screens, and which one is showing.
+// The five top-level screens, and which one is showing.
 //
 // Screens are all present in index.html and toggled by `hidden`; a screen is
 // found by convention as #<id>Screen. The choice is remembered per browser
@@ -7,7 +7,7 @@
 
 const TAB_KEY = "quest-log-tab";
 
-export const TABS = ["home", "quests", "tasks", "focus"];
+export const TABS = ["home", "quests", "tasks", "focus", "standup"];
 
 var tabsEl, onChange = null;
 var active = "home";
@@ -62,7 +62,7 @@ function applyTab() {
     if (screen) screen.hidden = id !== active;
   });
 
-  // One scroller is shared by all four screens, so it keeps the outgoing
+  // One scroller is shared by all the screens, so it keeps the outgoing
   // screen's offset unless it is reset here.
   var scroller = document.querySelector(".app-scroll");
   if (scroller) scroller.scrollTop = 0;

@@ -134,27 +134,31 @@ export function bindTaskActions(container) {
     });
   });
 
-  bindCardDetail(container, ".task-card", function (id) {
-    var task = latestTasks.filter(function (s) { return s.id === id; })[0];
-    if (!task) return null;
-    var archived = isArchived(task);
-    return {
-      title: task.title,
-      text: task.note,
-      onEdit: function () { taskModal.open(task); },
-      onDelete: function () { return onDeleteTask(task.id); },
-      archive: !archived && task.status === "done"
-        ? function () { archiveTasks([task.id]); return true; }
-        : null,
-      restore: archived ? function () { restoreTask(task.id); return true; } : null,
-      prioritize: !archived && task.status !== "done" && !isImportant(task)
-        ? function () { setImportant(task.id, true); return true; }
-        : null,
-      deprioritize: isImportant(task)
-        ? function () { setImportant(task.id, false); return true; }
-        : null
-    };
-  });
+  bindCardDetail(container, ".task-card", taskDetail);
+}
+
+// The detail view of one task, by id — the task half of quests.js's
+// questDetail, exported for the same reason.
+export function taskDetail(id) {
+  var task = latestTasks.filter(function (s) { return s.id === id; })[0];
+  if (!task) return null;
+  var archived = isArchived(task);
+  return {
+    title: task.title,
+    text: task.note,
+    onEdit: function () { taskModal.open(task); },
+    onDelete: function () { return onDeleteTask(task.id); },
+    archive: !archived && task.status === "done"
+      ? function () { archiveTasks([task.id]); return true; }
+      : null,
+    restore: archived ? function () { restoreTask(task.id); return true; } : null,
+    prioritize: !archived && task.status !== "done" && !isImportant(task)
+      ? function () { setImportant(task.id, true); return true; }
+      : null,
+    deprioritize: isImportant(task)
+      ? function () { setImportant(task.id, false); return true; }
+      : null
+  };
 }
 
 // The Hall of Fame's "Archive all". Lives here rather than in app.js so this

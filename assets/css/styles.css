@@ -183,11 +183,14 @@ body {
 
 .tabs { display: flex; gap: 2px; min-width: 0; }
 
+/* Five tabs, the create button and the theme picker share 420px at the
+   minimum width; 10px of side padding is what lets "Standup" in without
+   the button wrapping. */
 .tab {
   font-family: inherit;
   font-size: 11.5px;
   white-space: nowrap;
-  padding: 11px 12px 9px;
+  padding: 11px 10px 9px;
   border: none;
   border-bottom: 2px solid transparent;
   background: transparent;
@@ -205,7 +208,7 @@ body {
 
 .chrome-actions { display: flex; align-items: center; gap: 6px; padding: 5px 0; }
 
-.chrome-actions .btn { font-size: 11px; padding: 7px 11px; }
+.chrome-actions .btn { font-size: 11px; padding: 7px 11px; white-space: nowrap; }
 
 /* ---- focus tab ---- */
 
@@ -282,6 +285,82 @@ body.session-done .focus-clock { color: var(--fire-outer); }
   font-size: 11.5px;
   color: var(--text-dim);
 }
+
+/* ---- standup tab ---- */
+
+/* Rows, not cards: a list to read down, one line each. Sections reuse the
+   board's tier heading so "Today" sits in the same face as "Hall of Fame". */
+.standup-tier { margin-bottom: 28px; }
+
+.standup-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.standup-row {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  min-width: 0;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.standup-row:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-glow);
+}
+
+/* The kind, in the panel's colours: quests wear the in-progress colour,
+   tasks stay neutral. */
+.standup-kind {
+  flex: none;
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--status-progress);
+  background: var(--status-progress-bg);
+}
+
+.standup-kind.task {
+  color: var(--text-dim);
+  background: var(--chip-bg);
+}
+
+.standup-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+/* The outcome and the clock, at the far end: "Shipped 14:02". */
+.standup-when {
+  flex: none;
+  font-size: 10.5px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.standup-empty,
+.standup-sessions {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+.standup-empty { font-style: italic; }
+
+.standup-sessions { margin-top: 8px; }
 
 /* ---- the hearth face ---- */
 

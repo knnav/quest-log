@@ -13,14 +13,15 @@ import { initTitlebar } from "./ui/titlebar.js";
 import { initMotd } from "./features/motd.js";
 import {
   initQuests, loadQuests, refetchQuests, refreshSessions, getSessions, cardHtml,
-  bindQuestActions, getInProgressQuests, openCreateQuest, getAllQuests,
+  bindQuestActions, getInProgressQuests, openCreateQuest, getAllQuests, questDetail,
   getStatusCounts as questCounts
 } from "./features/quests.js";
 import {
   initTasks, loadTasks, taskCardHtml, bindTaskActions,
   getTasksByStatus, getNextUpTasks, getArchivedTasks, archiveDoneTasks, openCreateTask, persistTaskOrder,
-  getAllTasks, getStatusCounts as taskCounts
+  getAllTasks, taskDetail, getStatusCounts as taskCounts
 } from "./features/tasks.js";
+import { initStandup, renderStandup } from "./features/standup.js";
 import { enableDragSort } from "./ui/dragSort.js";
 import { initDetail } from "./ui/detail.js";
 import { initTabs, showTab } from "./ui/tabs.js";
@@ -46,10 +47,11 @@ function renderProgressGrid() {
 function renderProgress() {
   renderProgressGrid();
 
-  // Both depend on what's in progress, so they follow it rather than being
-  // refreshed on their own schedule.
+  // All of these depend on what's in progress, so they follow it rather than
+  // being refreshed on their own schedule.
   renderFocusQuests();
   renderHome();
+  renderStandup();
   pushInFlight();
 }
 
@@ -95,6 +97,7 @@ function renderTasks() {
 
   document.getElementById("tasksEmpty").hidden = getAllTasks().length > 0;
   renderHome();
+  renderStandup();
   pushInFlight();
 }
 
@@ -105,6 +108,10 @@ function homeData() {
     questCounts: questCounts(),
     taskCounts: taskCounts()
   };
+}
+
+function standupData() {
+  return { quests: getAllQuests(), tasks: getAllTasks(), sessions: getSessions() };
 }
 
 function anyModalOpen() {
@@ -139,7 +146,12 @@ function syncCreateButton(tab) {
   document.getElementById("addTaskBtn").hidden = tab !== "tasks";
 }
 
-initTabs(syncCreateButton);
+initTabs(function (tab) {
+  syncCreateButton(tab);
+  // The standup groups by day, so it is redrawn on the way in rather than
+  // trusting a render from before midnight.
+  if (tab === "standup") renderStandup();
+});
 initDetail();
 initGates();
 
@@ -156,6 +168,7 @@ initSession({
 });
 initLevelUp();
 initHome(homeData, { onLevelUp: chime });
+initStandup(standupData, { quest: questDetail, task: taskDetail });
 initHearth();
 initQuests(renderProgress, renderProgressGrid);
 initTasks(renderTasks);

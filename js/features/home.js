@@ -13,6 +13,7 @@ import {
 } from "../core/fire.js";
 import { totalXp, levelFor, growthFor } from "../core/xp.js";
 import { oldestWaiting } from "../core/records.js";
+import { clockOf } from "../core/dates.js";
 import { pickMotd, motdHtml } from "./motd.js";
 import { showLevelUp } from "../ui/levelUp.js";
 import { WIP_LIMIT, STALE_DAYS } from "../core/domain.js";
@@ -131,7 +132,7 @@ export function renderHome() {
     sinceLabelEl.textContent = "since your last drop";
   }
 
-  clockEl.textContent = formatClock(now);
+  clockEl.textContent = clockOf(now);
 
   renderStale(data, now);
 
@@ -199,11 +200,6 @@ function renderStats(el, rows) {
     return '<div class="stat-row"><span class="stat-label">' + row[0] +
       '</span><span class="stat-value">' + row[1] + '</span></div>';
   }).join("");
-}
-
-function formatClock(date) {
-  return String(date.getHours()).padStart(2, "0") + ":" +
-    String(date.getMinutes()).padStart(2, "0");
 }
 
 // Re-renders on the wall-clock minute, not every 60s from load, so the clock
