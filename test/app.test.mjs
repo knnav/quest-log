@@ -328,17 +328,17 @@ test("with no tasks at all, the tab shows one empty state", async () => {
   assert.equal(doc.getElementById("tasksHallOfFame").hidden, true);
 });
 
-test("the create button follows the active tab", async () => {
+test("both create buttons are offered on every tab", async () => {
   const dom = await boot(QUESTS, SIDE_QUESTS);
   const doc = dom.window.document;
 
   assert.equal(doc.getElementById("addQuestBtn").hidden, false, "home offers + Quest");
-  assert.equal(doc.getElementById("addTaskBtn").hidden, true);
+  assert.equal(doc.getElementById("addTaskBtn").hidden, false, "home offers + Task");
 
   doc.querySelector('.tab[data-tab="tasks"]')
     .dispatchEvent(new dom.window.Event("click", { bubbles: true }));
 
-  assert.equal(doc.getElementById("addQuestBtn").hidden, true);
+  assert.equal(doc.getElementById("addQuestBtn").hidden, false);
   assert.equal(doc.getElementById("addTaskBtn").hidden, false);
 });
 
@@ -580,7 +580,8 @@ test("the Standup tab lists what is in flight and what finished, by day", async 
 
   doc.querySelector('.tab[data-tab="standup"]').dispatchEvent(new dom.window.Event("click", { bubbles: true }));
   assert.equal(doc.getElementById("standupScreen").hidden, false);
-  assert.equal(doc.getElementById("addQuestBtn").hidden, false, "the create button stays");
+  assert.equal(doc.getElementById("addQuestBtn").hidden, false, "the create buttons stay");
+  assert.equal(doc.getElementById("addTaskBtn").hidden, false);
 
   const headings = Array.from(doc.querySelectorAll("#standup .tier-title")).map((el) => el.textContent);
   // Yesterday may be a weekend day, in which case the window reaches further

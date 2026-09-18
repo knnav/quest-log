@@ -48,9 +48,12 @@ let panelDismissed = false;
 // cannot be a *face* of this window, because the hearth already is one and
 // both have to be on screen at once. On unless switched off; see syncPanel.
 const HEARTH = { width: 220, height: 210 };
-// The default opens at two card columns (the grid needs ~574px for that);
-// the minimum is one column and the maximum keeps it at two.
-const BOARD = { width: 600, height: 880, minWidth: 420, minHeight: 600, maxWidth: 720, maxHeight: 4000 };
+// The default opens at two card columns (the grid needs ~574px for that)
+// and two card rows tall, with the next tier's heading just showing so the
+// board reads as scrollable. The minimum width is what the header needs
+// (five tabs, two create buttons, the theme picker) and gives one column;
+// the maximum keeps it at two.
+const BOARD = { width: 600, height: 620, minWidth: 490, minHeight: 600, maxWidth: 720, maxHeight: 4000 };
 // Never taller than the hearth: the two sit side by side in one band, so a
 // panel that fits on screen wherever the hearth does needs no clamping as it
 // grows. Six rows plus an overflow line come to ~155px, well inside this.
@@ -182,7 +185,7 @@ function centredOnPrimary(size) {
 }
 
 // First launch: the default size, shortened to fit a small screen's work
-// area (a laptop at 768 tall can't hold 880) but never below the minimum.
+// area but never below the minimum.
 function defaultBoardBounds() {
   const area = screen.getPrimaryDisplay().workArea;
   return centredOnPrimary({

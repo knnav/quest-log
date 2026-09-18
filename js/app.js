@@ -139,15 +139,7 @@ function initShortcuts() {
 initTheme();
 initTitlebar();
 initShortcuts();
-// One create button in the header, retargeted per tab — two buttons plus the
-// tab bar do not fit the 380px minimum window width.
-function syncCreateButton(tab) {
-  document.getElementById("addQuestBtn").hidden = tab === "tasks";
-  document.getElementById("addTaskBtn").hidden = tab !== "tasks";
-}
-
 initTabs(function (tab) {
-  syncCreateButton(tab);
   // The standup groups by day, so it is redrawn on the way in rather than
   // trusting a render from before midnight.
   if (tab === "standup") renderStandup();
