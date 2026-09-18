@@ -4,6 +4,7 @@ import { JSDOM } from "jsdom";
 
 const HEARTH_HTML = `
 <div class="hearth-view" id="hearthView">
+  <button id="peaceClose">✕</button>
   <div class="bonfire" data-stage="0"></div>
   <p class="hearth-view-quote" data-motd></p>
   <div class="hearth-view-session" id="hearthSession" hidden>
@@ -35,6 +36,8 @@ function setup(options) {
   win.windowControls = {
     expand: () => calls.push("expand"),
     collapse: () => calls.push("collapse"),
+    peace: () => calls.push("peace"),
+    leavePeace: () => calls.push("leave-peace"),
     minimize: () => calls.push("minimize"),
     close: () => calls.push("close"),
     hearthMenu: () => calls.push("menu"),
@@ -53,11 +56,12 @@ function setup(options) {
     onChange: (cb) => { sessionListener = cb; },
   };
 
+  const modes = [];
   moduleCounter += 1;
   return import(`../js/features/hearth.js?instance=${moduleCounter}`).then((mod) => {
-    mod.initHearth();
+    mod.initHearth({ onModeChange: (m) => modes.push(m) });
     return new Promise((resolve) => setTimeout(() => resolve({
-      dom, calls, mod,
+      dom, calls, mod, modes,
       pushMode: (m) => modeListener(m),
       pushSession: (v) => sessionListener(v),
     }), 0));
@@ -247,6 +251,45 @@ test("while the alarm is on, a click acknowledges and the face cannot be dragged
   pointer(dom, fire, "pointerup", { screenX: 0, screenY: 0 });
   await new Promise((r) => setTimeout(r, 30));
   assert.deepEqual(calls, ["ack", "drag-start", "drag-end"]);
+});
+
+test("peace is a mode of its own on the body, and every switch reaches the hook", async () => {
+  const { dom, modes, pushMode } = await setup();
+  const body = dom.window.document.body;
+
+  pushMode("peace");
+  assert.equal(body.getAttribute("data-mode"), "peace");
+  pushMode("hearth");
+  pushMode("board");
+  assert.deepEqual(modes.slice(-3), ["peace", "hearth", "board"]);
+});
+
+test("in peace, Escape and the × leave it; nothing else does anything", async () => {
+  const { dom, calls, pushMode } = await setup({ view: RUNNING });
+  const doc = dom.window.document;
+  const fire = doc.querySelector(".bonfire");
+  pushMode("peace");
+
+  // The hearth's ways out and its menu are switched off: no board on a
+  // double-click, no menu on a right-click, and the display can't be dragged.
+  dblclick(dom, fire);
+  fire.dispatchEvent(new dom.window.MouseEvent("contextmenu", { bubbles: true, cancelable: true }));
+  pointer(dom, fire, "pointerdown", { screenX: 100, screenY: 200 });
+  pointer(dom, fire, "pointermove", { screenX: 130, screenY: 180 });
+  pointer(dom, fire, "pointerup", { screenX: 130, screenY: 180 });
+  await new Promise((r) => setTimeout(r, 30));
+  assert.deepEqual(calls, []);
+
+  doc.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+  assert.deepEqual(calls, ["leave-peace"]);
+
+  doc.getElementById("peaceClose").click();
+  assert.deepEqual(calls, ["leave-peace", "leave-peace"]);
+
+  // Back on the hearth, Escape means the board again.
+  pushMode("hearth");
+  doc.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+  assert.deepEqual(calls, ["leave-peace", "leave-peace", "expand"]);
 });
 
 test("a plain click at rest is not an acknowledgement", async () => {

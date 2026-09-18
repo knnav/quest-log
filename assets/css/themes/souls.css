@@ -1,6 +1,7 @@
 /* Souls: ash and charred stone, lit only by the bonfire. */
 :root[data-theme="souls"] {
   --bg: #0a0908;
+  --peace-bg: #050404;
   --panel: #1a1f1a;
   --panel-border: #2f3a31;
   --text: #d9cfb8;

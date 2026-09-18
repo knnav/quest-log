@@ -1,7 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { JSDOM } from "jsdom";
 import { initTheme, THEMES } from "../js/ui/theme.js";
+
+const THEMES_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "assets", "css", "themes");
 
 const FIXTURE_HTML = `<!doctype html><body>
   <div class="theme-picker">
@@ -82,6 +87,15 @@ test("the button toggles the menu open and closed", () => {
   click(dom, btn);
   assert.equal(menu.hidden, true);
   assert.equal(btn.getAttribute("aria-expanded"), "false");
+});
+
+// Peace mode paints --peace-bg over the whole display, and the fallback is
+// plain black — a palette without its own would lose its colour there.
+test("every palette defines a peace background of its own", () => {
+  THEMES.filter((t) => t.id !== "system").forEach((t) => {
+    const css = fs.readFileSync(path.join(THEMES_DIR, t.id + ".css"), "utf-8");
+    assert.match(css, /--peace-bg:\s*#[0-9a-f]{6};/, t.id);
+  });
 });
 
 test("the menu lists every theme and marks the active one", () => {

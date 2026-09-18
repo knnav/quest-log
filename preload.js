@@ -73,6 +73,10 @@ contextBridge.exposeInMainWorld("windowControls", {
   close: () => ipcRenderer.send("window:close"),
   expand: () => ipcRenderer.send("window:expand"),
   collapse: () => ipcRenderer.send("window:collapse"),
+  // Peace covers the display with the fire; leaving goes back to whichever
+  // face it was entered from.
+  peace: () => ipcRenderer.send("window:peace"),
+  leavePeace: () => ipcRenderer.send("window:leave-peace"),
   dragStart: () => ipcRenderer.send("window:drag-start"),
   dragMove: (dx, dy) => ipcRenderer.send("window:drag-move", dx, dy),
   dragEnd: () => ipcRenderer.send("window:drag-end"),

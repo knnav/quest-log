@@ -134,7 +134,9 @@ function startCreate(kind) {
 function initShortcuts() {
   document.addEventListener("keydown", function (e) {
     if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== "n") return;
-    if (anyModalOpen()) return;
+    // Not in peace: a form would open unseen under it, and the Escape meant
+    // to leave would close the form as well.
+    if (anyModalOpen() || document.body.getAttribute("data-mode") === "peace") return;
     e.preventDefault();
     startCreate(e.shiftKey ? "task" : "quest");
   });
@@ -171,7 +173,9 @@ initSession({
 initLevelUp();
 initHome(homeData, { onLevelUp: chime });
 initStandup(standupData, { quest: questDetail, task: taskDetail });
-initHearth();
+// The quote comes from a different pool in peace mode, so every switch
+// repaints it.
+initHearth({ onModeChange: renderHome });
 initQuests(renderProgress, renderProgressGrid);
 initTasks(renderTasks);
 // Static markup, so bound once; the quest board binds its own on each render.

@@ -37,10 +37,11 @@ let panelData = { rows: [], hidden: 0 };
 // in the original ask — closable *and* disablable — and they are not the same.
 let panelDismissed = false;
 
-// One window, two modes. The hearth is the tiny always-on-top resident that
-// lives in a screen corner; the board is the full app. Switching is a
-// setBounds + a flag pushed to the renderer, never a second BrowserWindow, so
-// theme, session and data plumbing exist once.
+// One window, three modes. The hearth is the tiny always-on-top resident that
+// lives in a screen corner; the board is the full app; peace is the hearth
+// face blown up to cover the whole display, for when the rest of the screen
+// is the problem. Switching is a setBounds + a flag pushed to the renderer,
+// never a second BrowserWindow, so theme, session and data plumbing exist once.
 //
 // The In Flight panel is the one deliberate exception. It belongs to mini
 // mode: it appears when the board folds into the hearth and goes when the
@@ -59,6 +60,9 @@ const BOARD = { width: 600, height: 620, minWidth: 490, minHeight: 600, maxWidth
 // grows. Six rows plus an overflow line come to ~155px, well inside this.
 const PANEL = { width: 210, minHeight: 46, maxHeight: HEARTH.height };
 let mode = "board";
+// Where peace mode goes back to: it is entered from either face and leaves
+// to the same one, so it never has to decide what the user wanted.
+let peaceFrom = "board";
 
 function sessionView() {
   if (!session) {
@@ -212,7 +216,9 @@ function launchBounds() {
 // switch, so each mode comes back exactly where it was left.
 function rememberBounds() {
   const win = liveWindow();
-  if (!win) return;
+  // Peace mode has no geometry of its own — it is always the display — and
+  // must never be saved as the board's.
+  if (!win || mode === "peace") return;
   const b = win.getBounds();
   if (mode === "hearth") store.setUi({ hearth: { x: b.x, y: b.y } });
   else store.setUi({ board: b });
@@ -275,6 +281,46 @@ function expandToBoard() {
   // The board shows what is in progress by itself; the panel would only sit
   // on top of it.
   syncPanel();
+}
+
+// Peace: the display, the fire, a line of text, and nothing else. Not OS
+// fullscreen — a frameless window sized to the display's full bounds (not
+// the work area, so the taskbar goes too) and pinned above everything looks
+// the same, and reuses the one geometry path that is known to behave on
+// Windows instead of adding fullscreen's own set of quirks (it fights the
+// min/max constraints the other two modes rely on). Entered from either
+// face; left with Escape or the × back to whichever it was.
+function enterPeace() {
+  const win = liveWindow();
+  if (!win || mode === "peace") return;
+  rememberBounds();
+  peaceFrom = mode;
+  mode = "peace";
+
+  const bounds = screen.getDisplayMatching(win.getBounds()).bounds;
+  // Ceiling before floor, same as the board switch, and pinned min == max
+  // like the hearth so a stray resize can't shrink it.
+  win.setMaximumSize(bounds.width, bounds.height);
+  win.setMinimumSize(bounds.width, bounds.height);
+  win.setBounds(bounds);
+  win.setAlwaysOnTop(true, "screen-saver");
+  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  win.show();
+  win.focus();
+  pushMode();
+
+  // The panel is for mini mode; here it would be a list on top of the calm.
+  syncPanel();
+}
+
+function leavePeace() {
+  const win = liveWindow();
+  if (!win || mode !== "peace") return;
+  // Drop the floor first: the display-sized minimum is above both faces'
+  // maximums, and on Windows a ceiling set below the active floor is refused.
+  win.setMinimumSize(HEARTH.width, HEARTH.height);
+  if (peaceFrom === "hearth") collapseToHearth();
+  else expandToBoard();
 }
 
 // ---- the In Flight panel ------------------------------------------------
@@ -565,6 +611,7 @@ function showHearthMenu() {
     { label: "New quest", click: () => createFromHearth("quest") },
     { label: "New task", click: () => createFromHearth("task") },
     { type: "separator" },
+    { label: "Peace", click: enterPeace },
     {
       label: "In Flight panel in mini mode",
       type: "checkbox",
@@ -673,6 +720,7 @@ function trayMenu() {
   return Menu.buildFromTemplate([
     { label: "Open board", click: expandToBoard },
     { label: "Back to hearth", click: collapseToHearth },
+    { label: "Peace", click: enterPeace },
     {
       label: "In Flight panel in mini mode",
       type: "checkbox",
@@ -692,7 +740,11 @@ function createTray() {
   tray = new Tray(path.join(__dirname, "assets", "tray.png"));
   tray.setToolTip("Quest Log");
   tray.setContextMenu(trayMenu());
-  tray.on("click", () => (mode === "board" ? collapseToHearth() : expandToBoard()));
+  tray.on("click", () => {
+    if (mode === "peace") leavePeace();
+    else if (mode === "board") collapseToHearth();
+    else expandToBoard();
+  });
 }
 
 function registerIpcHandlers() {
@@ -719,6 +771,8 @@ function registerIpcHandlers() {
   ipcMain.on("window:close", confirmQuit);
   ipcMain.on("window:expand", expandToBoard);
   ipcMain.on("window:collapse", collapseToHearth);
+  ipcMain.on("window:peace", enterPeace);
+  ipcMain.on("window:leave-peace", leavePeace);
   ipcMain.handle("window:get-mode", () => mode);
   ipcMain.on("window:drag-start", beginDrag);
   ipcMain.on("window:drag-move", (event, dx, dy) => dragBy(Number(dx) || 0, Number(dy) || 0));

@@ -1,6 +1,7 @@
 /* Hyrule: kokiri green and triforce gold. */
 :root[data-theme="hyrule"] {
   --bg: #0f1a12;
+  --peace-bg: #070c08;
   --panel: #172619;
   --panel-border: #2f4a33;
   --text: #e8f0d8;

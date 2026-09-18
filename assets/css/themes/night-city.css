@@ -1,6 +1,7 @@
 /* Night City: black chrome and hazard yellow. */
 :root[data-theme="night-city"] {
   --bg: #0a0a0a;
+  --peace-bg: #040404;
   --panel: #141414;
   --panel-border: #2e2e2e;
   --text: #f4f4e8;

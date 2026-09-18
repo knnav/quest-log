@@ -57,5 +57,25 @@
     { "text": "Sit quietly, doing nothing. Spring comes, and the grass grows by itself.", "by": "Zen proverb" },
     { "text": "Be content with what you have; rejoice in the way things are.", "by": "Laozi" },
     { "text": "Nature does not hurry, yet everything is accomplished.", "by": "Laozi" }
+  ],
+  "peace": [
+    { "text": "Nothing is asked of you here.", "by": "" },
+    { "text": "Just the fire, for a while.", "by": "" },
+    { "text": "Everything can wait for the length of a breath.", "by": "" },
+    { "text": "Slow is fine. Still is fine.", "by": "" },
+    { "text": "There is nowhere else to be right now.", "by": "" },
+    { "text": "The coals are warm. That is enough for now.", "by": "" },
+    { "text": "Nothing here needs tending.", "by": "" },
+    { "text": "The fire keeps itself. So can this moment.", "by": "" },
+    { "text": "Sitting quietly, doing nothing, spring comes, and the grass grows by itself.", "by": "Zen proverb" },
+    { "text": "Nature does not hurry, yet everything is accomplished.", "by": "Laozi" },
+    { "text": "Muddy water is best cleared by leaving it alone.", "by": "Alan Watts" },
+    { "text": "Nothing in the world is as soft and yielding as water.", "by": "Laozi" },
+    { "text": "Silence is a source of great strength.", "by": "Laozi" },
+    { "text": "You are the sky. Everything else is just the weather.", "by": "Pema Chödrön" },
+    { "text": "Wherever you are, be there totally.", "by": "Eckhart Tolle" },
+    { "text": "Smile, breathe, and go slowly.", "by": "Thích Nhất Hạnh" },
+    { "text": "Feelings come and go like clouds in a windy sky. Conscious breathing is my anchor.", "by": "Thích Nhất Hạnh" },
+    { "text": "This too shall pass.", "by": "Persian adage" }
   ]
 }

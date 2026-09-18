@@ -37,9 +37,19 @@ function boot(quests, tasks, options) {
     updateQuest: () => Promise.resolve({}),
     updateTask: () => Promise.resolve({}),
   };
-  win.motd = { list: () => Promise.resolve(["a line"]) };
-  // What main.js sends after the hearth menu's "New quest" / "New task".
-  win.windowControls = { onCreate: (cb) => { dom.create = cb; } };
+  win.motd = { list: () => Promise.resolve({ default: ["a line"], peace: ["be still"] }) };
+  // What main.js sends after the hearth menu's "New quest" / "New task", and
+  // the mode it pushes on every switch.
+  dom.windowCalls = [];
+  win.windowControls = {
+    onCreate: (cb) => { dom.create = cb; },
+    onModeChange: (cb) => { dom.pushMode = cb; },
+    getMode: () => Promise.resolve("board"),
+    peace: () => dom.windowCalls.push("peace"),
+    leavePeace: () => dom.windowCalls.push("leave-peace"),
+    minimize: () => dom.windowCalls.push("minimize"),
+    close: () => dom.windowCalls.push("close"),
+  };
   win.matchMedia = () => ({ matches: false, addEventListener() {} });
 
   // The panel lives in another window, so the board only ever pushes to it.
@@ -210,6 +220,30 @@ test("the quote is painted under the stage label and into the hearth face alike"
 test("the window boots in board mode when there is no window bridge", async () => {
   const dom = await boot([], []);
   assert.equal(dom.window.document.body.getAttribute("data-mode"), "board");
+});
+
+test("peace mode reads its own pool, holds the line, and hands the board's back on the way out", async () => {
+  const dom = await boot(QUESTS, SIDE_QUESTS);
+  const doc = dom.window.document;
+  const hearth = doc.querySelector("#hearthView [data-motd]");
+  assert.equal(hearth.querySelector(".motd-text").textContent, "a line");
+
+  dom.pushMode("peace");
+  assert.equal(doc.body.getAttribute("data-mode"), "peace");
+  assert.equal(hearth.querySelector(".motd-text").textContent, "be still");
+
+  // A data change while in peace re-renders the home screen; the line stays.
+  dom.window.dispatchEvent(new dom.window.Event("focus"));
+  assert.equal(hearth.querySelector(".motd-text").textContent, "be still");
+
+  dom.pushMode("hearth");
+  assert.equal(hearth.querySelector(".motd-text").textContent, "a line");
+});
+
+test("the title bar's peace button asks the main process for peace", async () => {
+  const dom = await boot([], []);
+  dom.window.document.getElementById("peaceBtn").click();
+  assert.deepEqual(dom.windowCalls, ["peace"]);
 });
 
 test("an empty log shows embers and no elapsed time", async () => {

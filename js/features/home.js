@@ -26,6 +26,11 @@ var getData = null;
 var onLevelUp = null;
 var tickTimer = null;
 
+// The line peace mode is showing, held for as long as it lasts. Every other
+// face re-rolls the quote on each render; peace is entered to sit with one
+// thing, so it keeps the one it opened with. Cleared on the way out.
+var peaceLine = null;
+
 // The level as of the last render, so a render can tell a level-up from a
 // first paint. Not tracked until armLedger(): quests and tasks arrive in
 // separate loads at boot, and a threshold crossed between the two would
@@ -136,7 +141,7 @@ export function renderHome() {
 
   renderStale(data, now);
 
-  var html = motdHtml(pickMotd(situationOf(data, stage)));
+  var html = motdHtml(pickQuote(data, stage));
   motdEls.forEach(function (el) { el.innerHTML = html; });
 }
 
@@ -178,6 +183,19 @@ function renderStale(data, now) {
 
   staleEl.textContent = "\u201c" + oldest.title + "\u201d has been waiting " + oldest.days + " days.";
   staleEl.hidden = false;
+}
+
+// Peace reads from its own pool and never from the board: a line about what
+// is in flight, or how cold the fire is, is exactly the reading it exists to
+// get away from. hearth.js repaints on every mode switch (app.js wires
+// initHearth's onModeChange to renderHome), so the swap is immediate.
+function pickQuote(data, stage) {
+  if (document.body.getAttribute("data-mode") !== "peace") {
+    peaceLine = null;
+    return pickMotd(situationOf(data, stage));
+  }
+  if (!peaceLine) peaceLine = pickMotd("peace");
+  return peaceLine;
 }
 
 // Maps the current board state to a motd pool name. Order matters: the checks

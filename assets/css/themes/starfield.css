@@ -1,6 +1,7 @@
 /* Starfield: deep space, nebula violet, starlight fire. */
 :root[data-theme="starfield"] {
   --bg: #05060f;
+  --peace-bg: #020307;
   --panel: #0d1020;
   --panel-border: #222848;
   --text: #e6e9ff;
