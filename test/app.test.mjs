@@ -398,7 +398,7 @@ test("what is in flight is pushed to the panel window", async () => {
   const last = dom.pushes[dom.pushes.length - 1];
 
   // q2 is the only quest in progress here, and no task is.
-  assert.deepEqual(last, { rows: [{ kind: "quest", title: "Doing it" }], hidden: 0 });
+  assert.deepEqual(last, { rows: [{ kind: "quest", title: "Doing it" }], nextUp: [], hidden: 0 });
 });
 
 test("in-progress tasks reach the panel too, after the quests", async () => {
@@ -510,4 +510,44 @@ test("the tasks Hall of Fame's 'Archive all' sweeps the done tasks", async () =>
 
   assert.deepEqual(calls.map((c) => c[0]), ["s1"]);
   assert.ok(calls[0][1].archivedAt);
+});
+
+// ---- next up ----
+
+test("starred backlog cards get a Next up section on both tabs and a block in the panel", async () => {
+  const quests = [QUESTS[0], QUESTS[1], Object.assign({}, QUESTS[2], { important: true })];
+  const tasks = [SIDE_QUESTS[0], Object.assign({}, SIDE_QUESTS[1], { important: true })];
+
+  const dom = await boot(quests, tasks);
+  const doc = dom.window.document;
+
+  // Quests: the starred one has left Medium for Next up.
+  const headings = Array.from(doc.querySelectorAll("#board section.tier .tier-title")).map((el) => el.textContent);
+  assert.deepEqual(headings, ["Next up", "Hall of Fame"]);
+  assert.equal(doc.querySelector("#board .next-up-tier .card-title").textContent, "Waiting");
+  assert.ok(doc.querySelector("#board .next-up-tier .star-btn.on"));
+
+  // Tasks: same shape, in static markup.
+  assert.equal(doc.getElementById("nextUpTasks").hidden, false);
+  assert.equal(doc.getElementById("nextUpTasksGrid").querySelector(".card-title").textContent, "Bank");
+  assert.equal(doc.getElementById("backlogTasks").hidden, true, "nothing plain left in Backlog");
+
+  // The panel gets both, quests first, under what is in flight.
+  const last = dom.pushes[dom.pushes.length - 1];
+  assert.deepEqual(last.rows.map((r) => r.title), ["Doing it"]);
+  assert.deepEqual(last.nextUp, [{ kind: "quest", title: "Waiting" }, { kind: "task", title: "Bank" }]);
+});
+
+test("a star click on the board writes the flag and nothing else", async () => {
+  const dom = await boot(QUESTS, SIDE_QUESTS);
+  const doc = dom.window.document;
+  const calls = [];
+  dom.window.questLog.updateQuest = (id, data) => { calls.push([id, data]); return Promise.resolve({}); };
+
+  assert.equal(doc.getElementById("nextUpTasks").hidden, true, "nothing starred yet");
+  doc.querySelector('#board .quest-card[data-id="q3"] .star-btn')
+    .dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+
+  assert.deepEqual(calls, [["q3", { important: true }]]);
+  assert.equal(doc.getElementById("detailModalOverlay").hidden, true);
 });

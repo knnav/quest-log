@@ -254,11 +254,11 @@ test("cards carry no buttons at all — edit and delete live in the detail modal
   assert.ok(card, "expected a card to render");
   assert.equal(card.querySelector(".card-actions"), null);
 
-  // Status pills are the only buttons a card should still carry.
+  // Status pills and the next-up star are the only buttons a card still carries.
   const buttons = Array.from(card.querySelectorAll("button"));
   assert.ok(buttons.length > 0);
-  assert.ok(buttons.every((b) => b.classList.contains("status-btn")),
-    "the only buttons left on a card are its status pills");
+  assert.ok(buttons.every((b) => b.classList.contains("status-btn") || b.classList.contains("star-btn")),
+    "the only buttons left on a card are its status pills and the star");
 });
 
 test("clicking a quest card opens the detail modal, and its Edit button opens the form", async () => {
@@ -924,4 +924,103 @@ test("'Archive all' sweeps what the section shows, after a confirm", async () =>
   assert.match(asked[1], /Archive 1 shipped quest\?/);
   assert.deepEqual(calls.map((c) => c[0]), ["a"]);
   assert.ok(calls[0][1].archivedAt);
+});
+
+// ---- next up ----
+
+test("cardHtml carries the next-up star on open cards only, lit when marked", () => {
+  const plain = cardHtml(backlogQuest({ id: "a" }));
+  assert.match(plain, /star-btn/);
+  assert.ok(!plain.includes("star-btn on"), "unlit until marked");
+  assert.ok(!plain.includes("important-card"));
+  assert.match(plain, /data-important="0"/);
+  assert.match(plain, /&#9734;/, "the hollow star");
+
+  const marked = cardHtml(backlogQuest({ id: "a", important: true }));
+  assert.match(marked, /star-btn on/);
+  assert.match(marked, /important-card/);
+  assert.match(marked, /data-important="1"/);
+  assert.match(marked, /&#9733;/, "the filled star");
+  assert.ok(!marked.includes("&#128293;") && !/fire/.test(marked), "never the fire glyph");
+
+  assert.ok(cardHtml(backlogQuest({ id: "a", status: "in_progress", important: true })).includes("star-btn on"),
+    "a started card keeps its star");
+  assert.ok(!cardHtml(finishedQuest({ id: "a" })).includes("star-btn"), "a finished card cannot be next up");
+  assert.ok(!cardHtml(finishedQuest({ id: "a", archivedAt: "2026-09-11T00:00:00.000Z" })).includes("star-btn"));
+});
+
+test("starred backlog quests leave their scope tier for a Next up section of their own", async () => {
+  const { doc } = await bootBoard([
+    backlogQuest({ id: "a", title: "Plain easy", tier: "easy", order: 1 }),
+    backlogQuest({ id: "b", title: "Starred hard", tier: "hard", order: 2, important: true }),
+    backlogQuest({ id: "c", title: "Starred easy", tier: "easy", order: 3, important: true }),
+    backlogQuest({ id: "d", title: "Started", status: "in_progress", order: 4, important: true }),
+  ]);
+
+  const sections = Array.from(doc.querySelectorAll("#board section.tier")).map((s) => ({
+    title: s.querySelector(".tier-title").textContent,
+    cards: Array.from(s.querySelectorAll(".card-title")).map((el) => el.textContent),
+  }));
+  assert.deepEqual(sections, [
+    { title: "Next up", cards: ["Starred hard", "Starred easy"] },
+    { title: "Easy", cards: ["Plain easy"] },
+  ], "next up comes first, in drag order, and a starred card is in no tier");
+
+  assert.ok(doc.querySelector("#board .next-up-tier .quest-card").hasAttribute("draggable"),
+    "the queue is hand-sorted like any backlog section");
+});
+
+test("clicking the star marks and unmarks without opening the detail view", async () => {
+  const calls = [];
+  const { dom, doc } = await bootBoard([
+    backlogQuest({ id: "a", title: "Plain", order: 1 }),
+    backlogQuest({ id: "b", title: "Starred", order: 2, important: true }),
+  ], {
+    updateQuest: (id, data) => { calls.push([id, data]); return Promise.resolve({}); },
+  });
+
+  click(dom, doc.querySelector('#board .quest-card[data-id="a"] .star-btn'));
+  assert.deepEqual(calls[0], ["a", { important: true }]);
+  assert.equal(doc.getElementById("detailModalOverlay").hidden, true, "the star is not the card");
+
+  click(dom, doc.querySelector('#board .quest-card[data-id="b"] .star-btn'));
+  assert.deepEqual(calls[1], ["b", { important: false }]);
+});
+
+test("the detail view offers Mark next up on an open card and Unmark on a starred one", async () => {
+  const calls = [];
+  const { dom, doc } = await bootBoard([
+    backlogQuest({ id: "open", title: "Open", order: 1 }),
+    backlogQuest({ id: "starred", title: "Starred", order: 2, important: true }),
+    finishedQuest({ id: "done", title: "Done", order: 3 }),
+    finishedQuest({ id: "gone", title: "Gone", order: 4, archivedAt: "2026-09-11T00:00:00.000Z" }),
+  ], {
+    updateQuest: (id, data) => { calls.push([id, data]); return Promise.resolve({}); },
+  });
+
+  const cardFor = (id) => doc.querySelector(`#board .quest-card[data-id="${id}"]`);
+  const markBtn = doc.getElementById("detailPrioritizeBtn");
+  const unmarkBtn = doc.getElementById("detailDeprioritizeBtn");
+
+  click(dom, cardFor("open"));
+  assert.equal(markBtn.hidden, false);
+  assert.equal(unmarkBtn.hidden, true);
+  click(dom, markBtn);
+  assert.deepEqual(calls[0], ["open", { important: true }]);
+  assert.equal(doc.getElementById("detailModalOverlay").hidden, true, "closes on success");
+
+  click(dom, cardFor("starred"));
+  assert.equal(markBtn.hidden, true);
+  assert.equal(unmarkBtn.hidden, false);
+  click(dom, unmarkBtn);
+  assert.deepEqual(calls[1], ["starred", { important: false }]);
+
+  click(dom, cardFor("done"));
+  assert.equal(markBtn.hidden, true, "a finished card cannot be next up");
+  assert.equal(unmarkBtn.hidden, true);
+  click(dom, doc.getElementById("detailCloseBtn"));
+
+  click(dom, cardFor("gone"));
+  assert.equal(markBtn.hidden, true);
+  assert.equal(unmarkBtn.hidden, true);
 });

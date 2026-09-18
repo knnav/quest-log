@@ -604,6 +604,18 @@ body.is-panel { background: var(--panel); }
 
 .panel-empty[hidden] { display: none; }
 
+/* The next-up queue under the in-flight rows. Same face as the panel title,
+   dimmed, so it reads as a sub-heading rather than a second panel. */
+.panel-subhead {
+  margin: 6px 0 3px;
+  font-family: "Press Start 2P", monospace;
+  font-size: 7px;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+}
+
+.panel-section[hidden] { display: none; }
+
 .screen { display: flex; flex-direction: column; flex: 1 0 auto; }
 .screen[hidden] { display: none; }
 
@@ -1408,6 +1420,32 @@ section.tier { margin-bottom: 34px; }
   margin: 0;
   line-height: 1.4;
 }
+
+/* The next-up star. Unlit it is barely there, so a board full of cards is not
+   a board full of stars; it surfaces on hover, and lit it wears the accent.
+   A star, not the fire — the fire means "burned as fuel". */
+.star-btn {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  margin: -2px -4px 0 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--text-dim);
+  opacity: 0.35;
+  cursor: pointer;
+  transition: opacity 0.12s ease, color 0.12s ease;
+}
+
+.card:hover .star-btn,
+.star-btn:focus-visible { opacity: 1; }
+.star-btn:hover { color: var(--accent); }
+.star-btn.on { opacity: 1; color: var(--accent); }
 
 .card-hook {
   font-size: 12.5px;

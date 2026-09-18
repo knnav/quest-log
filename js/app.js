@@ -18,7 +18,7 @@ import {
 } from "./features/quests.js";
 import {
   initTasks, loadTasks, taskCardHtml, bindTaskActions,
-  getTasksByStatus, getArchivedTasks, archiveDoneTasks, openCreateTask, persistTaskOrder,
+  getTasksByStatus, getNextUpTasks, getArchivedTasks, archiveDoneTasks, openCreateTask, persistTaskOrder,
   getAllTasks, getStatusCounts as taskCounts
 } from "./features/tasks.js";
 import { enableDragSort } from "./ui/dragSort.js";
@@ -88,6 +88,7 @@ function renderTaskArchive() {
 
 function renderTasks() {
   renderTaskSection("progressTasks", "progressTasksGrid", getTasksByStatus("in_progress"));
+  renderTaskSection("nextUpTasks", "nextUpTasksGrid", getNextUpTasks());
   renderTaskSection("backlogTasks", "backlogTasksGrid", getTasksByStatus("backlog"));
   renderTaskSection("tasksHallOfFame", "tasksHallOfFameGrid", getTasksByStatus("done"));
   renderTaskArchive();

@@ -8,10 +8,11 @@
 // As with quests, archived tasks stay in the list for the ledger and the fire
 // and only drop out of the by-status views the board is built from.
 
-import { TASK_STATUSES, TASK_STATUS_LABEL, countByStatus } from "../core/domain.js";
+import { TASK_STATUSES, TASK_STATUS_LABEL, countByStatus, isImportant } from "../core/domain.js";
 import { escapeHtml } from "../core/html.js";
 import { msOf } from "../core/dates.js";
 import { bindCardDetail } from "../ui/detail.js";
+import { starHtml } from "../ui/star.js";
 import { createModal } from "../ui/modal.js";
 
 var latestTasks = [];
@@ -66,11 +67,24 @@ function isArchived(task) {
   return !!task.archivedAt;
 }
 
-// The board's sections: archived tasks are out of all of them.
+function byOrder(a, b) {
+  return (a.order || 0) - (b.order || 0);
+}
+
+function isNextUp(task) {
+  return task.status === "backlog" && isImportant(task) && !isArchived(task);
+}
+
+// The board's sections: archived tasks are out of all of them, and the starred
+// backlog tasks are out of Backlog because they have a section of their own.
 export function getTasksByStatus(status) {
   return latestTasks
-    .filter(function (s) { return s.status === status && !isArchived(s); })
-    .sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+    .filter(function (s) { return s.status === status && !isArchived(s) && !isNextUp(s); })
+    .sort(byOrder);
+}
+
+export function getNextUpTasks() {
+  return latestTasks.filter(isNextUp).sort(byOrder);
 }
 
 // Newest finish first, like the quest board's Hall of Fame.
@@ -92,11 +106,15 @@ export function taskCardHtml(task) {
   var archived = isArchived(task);
   var statusRow = archived ? "" : '<div class="status-row">' + statusBtns + '</div>';
 
+  // Only an open task can be next up; the store ignores the flag on done ones.
+  var star = archived || task.status === "done" ? "" : starHtml(task);
+
   return (
     '<div class="card task-card' + (archived ? " archived-card" : "") +
+    (isImportant(task) ? " important-card" : "") +
     '" data-id="' + task.id + '" data-drag-id="' + task.id + '">' +
     '<div class="card-head">' +
-    '<h3 class="card-title">' + escapeHtml(task.title) + '</h3>' +
+    '<h3 class="card-title">' + escapeHtml(task.title) + '</h3>' + star +
     '</div>' +
     statusRow +
     '</div>'
@@ -107,6 +125,12 @@ export function bindTaskActions(container) {
   container.querySelectorAll(".task-status-btn").forEach(function (btn) {
     btn.addEventListener("click", function () {
       setTaskStatus(btn.getAttribute("data-id"), btn.getAttribute("data-status"));
+    });
+  });
+
+  container.querySelectorAll(".task-card .star-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      setImportant(btn.getAttribute("data-id"), btn.getAttribute("data-important") !== "1");
     });
   });
 
@@ -122,7 +146,13 @@ export function bindTaskActions(container) {
       archive: !archived && task.status === "done"
         ? function () { archiveTasks([task.id]); return true; }
         : null,
-      restore: archived ? function () { restoreTask(task.id); return true; } : null
+      restore: archived ? function () { restoreTask(task.id); return true; } : null,
+      prioritize: !archived && task.status !== "done" && !isImportant(task)
+        ? function () { setImportant(task.id, true); return true; }
+        : null,
+      deprioritize: isImportant(task)
+        ? function () { setImportant(task.id, false); return true; }
+        : null
     };
   });
 }
@@ -147,6 +177,10 @@ function archiveTasks(ids) {
 
 function restoreTask(id) {
   window.questLog.updateTask(id, { archivedAt: null }).then(refetchTasks).catch(function () {});
+}
+
+function setImportant(id, flag) {
+  window.questLog.updateTask(id, { important: !!flag }).then(refetchTasks).catch(function () {});
 }
 
 function setTaskStatus(id, status) {

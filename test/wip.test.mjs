@@ -19,6 +19,7 @@ test("only what is in progress is in flight", () => {
       { kind: "quest", title: "Doing" },
       { kind: "task", title: "Plants" },
     ],
+    nextUp: [],
     hidden: 0,
   });
 });
@@ -32,8 +33,8 @@ test("quests come before tasks, each in the board's own order", () => {
 });
 
 test("an empty board is empty rather than null", () => {
-  assert.deepEqual(wipItems([], []), { rows: [], hidden: 0 });
-  assert.deepEqual(wipItems(null, undefined), { rows: [], hidden: 0 });
+  assert.deepEqual(wipItems([], []), { rows: [], nextUp: [], hidden: 0 });
+  assert.deepEqual(wipItems(null, undefined), { rows: [], nextUp: [], hidden: 0 });
 });
 
 test("untitled and missing items are dropped, not drawn blank", () => {
@@ -61,4 +62,54 @@ test("the cap defaults to the panel's row count", () => {
 test("a nonsense cap falls back rather than emptying the panel", () => {
   const quests = [quest("Doing", "in_progress", 1)];
   assert.deepEqual(wipItems(quests, [], 0).rows, [{ kind: "quest", title: "Doing" }]);
+});
+
+// ---- next up ----
+
+const starred = (item) => Object.assign(item, { important: true });
+
+test("starred backlog cards are next up, quests then tasks in board order", () => {
+  const quests = [
+    starred(quest("Second", "backlog", 5)),
+    quest("Plain", "backlog", 1),
+    starred(quest("First", "backlog", 2)),
+  ];
+  const tasks = [starred(task("Bank", "backlog", 3)), task("Plants", "backlog", 1)];
+
+  assert.deepEqual(wipItems(quests, tasks), {
+    rows: [],
+    nextUp: [
+      { kind: "quest", title: "First" },
+      { kind: "quest", title: "Second" },
+      { kind: "task", title: "Bank" },
+    ],
+    hidden: 0,
+  });
+});
+
+test("a starred card in progress is in flight, not next up — no card appears twice", () => {
+  const quests = [starred(quest("Doing", "in_progress", 1)), starred(quest("Done", "shipped", 2))];
+  const { rows, nextUp } = wipItems(quests, []);
+  assert.deepEqual(rows.map((r) => r.title), ["Doing"]);
+  assert.deepEqual(nextUp, []);
+});
+
+test("the cap is shared: in-flight rows take the space first and the overflow counts both", () => {
+  const quests = [1, 2, 3, 4, 5].map((n) => quest("Q" + n, "in_progress", n));
+  const tasks = [1, 2, 3].map((n) => starred(task("N" + n, "backlog", n)));
+
+  const { rows, nextUp, hidden } = wipItems(quests, tasks, 6);
+  assert.equal(rows.length, 5);
+  assert.deepEqual(nextUp.map((r) => r.title), ["N1"]);
+  assert.equal(hidden, 2, "two next-up tasks did not fit");
+});
+
+test("a full in-flight list leaves next up empty but still counted", () => {
+  const quests = [1, 2, 3, 4, 5, 6, 7].map((n) => quest("Q" + n, "in_progress", n));
+  const tasks = [starred(task("N1", "backlog", 1))];
+
+  const { rows, nextUp, hidden } = wipItems(quests, tasks, 6);
+  assert.equal(rows.length, 6);
+  assert.deepEqual(nextUp, []);
+  assert.equal(hidden, 2);
 });

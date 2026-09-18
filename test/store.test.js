@@ -529,6 +529,50 @@ test("restoring clears the archive flag and nothing else", () => {
   assert.equal(restored.finishedAt, done.finishedAt);
 });
 
+// The next-up flag is the archive flag's mirror image: it only ever sits on an
+// open card. It is a mark, not a status, so nothing else on the record moves.
+test("the next-up flag persists on an open card and survives a restart", () => {
+  const storePath = emptyStorePath();
+  const store = createStore(storePath);
+  const quest = store.createQuest({ title: "Q" });
+  assert.equal(quest.important, false, "new quests start unmarked");
+  assert.equal(store.createTask({ title: "T" }).important, false, "so do tasks");
+
+  const marked = store.updateQuest(quest.id, { important: true });
+  assert.equal(marked.important, true);
+  assert.equal(marked.status, "backlog");
+  assert.equal(marked.startedAt, null, "marking is not starting");
+
+  const reread = createStore(storePath).getQuests().find((q) => q.id === quest.id);
+  assert.equal(reread.important, true);
+
+  assert.equal(store.updateQuest(quest.id, { important: false }).important, false);
+});
+
+test("a next-up card is always an open one", () => {
+  const store = createStore(emptyStorePath());
+
+  // It survives starting — a card that falls back out of progress is still
+  // the one to pick up first — but shipping spends it.
+  const quest = store.createQuest({ title: "Q" });
+  store.updateQuest(quest.id, { important: true });
+  assert.equal(store.updateQuest(quest.id, { status: "in_progress" }).important, true);
+  assert.equal(store.updateQuest(quest.id, { status: "backlog" }).important, true);
+  const shipped = store.updateQuest(quest.id, { status: "shipped" });
+  assert.equal(shipped.important, false);
+  assert.ok(shipped.finishedAt, "finishing still stamps the record");
+
+  // Setting it on a finished card is ignored, and reopening does not resurrect it.
+  assert.equal(store.updateQuest(quest.id, { important: true }).important, false);
+  assert.equal(store.updateQuest(quest.id, { status: "backlog" }).important, false);
+
+  // Same rules for tasks.
+  const task = store.createTask({ title: "T" });
+  assert.equal(store.updateTask(task.id, { important: true }).important, true);
+  assert.equal(store.updateTask(task.id, { status: "done" }).important, false);
+  assert.equal(store.updateTask(task.id, { important: true }).important, false);
+});
+
 test("ui prefs start empty, merge on write, and survive a restart", () => {
   const storePath = tempStorePath();
   const store = createStore(storePath);

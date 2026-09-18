@@ -4,6 +4,8 @@ export const DETAIL_MODAL_HTML = `
     <div class="modal">
       <div class="detail-head">
         <h2 id="detailTitle"></h2>
+        <button type="button" id="detailPrioritizeBtn">Mark next up</button>
+        <button type="button" id="detailDeprioritizeBtn">Unmark</button>
         <button type="button" id="detailArchiveBtn">Archive</button>
         <button type="button" id="detailRestoreBtn">Restore</button>
       </div>
