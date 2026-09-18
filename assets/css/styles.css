@@ -183,9 +183,9 @@ body {
 
 .tabs { display: flex; gap: 2px; min-width: 0; }
 
-/* Five tabs, the create button and the theme picker share 420px at the
-   minimum width; 10px of side padding is what lets "Standup" in without
-   the button wrapping. */
+/* Five tabs, both create buttons and the theme picker share 490px at the
+   minimum width (BOARD.minWidth in main.js); at 10px of side padding that
+   is exactly what they need, so a wider tab or button means a wider window. */
 .tab {
   font-family: inherit;
   font-size: 11.5px;

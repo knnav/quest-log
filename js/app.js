@@ -118,36 +118,38 @@ function anyModalOpen() {
   return !!document.querySelector(".modal-overlay:not([hidden])");
 }
 
+// Switch tabs before opening the form: new items land in a backlog, so
+// creating one from another tab would otherwise appear to do nothing.
+function startCreate(kind) {
+  if (anyModalOpen()) return;
+  if (kind === "task") {
+    showTab("tasks");
+    openCreateTask();
+  } else {
+    showTab("quests");
+    openCreateQuest();
+  }
+}
+
 function initShortcuts() {
   document.addEventListener("keydown", function (e) {
     if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== "n") return;
     if (anyModalOpen()) return;
     e.preventDefault();
-
-    // Switch tabs before opening the form: new items land in a backlog, so
-    // creating one from another tab would otherwise appear to do nothing.
-    if (e.shiftKey) {
-      showTab("tasks");
-      openCreateTask();
-    } else {
-      showTab("quests");
-      openCreateQuest();
-    }
+    startCreate(e.shiftKey ? "task" : "quest");
   });
+
+  // The hearth's right-click menu: main.js expands to the board first, then
+  // says which form to open.
+  if (window.windowControls && window.windowControls.onCreate) {
+    window.windowControls.onCreate(startCreate);
+  }
 }
 
 initTheme();
 initTitlebar();
 initShortcuts();
-// One create button in the header, retargeted per tab — two buttons plus the
-// tab bar do not fit the 380px minimum window width.
-function syncCreateButton(tab) {
-  document.getElementById("addQuestBtn").hidden = tab === "tasks";
-  document.getElementById("addTaskBtn").hidden = tab !== "tasks";
-}
-
 initTabs(function (tab) {
-  syncCreateButton(tab);
   // The standup groups by day, so it is redrawn on the way in rather than
   // trusting a render from before midnight.
   if (tab === "standup") renderStandup();
