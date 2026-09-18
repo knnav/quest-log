@@ -197,12 +197,16 @@ test("stopping ends the session and returns the face to the chosen length", asyn
 
 test("today's tally counts only sessions that ended today", async () => {
   const { doc, mod } = await bootFocus([]);
-  const now = Date.now();
-  const yesterday = new Date(now - 30 * 3600000).toISOString();
+  // Anchored to today's midnight rather than the wall clock, so a run just
+  // after midnight can't push "30 minutes ago" onto yesterday.
+  const midnight = new Date();
+  midnight.setHours(0, 0, 0, 0);
+  const noon = midnight.getTime() + 12 * 3600000;
+  const yesterday = new Date(midnight.getTime() - 3600000).toISOString();
 
   mod.renderToday([
-    { startedAt: new Date(now - 25 * 60000).toISOString(), endedAt: new Date(now).toISOString() },
-    { startedAt: new Date(now - 80 * 60000).toISOString(), endedAt: new Date(now - 30 * 60000).toISOString() },
+    { startedAt: new Date(noon - 25 * 60000).toISOString(), endedAt: new Date(noon).toISOString() },
+    { startedAt: new Date(noon - 80 * 60000).toISOString(), endedAt: new Date(noon - 30 * 60000).toISOString() },
     { startedAt: yesterday, endedAt: yesterday },
   ]);
 

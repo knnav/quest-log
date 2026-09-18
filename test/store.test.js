@@ -470,6 +470,65 @@ test("recording a session does not stamp any completion time", () => {
   assert.equal(after.finishedAt, null);
 });
 
+// Archiving hides, it never deletes: the record and its four stamps stay
+// exactly as they were, so the ledger reads the same total before and after.
+test("archiving a finished quest keeps every stamp and survives a restart", () => {
+  const storePath = emptyStorePath();
+  const store = createStore(storePath);
+  const quest = store.createQuest({ title: "Q", tier: "medium" });
+  assert.equal(quest.archivedAt, null, "new quests start unarchived");
+
+  const shipped = store.updateQuest(quest.id, { status: "shipped" });
+  const archived = store.updateQuest(quest.id, { archivedAt: "2026-09-17T10:00:00.000Z" });
+
+  assert.equal(archived.archivedAt, "2026-09-17T10:00:00.000Z");
+  assert.equal(archived.status, "shipped");
+  assert.equal(archived.completedAt, shipped.completedAt);
+  assert.equal(archived.finishedAt, shipped.finishedAt);
+  assert.equal(archived.finishedAs, "shipped");
+
+  const reread = createStore(storePath).getQuests().find((q) => q.id === quest.id);
+  assert.equal(reread.archivedAt, "2026-09-17T10:00:00.000Z");
+});
+
+test("an archived card is always a finished one", () => {
+  const store = createStore(emptyStorePath());
+
+  // Setting the flag on an open card is ignored rather than stored.
+  const open = store.createQuest({ title: "Open" });
+  assert.equal(store.updateQuest(open.id, { archivedAt: "2026-09-17T10:00:00.000Z" }).archivedAt, null);
+
+  // Leaving a terminal state drops it, so a restored-then-reopened quest is
+  // back on the board rather than an archived backlog card.
+  const done = store.createQuest({ title: "Done" });
+  store.updateQuest(done.id, { status: "let_go" });
+  store.updateQuest(done.id, { archivedAt: "2026-09-17T10:00:00.000Z" });
+  const reopened = store.updateQuest(done.id, { status: "backlog" });
+  assert.equal(reopened.archivedAt, null);
+  assert.equal(reopened.finishedAs, "let_go", "history is untouched by the un-archive");
+
+  // Same rules for tasks.
+  const task = store.createTask({ title: "T" });
+  assert.equal(task.archivedAt, null);
+  assert.equal(store.updateTask(task.id, { archivedAt: "2026-09-17T10:00:00.000Z" }).archivedAt, null);
+  store.updateTask(task.id, { status: "done" });
+  assert.equal(store.updateTask(task.id, { archivedAt: "2026-09-17T10:00:00.000Z" }).archivedAt, "2026-09-17T10:00:00.000Z");
+  assert.equal(store.updateTask(task.id, { status: "in_progress" }).archivedAt, null);
+});
+
+test("restoring clears the archive flag and nothing else", () => {
+  const store = createStore(emptyStorePath());
+  const task = store.createTask({ title: "T" });
+  const done = store.updateTask(task.id, { status: "done" });
+  store.updateTask(task.id, { archivedAt: "2026-09-17T10:00:00.000Z" });
+
+  const restored = store.updateTask(task.id, { archivedAt: null });
+  assert.equal(restored.archivedAt, null);
+  assert.equal(restored.status, "done");
+  assert.equal(restored.completedAt, done.completedAt);
+  assert.equal(restored.finishedAt, done.finishedAt);
+});
+
 test("ui prefs start empty, merge on write, and survive a restart", () => {
   const storePath = tempStorePath();
   const store = createStore(storePath);

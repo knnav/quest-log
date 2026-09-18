@@ -197,9 +197,20 @@
     </section>
 
     <section class="tier" id="tasksHallOfFame" hidden>
-      <div class="tier-head"><h2 class="tier-title">Hall of Fame</h2></div>
+      <div class="tier-head">
+        <h2 class="tier-title">Hall of Fame</h2>
+        <button type="button" class="quiet-action" id="archiveDoneTasksBtn">Archive all</button>
+      </div>
       <div class="grid" id="tasksHallOfFameGrid"></div>
     </section>
+
+    <!-- Archived tasks: hidden from the sections above, kept for the ledger.
+         A <details>, so the folded/unfolded state lives in the DOM. The quest
+         board renders the same section into #board. -->
+    <details class="tier archive-tier" id="tasksArchive" hidden>
+      <summary class="tier-title">Archive · <span id="tasksArchiveCount">0</span></summary>
+      <div class="grid archive-grid" id="tasksArchiveGrid"></div>
+    </details>
 
     <div class="empty-state" id="tasksEmpty" hidden>No tasks yet.</div>
   </section>
@@ -209,7 +220,14 @@
 
 <div class="modal-overlay" id="detailModalOverlay" hidden>
   <div class="modal">
-    <h2 id="detailTitle"></h2>
+    <!-- Archive hides a finished card and keeps its record; Restore is the
+         way back. Only one of the two ever shows. Housekeeping, so it sits
+         up by the title rather than in the action row with Edit. -->
+    <div class="detail-head">
+      <h2 id="detailTitle"></h2>
+      <button type="button" class="quiet-action" id="detailArchiveBtn">Archive</button>
+      <button type="button" class="quiet-action" id="detailRestoreBtn">Restore</button>
+    </div>
     <div class="tags" id="detailTags" hidden></div>
     <p class="detail-text" id="detailText" hidden></p>
     <div class="detail-rows" id="detailRows"></div>

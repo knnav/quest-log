@@ -2,16 +2,20 @@
 // callers don't render it, they hand showDetail a plain description and it
 // fills the single #detailModalOverlay in index.html.
 //
-// Actions are passed in as callbacks. onDelete and letGo return a boolean —
-// true means the action went through and the modal should close — so the
-// caller owns its own confirmation and a cancelled action leaves the modal up.
+// Actions are passed in as callbacks. onDelete, letGo, archive and restore
+// return a boolean — true means the action went through and the modal should
+// close — so the caller owns its own confirmation and a cancelled action
+// leaves the modal up.
 
 import { escapeHtml } from "../core/html.js";
 
 var overlay, titleEl, tagsEl, textEl, rowsEl, closeBtn, editBtn, deleteBtn, letGoBtn;
+var archiveBtn, restoreBtn;
 var pendingEdit = null;
 var pendingDelete = null;
 var pendingLetGo = null;
+var pendingArchive = null;
+var pendingRestore = null;
 
 export function initDetail() {
   overlay = document.getElementById("detailModalOverlay");
@@ -25,6 +29,8 @@ export function initDetail() {
   editBtn = document.getElementById("detailEditBtn");
   deleteBtn = document.getElementById("detailDeleteBtn");
   letGoBtn = document.getElementById("detailLetGoBtn");
+  archiveBtn = document.getElementById("detailArchiveBtn");
+  restoreBtn = document.getElementById("detailRestoreBtn");
 
   closeBtn.addEventListener("click", closeDetail);
   overlay.addEventListener("click", function (e) {
@@ -46,12 +52,21 @@ export function initDetail() {
     if (pendingLetGo && pendingLetGo()) closeDetail();
   });
 
+  archiveBtn.addEventListener("click", function () {
+    if (pendingArchive && pendingArchive()) closeDetail();
+  });
+
+  restoreBtn.addEventListener("click", function () {
+    if (pendingRestore && pendingRestore()) closeDetail();
+  });
+
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape" && !overlay.hidden) closeDetail();
   });
 }
 
-// detail: { title, tags, text, rows: [{ label, value }], onEdit, onDelete, letGo }
+// detail: { title, tags, text, rows: [{ label, value }], onEdit, onDelete,
+//           letGo, archive, restore }
 // Each action is optional; its button is hidden when the callback is absent.
 // Rows with an empty value are dropped, so callers can build them unconditionally.
 export function showDetail(detail) {
@@ -60,6 +75,8 @@ export function showDetail(detail) {
   pendingEdit = detail.onEdit || null;
   pendingDelete = detail.onDelete || null;
   pendingLetGo = detail.letGo || null;
+  pendingArchive = detail.archive || null;
+  pendingRestore = detail.restore || null;
 
   titleEl.textContent = detail.title || "";
 
@@ -87,6 +104,8 @@ export function showDetail(detail) {
   editBtn.hidden = !pendingEdit;
   deleteBtn.hidden = !pendingDelete;
   letGoBtn.hidden = !pendingLetGo;
+  archiveBtn.hidden = !pendingArchive;
+  restoreBtn.hidden = !pendingRestore;
   overlay.hidden = false;
 }
 
@@ -96,6 +115,8 @@ export function closeDetail() {
   pendingEdit = null;
   pendingDelete = null;
   pendingLetGo = null;
+  pendingArchive = null;
+  pendingRestore = null;
 }
 
 // Makes every `selector` card in `container` open its detail view. Clicks that

@@ -87,6 +87,16 @@ function stampTimes(before, after, terminalStatuses, fuelOnce) {
   return { completedAt, finishedAt, finishedAs, startedAt };
 }
 
+// A fifth stamp, unlike the four above: archivedAt is set by hand, not derived
+// from a status change. Archiving hides a finished card from the board without
+// deleting it — the ledger reads finishedAt from every record, so a delete
+// would lower the level. The store only keeps the flag honest: an archived
+// card is always a finished one, so leaving a terminal state drops it and
+// setting it on an open card is ignored.
+function keepArchive(record, terminalStatuses) {
+  return terminalStatuses.includes(record.status) && record.archivedAt ? record.archivedAt : null;
+}
+
 const QUEST_TERMINAL = ["shipped", "let_go"];
 const TASK_TERMINAL = ["done"];
 
@@ -177,6 +187,7 @@ function createStore(storePath) {
       status: data.status || "backlog",
       createdAt: new Date().toISOString(),
       order: nextOrder(store.quests),
+      archivedAt: null,
     };
     Object.assign(quest, stampTimes(null, quest, QUEST_TERMINAL, FUEL_ONCE));
     store.quests.push(quest);
@@ -190,6 +201,7 @@ function createStore(storePath) {
     if (idx === -1) throw new Error(`Quest not found: ${id}`);
     const merged = Object.assign({}, store.quests[idx], data, { id });
     Object.assign(merged, stampTimes(store.quests[idx], merged, QUEST_TERMINAL, FUEL_ONCE));
+    merged.archivedAt = keepArchive(merged, QUEST_TERMINAL);
     store.quests[idx] = merged;
     writeStore(store);
     return merged;
@@ -221,6 +233,7 @@ function createStore(storePath) {
       status: data.status || "backlog",
       createdAt: new Date().toISOString(),
       order: nextOrder(store.tasks),
+      archivedAt: null,
     };
     Object.assign(task, stampTimes(null, task, TASK_TERMINAL, FUEL_EVERY_TIME));
     store.tasks.push(task);
@@ -234,6 +247,7 @@ function createStore(storePath) {
     if (idx === -1) throw new Error(`Task not found: ${id}`);
     const merged = Object.assign({}, store.tasks[idx], data, { id });
     Object.assign(merged, stampTimes(store.tasks[idx], merged, TASK_TERMINAL, FUEL_EVERY_TIME));
+    merged.archivedAt = keepArchive(merged, TASK_TERMINAL);
     store.tasks[idx] = merged;
     writeStore(store);
     return merged;

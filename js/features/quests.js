@@ -8,13 +8,20 @@
 // It re-renders wholesale rather than patching cards, which is what lets the
 // filter, the board and the In Progress block above it stay consistent.
 //
+// Archived quests stay in `latestDocs` — getAllQuests() hands them to the
+// ledger, the fire and the scope record, which read history and must not lose
+// it — and are only filtered out of the board's sections, where they sit
+// folded under an Archive heading instead.
+//
 // `onChange` is app.js's hook: it re-renders everything outside this tab that
 // depends on quests (the In Progress block, the focus picker, the home screen).
 // `onFilterChange` is the narrower one for the search box and tag chips: only
 // the In Progress block is filtered, so the home screen and focus picker are
 // left alone rather than rebuilt (and the motd re-rolled) on every keystroke.
 
-import { TIERS, TIER_LABEL, DEFAULT_TIER, STATUSES, STATUS_LABEL, WIP_LIMIT, countByStatus } from "../core/domain.js";
+import {
+  TIERS, TIER_LABEL, DEFAULT_TIER, STATUSES, STATUS_LABEL, WIP_LIMIT, countByStatus, isQuestTerminal
+} from "../core/domain.js";
 import { escapeHtml } from "../core/html.js";
 import { daysSince, spanMs, msOf, MS_PER_DAY } from "../core/dates.js";
 import { enableDragSort } from "../ui/dragSort.js";
@@ -73,6 +80,11 @@ export function initQuests(onQuestsChanged, onQuestFilterChanged) {
 
   questModal.field("tier").addEventListener("change", renderScopeNote);
 
+  // The filter state belongs to the document being wired up, not to whatever
+  // this module last held (tests boot several documents through it).
+  activeTags = [];
+  searchTerm = searchEl ? searchEl.value.trim().toLowerCase() : "";
+
   if (searchEl) {
     searchEl.addEventListener("input", function () {
       searchTerm = searchEl.value.trim().toLowerCase();
@@ -128,6 +140,10 @@ function byOrder(a, b) {
   return (a.order || 0) - (b.order || 0);
 }
 
+function isArchived(q) {
+  return !!q.archivedAt;
+}
+
 // Newest finish first. Used for the Hall of Fame and Ashes, which are ordered
 // by when they ended rather than by the drag order the backlog uses. The
 // timestamp is parsed once per quest rather than twice per comparison.
@@ -169,7 +185,13 @@ export function cardHtml(q) {
       escapeHtml(relativeDay(q.finishedAt)) + '</p>';
   }
 
-  var classes = "card quest-card" + (q.status === "let_go" ? " let-go-card" : "");
+  var classes = "card quest-card" +
+    (q.status === "let_go" ? " let-go-card" : "") +
+    (isArchived(q) ? " archived-card" : "");
+
+  // An archived card is read-only until it is restored: no pills, so nothing
+  // on it can change a status the store would then un-archive it for.
+  var statusRow = isArchived(q) ? "" : '<div class="status-row">' + statusBtns + '</div>';
 
   return (
     '<div class="' + classes + '" data-id="' + q.id + '" data-drag-id="' + q.id + '">' +
@@ -178,7 +200,7 @@ export function cardHtml(q) {
     '</div>' +
     '<div class="tags">' + tags + '</div>' +
     finished +
-    '<div class="status-row">' + statusBtns + '</div>' +
+    statusRow +
     '</div>'
   );
 }
@@ -190,9 +212,17 @@ export function bindQuestActions(container) {
     });
   });
 
+  // "Archive all" on a finished section sweeps what that section is showing.
+  container.querySelectorAll(".quiet-action[data-archive-status]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      onArchiveSection(btn.getAttribute("data-archive-status"));
+    });
+  });
+
   bindCardDetail(container, ".quest-card", function (id) {
     var quest = latestDocs.filter(function (q) { return q.id === id; })[0];
     if (!quest) return null;
+    var archived = isArchived(quest);
     return {
       title: quest.title,
       tags: quest.tags || [],
@@ -200,7 +230,12 @@ export function bindQuestActions(container) {
       rows: detailRows(quest),
       onEdit: function () { questModal.open(quest); },
       onDelete: function () { return onDeleteQuest(quest.id); },
-      letGo: quest.status === "let_go" ? null : function () { return onLetGo(quest); }
+      letGo: quest.status === "let_go" || archived ? null : function () { return onLetGo(quest); },
+      // Only a finished card can be put away; the store enforces the same.
+      archive: !archived && isQuestTerminal(quest.status)
+        ? function () { archiveQuests([quest.id]); return true; }
+        : null,
+      restore: archived ? function () { restoreQuest(quest.id); return true; } : null
     };
   });
 }
@@ -280,6 +315,31 @@ function setStatus(id, status) {
   window.questLog.updateQuest(id, { status: status }).then(refetchQuests).catch(function () {});
 }
 
+// Archiving is reversible, so a single card needs no confirmation; the sweep
+// asks, since it moves everything the section is showing at once.
+function archiveQuests(ids) {
+  var now = new Date().toISOString();
+  return Promise.all(ids.map(function (id) {
+    return window.questLog.updateQuest(id, { archivedAt: now }).catch(function () {});
+  })).then(refetchQuests);
+}
+
+function restoreQuest(id) {
+  window.questLog.updateQuest(id, { archivedAt: null }).then(refetchQuests).catch(function () {});
+}
+
+function onArchiveSection(status) {
+  var ids = latestDocs
+    .filter(function (q) { return q.status === status && !isArchived(q) && matchesFilter(q); })
+    .map(function (q) { return q.id; });
+  if (!ids.length) return;
+
+  var what = ids.length + " " + (status === "let_go" ? "let-go" : "shipped") +
+    (ids.length === 1 ? " quest" : " quests");
+  if (!window.confirm("Archive " + what + "?\n\nThey leave the board but keep their XP. Find them under Archive.")) return;
+  archiveQuests(ids);
+}
+
 function onLetGo(quest) {
   if (!window.confirm('Let go of "' + quest.title + '"?\n\nIt moves to Ashes and gives the fire a little kindling. You can bring it back any time.')) return false;
   setStatus(quest.id, "let_go");
@@ -320,11 +380,25 @@ function renderFilters() {
   });
 }
 
-function tierSection(title, quests, extraClass) {
+// `archiveStatus`, when given, puts an "Archive all" action in the head that
+// sweeps that status — only the finished sections offer it.
+function tierSection(title, quests, extraClass, archiveStatus) {
+  var action = archiveStatus
+    ? '<button type="button" class="quiet-action" data-archive-status="' + archiveStatus + '">Archive all</button>'
+    : "";
   return '<section class="tier' + (extraClass ? " " + extraClass : "") + '">' +
-    '<div class="tier-head"><h2 class="tier-title">' + escapeHtml(title) + '</h2></div>' +
+    '<div class="tier-head"><h2 class="tier-title">' + escapeHtml(title) + '</h2>' + action + '</div>' +
     '<div class="grid">' + quests.map(cardHtml).join("") + '</div>' +
     '</section>';
+}
+
+// Folded by default. A <details>, so its open state is the DOM's — the board
+// is rebuilt as a string on every change, so the caller carries it across.
+function archiveSection(quests, open) {
+  return '<details class="tier archive-tier"' + (open ? " open" : "") + '>' +
+    '<summary class="tier-title">Archive · ' + quests.length + '</summary>' +
+    '<div class="grid archive-grid">' + quests.map(cardHtml).join("") + '</div>' +
+    '</details>';
 }
 
 function renderBoard(quests) {
@@ -333,11 +407,13 @@ function renderBoard(quests) {
     return;
   }
 
-  var visible = quests.filter(matchesFilter);
+  var active = quests.filter(function (q) { return !isArchived(q); });
+  var archived = sortByFinishedDesc(quests.filter(isArchived).filter(matchesFilter));
+  var visible = active.filter(matchesFilter);
 
   // Sections are mutually exclusive by status, so every quest appears exactly
   // once: in progress (rendered by app.js above this board), its scope section,
-  // the Hall of Fame, or Ashes.
+  // the Hall of Fame, Ashes, or the Archive.
   var html = "";
   TIERS.forEach(function (tier) {
     var inTier = visible
@@ -348,23 +424,33 @@ function renderBoard(quests) {
   });
 
   var shipped = sortByFinishedDesc(visible.filter(function (q) { return q.status === "shipped"; }));
-  if (shipped.length) html += tierSection("Hall of Fame", shipped);
+  if (shipped.length) html += tierSection("Hall of Fame", shipped, "", "shipped");
 
   var letGo = sortByFinishedDesc(visible.filter(function (q) { return q.status === "let_go"; }));
-  if (letGo.length) html += tierSection("Ashes", letGo, "ashes-tier");
+  if (letGo.length) html += tierSection("Ashes", letGo, "ashes-tier", "let_go");
 
   if (!html) {
-    html = (activeTags.length || searchTerm)
-      ? '<div class="empty-state">Nothing matches that.</div>'
-      : '<div class="empty-state">Everything you have is in progress. Nothing left on the board.</div>';
+    if (activeTags.length || searchTerm) {
+      html = '<div class="empty-state">Nothing matches that.</div>';
+    } else if (!active.length) {
+      html = '<div class="empty-state">Nothing on the board. Everything finished is in the archive.</div>';
+    } else {
+      html = '<div class="empty-state">Everything you have is in progress. Nothing left on the board.</div>';
+    }
+  }
+
+  if (archived.length) {
+    var previous = boardEl.querySelector(".archive-tier");
+    html += archiveSection(archived, !!previous && previous.open);
   }
   boardEl.innerHTML = html;
 
   bindQuestActions(boardEl);
 
   // Per-grid, not per-board: dragging must not move a card between sections,
-  // and each section persists its own order.
-  boardEl.querySelectorAll(".grid").forEach(function (grid) {
+  // and each section persists its own order. The archive is ordered by when
+  // things finished, not by hand.
+  boardEl.querySelectorAll(".grid:not(.archive-grid)").forEach(function (grid) {
     enableDragSort(grid, persistQuestOrder);
   });
 }
@@ -384,8 +470,13 @@ function rerender() {
 function ingest(docs) {
   docs = (docs || []).filter(function (d) { return d.title; });
 
+  // Chips come from the cards on the board; a tag that survives only in the
+  // archive would be a chip that filters everything out.
   var tagSet = {};
-  docs.forEach(function (d) { (d.tags || []).forEach(function (t) { tagSet[t] = true; }); });
+  docs.forEach(function (d) {
+    if (isArchived(d)) return;
+    (d.tags || []).forEach(function (t) { tagSet[t] = true; });
+  });
   allTags = Object.keys(tagSet).sort();
 
   // Drop active tags that no longer exist on any quest, or the filter would

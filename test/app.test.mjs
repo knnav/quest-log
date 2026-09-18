@@ -453,3 +453,61 @@ test("with no panel bridge the switch is hidden rather than dead", async () => {
   const dom = await boot(QUESTS, SIDE_QUESTS, { noPanel: true });
   assert.equal(dom.window.document.getElementById("panelBtn").hidden, true);
 });
+
+// ---- archive ----
+
+// Archive hides; it never deletes. The ledger and the home columns must read
+// exactly the same with the flag set as without it, or archiving would be
+// the destructive cleanup it exists to replace.
+test("archived quests and tasks leave the board but not the ledger or the stats", async () => {
+  const flag = { archivedAt: new Date(Date.now() - DAY).toISOString() };
+  const quests = [
+    Object.assign({}, QUESTS[0], { finishedAt: QUESTS[0].completedAt, finishedAs: "shipped" }, flag),
+    QUESTS[1],
+    QUESTS[2],
+  ];
+  const tasks = [
+    Object.assign({}, SIDE_QUESTS[0], { finishedAt: SIDE_QUESTS[0].completedAt, finishedAs: "done" }, flag),
+    SIDE_QUESTS[1],
+  ];
+
+  const dom = await boot(quests, tasks);
+  const doc = dom.window.document;
+
+  // An easy ship (3) and a done task (1): the same 4 XP the flag-less fixture
+  // earns in the ledger tests above.
+  assert.equal(doc.getElementById("xp").querySelector("[data-xp-count]").textContent, "4 / 10");
+  assert.match(doc.getElementById("questStats").textContent, /Shipped1/);
+  assert.match(doc.getElementById("taskStats").textContent, /Done1/);
+
+  // Quests: the Hall of Fame is gone, the archive has taken its place.
+  const headings = Array.from(doc.querySelectorAll("#board section.tier .tier-title")).map((el) => el.textContent);
+  assert.deepEqual(headings, ["Medium"]);
+  const archive = doc.querySelector("#board details.archive-tier");
+  assert.equal(archive.querySelector("summary").textContent, "Archive · 1");
+  assert.equal(archive.querySelector(".card-title").textContent, "Shipped one");
+
+  // Tasks: same shape, in static markup.
+  assert.equal(doc.getElementById("tasksHallOfFame").hidden, true);
+  assert.equal(doc.getElementById("tasksArchive").hidden, false);
+  assert.equal(doc.getElementById("tasksArchiveCount").textContent, "1");
+  assert.equal(doc.getElementById("tasksArchiveGrid").querySelector(".card-title").textContent, "Plants");
+  assert.equal(doc.getElementById("tasksEmpty").hidden, true);
+
+  // The In Flight panel never saw them anyway.
+  assert.deepEqual(dom.pushes[dom.pushes.length - 1].rows.map((r) => r.title), ["Doing it"]);
+});
+
+test("the tasks Hall of Fame's 'Archive all' sweeps the done tasks", async () => {
+  const dom = await boot(QUESTS, SIDE_QUESTS);
+  const doc = dom.window.document;
+  const calls = [];
+  dom.window.questLog.updateTask = (id, data) => { calls.push([id, data]); return Promise.resolve({}); };
+  dom.window.confirm = () => true;
+
+  assert.equal(doc.getElementById("tasksArchive").hidden, true, "nothing archived yet");
+  doc.getElementById("archiveDoneTasksBtn").dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+
+  assert.deepEqual(calls.map((c) => c[0]), ["s1"]);
+  assert.ok(calls[0][1].archivedAt);
+});

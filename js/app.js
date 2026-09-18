@@ -18,7 +18,7 @@ import {
 } from "./features/quests.js";
 import {
   initTasks, loadTasks, taskCardHtml, bindTaskActions,
-  getTasksByStatus, openCreateTask, persistTaskOrder,
+  getTasksByStatus, getArchivedTasks, archiveDoneTasks, openCreateTask, persistTaskOrder,
   getAllTasks, getStatusCounts as taskCounts
 } from "./features/tasks.js";
 import { enableDragSort } from "./ui/dragSort.js";
@@ -73,10 +73,24 @@ function renderTaskSection(sectionId, gridId, tasks) {
   enableDragSort(gridEl, persistTaskOrder);
 }
 
+// The archive is a <details>, so it keeps its own folded state across renders;
+// no drag sort, because it is ordered by finish date rather than by hand.
+function renderTaskArchive() {
+  var archived = getArchivedTasks();
+  var detailsEl = document.getElementById("tasksArchive");
+  var gridEl = document.getElementById("tasksArchiveGrid");
+
+  detailsEl.hidden = archived.length === 0;
+  document.getElementById("tasksArchiveCount").textContent = String(archived.length);
+  gridEl.innerHTML = archived.map(taskCardHtml).join("");
+  bindTaskActions(gridEl);
+}
+
 function renderTasks() {
   renderTaskSection("progressTasks", "progressTasksGrid", getTasksByStatus("in_progress"));
   renderTaskSection("backlogTasks", "backlogTasksGrid", getTasksByStatus("backlog"));
   renderTaskSection("tasksHallOfFame", "tasksHallOfFameGrid", getTasksByStatus("done"));
+  renderTaskArchive();
 
   document.getElementById("tasksEmpty").hidden = getAllTasks().length > 0;
   renderHome();
@@ -144,6 +158,8 @@ initHome(homeData, { onLevelUp: chime });
 initHearth();
 initQuests(renderProgress, renderProgressGrid);
 initTasks(renderTasks);
+// Static markup, so bound once; the quest board binds its own on each render.
+document.getElementById("archiveDoneTasksBtn").addEventListener("click", archiveDoneTasks);
 
 // Renders again once the motd pools land — the first render above runs before
 // they arrive and would leave the footer blank until the next repaint.

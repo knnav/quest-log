@@ -1310,6 +1310,49 @@ section.tier { margin-bottom: 34px; }
   margin: 0;
 }
 
+/* Housekeeping actions ("Archive all" on a section head, Archive / Restore
+   by a card's title): a quiet text button at the far end of its row, so it
+   reads as tidying rather than a call to action. */
+.quiet-action {
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.quiet-action:hover { color: var(--accent); text-decoration: underline; }
+
+.quiet-action[hidden] { display: none; }
+
+/* ---- archive ---- */
+
+/* Folded by default: a dim heading that opens into a grid. The marker is the
+   only cue that it opens, so it stays. */
+.archive-tier > summary {
+  color: var(--text-dim);
+  cursor: pointer;
+  list-style-position: inside;
+}
+
+.archive-tier > summary::marker { font-size: 9px; }
+
+.archive-tier > summary:hover { color: var(--text); }
+
+.archive-tier[open] > summary { margin-bottom: 14px; }
+
+.archive-tier[hidden] { display: none; }
+
+/* Put away: still legible, plainly not in play, and without a status row. */
+.archived-card {
+  border-left: 3px dashed var(--text-dim);
+  opacity: 0.6;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -1474,6 +1517,17 @@ section.tier { margin-bottom: 34px; }
   color: var(--accent);
   margin: 0 0 16px;
 }
+
+/* The title row of the card detail: the title takes the width, and the one
+   quiet action (Archive or Restore) sits at its far end. */
+.detail-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.detail-head h2 { margin: 0; flex: 1; min-width: 0; }
 
 .detail-text {
   font-size: 12.5px;

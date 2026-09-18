@@ -759,3 +759,169 @@ test("initQuests with one callback uses it for filter changes too", async () => 
   search.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
   assert.equal(calls, 2);
 });
+
+// ---- archive ----
+
+function finishedQuest(over) {
+  return backlogQuest(Object.assign({
+    status: "shipped", finishedAt: "2026-09-10T10:00:00.000Z", finishedAs: "shipped",
+    completedAt: "2026-09-10T10:00:00.000Z",
+  }, over || {}));
+}
+
+async function bootBoard(docs, questLogMock) {
+  const mock = Object.assign({ listQuests: () => Promise.resolve(docs) }, questLogMock || {});
+  const dom = new JSDOM(FIXTURE_HTML, { url: "http://localhost/" });
+  installGlobals(dom, mock);
+
+  const quests = await freshQuestsModule();
+  initDetail();
+  initGates();
+  quests.initQuests(() => {});
+  await quests.loadQuests();
+  return { dom, doc: dom.window.document, quests };
+}
+
+function click(dom, el) {
+  el.dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+}
+
+test("cardHtml renders an archived quest read-only: no status pills, marked as put away", () => {
+  const html = cardHtml(finishedQuest({ id: "a", title: "Old", archivedAt: "2026-09-11T00:00:00.000Z" }));
+
+  assert.ok(html.includes("archived-card"));
+  assert.ok(!html.includes("status-btn"), "nothing on the card can change its status");
+  assert.match(html, /Shipped/, "the finish line stays");
+});
+
+test("archived quests leave the Hall of Fame for a folded Archive section", async () => {
+  const { doc, quests } = await bootBoard([
+    finishedQuest({ id: "a", title: "Kept", order: 1 }),
+    finishedQuest({ id: "b", title: "Put away", order: 2, archivedAt: "2026-09-11T00:00:00.000Z" }),
+    finishedQuest({
+      id: "c", title: "Also gone", status: "let_go", finishedAs: "let_go", order: 3,
+      finishedAt: "2026-09-12T10:00:00.000Z", archivedAt: "2026-09-12T00:00:00.000Z",
+    }),
+  ]);
+
+  const hall = Array.from(doc.querySelectorAll("#board section.tier .card-title")).map((el) => el.textContent);
+  assert.deepEqual(hall, ["Kept"]);
+
+  const archive = doc.querySelector("#board details.archive-tier");
+  assert.ok(archive, "the archive renders as a <details>");
+  assert.equal(archive.open, false, "folded by default");
+  assert.equal(archive.querySelector("summary").textContent, "Archive · 2");
+  const titles = Array.from(archive.querySelectorAll(".card-title")).map((el) => el.textContent);
+  assert.deepEqual(titles, ["Also gone", "Put away"], "newest finish first");
+  assert.ok(!archive.querySelector(".archive-grid").hasAttribute("draggable") &&
+    !archive.querySelector(".quest-card").hasAttribute("draggable"), "not hand-sorted");
+
+  // Still in the list every other reader sees.
+  assert.equal(quests.getAllQuests().length, 3);
+  assert.equal(quests.getStatusCounts().shipped, 2, "the home column keeps counting it");
+});
+
+test("the archive stays open across a re-render", async () => {
+  const { dom, doc } = await bootBoard([
+    finishedQuest({ id: "a", title: "Kept" }),
+    finishedQuest({ id: "b", title: "Put away", archivedAt: "2026-09-11T00:00:00.000Z" }),
+  ]);
+
+  doc.querySelector("#board details.archive-tier").open = true;
+  const search = doc.getElementById("questSearch");
+  search.value = "put";
+  search.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+
+  const archive = doc.querySelector("#board details.archive-tier");
+  assert.equal(archive.open, true);
+  assert.equal(archive.querySelectorAll(".quest-card").length, 1, "search reaches the archive");
+  assert.match(doc.querySelector("#board .empty-state").textContent, /Nothing matches/);
+});
+
+test("a tag that survives only in the archive is not a chip", async () => {
+  const { doc } = await bootBoard([
+    backlogQuest({ id: "a", tags: ["live"] }),
+    finishedQuest({ id: "b", tags: ["buried"], archivedAt: "2026-09-11T00:00:00.000Z" }),
+  ]);
+
+  const chips = Array.from(doc.querySelectorAll("#filters .chip")).map((c) => c.textContent);
+  assert.deepEqual(chips, ["All", "live"]);
+});
+
+test("a board with only archived quests says so instead of 'everything is in progress'", async () => {
+  const { doc } = await bootBoard([
+    finishedQuest({ id: "b", archivedAt: "2026-09-11T00:00:00.000Z" }),
+  ]);
+
+  assert.match(doc.querySelector("#board .empty-state").textContent, /in the archive/);
+  assert.ok(doc.querySelector("#board details.archive-tier"));
+});
+
+test("the detail view offers Archive on a finished card and Restore on an archived one", async () => {
+  const calls = [];
+  const { dom, doc } = await bootBoard([
+    backlogQuest({ id: "open", title: "Open", order: 1 }),
+    finishedQuest({ id: "done", title: "Done", order: 2 }),
+    finishedQuest({ id: "gone", title: "Gone", order: 3, archivedAt: "2026-09-11T00:00:00.000Z" }),
+  ], {
+    updateQuest: (id, data) => { calls.push([id, data]); return Promise.resolve({}); },
+  });
+
+  const cardFor = (id) => doc.querySelector(`#board .quest-card[data-id="${id}"]`);
+  const archiveBtn = doc.getElementById("detailArchiveBtn");
+  const restoreBtn = doc.getElementById("detailRestoreBtn");
+
+  click(dom, cardFor("open"));
+  assert.equal(archiveBtn.hidden, true, "an open card cannot be put away");
+  assert.equal(restoreBtn.hidden, true);
+  click(dom, doc.getElementById("detailCloseBtn"));
+
+  click(dom, cardFor("done"));
+  assert.equal(archiveBtn.hidden, false);
+  assert.equal(restoreBtn.hidden, true);
+  click(dom, archiveBtn);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][0], "done");
+  assert.match(calls[0][1].archivedAt, /^\d{4}-\d{2}-\d{2}T/);
+  assert.equal(doc.getElementById("detailModalOverlay").hidden, true, "closes on success");
+
+  click(dom, cardFor("gone"));
+  assert.equal(archiveBtn.hidden, true);
+  assert.equal(restoreBtn.hidden, false);
+  assert.equal(doc.getElementById("detailLetGoBtn").hidden, true, "read-only until restored");
+  assert.equal(doc.getElementById("detailDeleteBtn").hidden, false, "but it can still be deleted outright");
+  click(dom, restoreBtn);
+  assert.deepEqual(calls[1], ["gone", { archivedAt: null }]);
+});
+
+test("'Archive all' sweeps what the section shows, after a confirm", async () => {
+  const calls = [];
+  const asked = [];
+  const { dom, doc } = await bootBoard([
+    finishedQuest({ id: "a", title: "One", tags: ["x"], order: 1 }),
+    finishedQuest({ id: "b", title: "Two", order: 2 }),
+    finishedQuest({ id: "c", title: "Ash", status: "let_go", finishedAs: "let_go", order: 3 }),
+    backlogQuest({ id: "d", title: "Open", order: 4 }),
+  ], {
+    updateQuest: (id, data) => { calls.push([id, data]); return Promise.resolve({}); },
+  });
+  dom.window.confirm = (msg) => { asked.push(msg); return asked.length > 1; };
+
+  const sweep = (status) => doc.querySelector(`#board .quiet-action[data-archive-status="${status}"]`);
+  assert.ok(sweep("shipped"), "Hall of Fame offers it");
+  assert.ok(sweep("let_go"), "so does Ashes");
+  assert.equal(doc.querySelectorAll("#board .quiet-action").length, 2, "the backlog tiers do not");
+
+  // Declined: nothing written.
+  click(dom, sweep("shipped"));
+  assert.match(asked[0], /Archive 2 shipped quests\?/);
+  assert.equal(calls.length, 0);
+
+  // Accepted, with a tag filter on: only the visible shipped quest goes.
+  const chip = Array.from(doc.querySelectorAll("#filters .chip")).find((c) => c.textContent === "x");
+  click(dom, chip);
+  click(dom, sweep("shipped"));
+  assert.match(asked[1], /Archive 1 shipped quest\?/);
+  assert.deepEqual(calls.map((c) => c[0]), ["a"]);
+  assert.ok(calls[0][1].archivedAt);
+});

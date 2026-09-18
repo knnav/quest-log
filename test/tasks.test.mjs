@@ -327,3 +327,104 @@ test("submitting the create form calls questLog.createTask with title and note",
 
   assert.deepEqual(calls, [{ title: "Take out bins", note: "Before 8pm" }]);
 });
+
+// ---- archive ----
+
+function doneTask(over) {
+  return Object.assign({
+    id: "t1", title: "T", note: "", status: "done", order: 1,
+    finishedAt: "2026-09-10T10:00:00.000Z", finishedAs: "done", completedAt: "2026-09-10T10:00:00.000Z",
+  }, over || {});
+}
+
+async function bootTasks(list, questLogMock) {
+  const mock = Object.assign({ listTasks: () => Promise.resolve(list) }, questLogMock || {});
+  const dom = new JSDOM(FIXTURE_HTML, { url: "http://localhost/" });
+  installGlobals(dom, mock);
+
+  const tasks = await freshTasksModule();
+  initDetail();
+  tasks.initTasks(() => {});
+  await tasks.loadTasks();
+  return { dom, doc: dom.window.document, tasks };
+}
+
+function click(dom, el) {
+  el.dispatchEvent(new dom.window.Event("click", { bubbles: true }));
+}
+
+test("taskCardHtml renders an archived task read-only", () => {
+  const html = taskCardHtml(doneTask({ archivedAt: "2026-09-11T00:00:00.000Z" }));
+  assert.ok(html.includes("archived-card"));
+  assert.ok(!html.includes("status-btn"));
+});
+
+test("archived tasks drop out of the by-status views but not the list", async () => {
+  const { tasks } = await bootTasks([
+    doneTask({ id: "a", title: "Kept", order: 1 }),
+    doneTask({ id: "b", title: "Older", order: 2, finishedAt: "2026-09-01T10:00:00.000Z", archivedAt: "2026-09-11T00:00:00.000Z" }),
+    doneTask({ id: "c", title: "Newer", order: 3, finishedAt: "2026-09-09T10:00:00.000Z", archivedAt: "2026-09-11T00:00:00.000Z" }),
+  ]);
+
+  assert.deepEqual(tasks.getTasksByStatus("done").map((t) => t.id), ["a"]);
+  assert.deepEqual(tasks.getArchivedTasks().map((t) => t.id), ["c", "b"], "newest finish first");
+  assert.equal(tasks.getAllTasks().length, 3, "the ledger still sees all three");
+  assert.equal(tasks.getStatusCounts().done, 3, "so does the home column");
+});
+
+test("the detail view archives a done task and restores an archived one", async () => {
+  const calls = [];
+  const { dom, doc, tasks } = await bootTasks([
+    { id: "open", title: "Open", note: "", status: "backlog", order: 1 },
+    doneTask({ id: "done", title: "Done", order: 2 }),
+    doneTask({ id: "gone", title: "Gone", order: 3, archivedAt: "2026-09-11T00:00:00.000Z" }),
+  ], {
+    updateTask: (id, data) => { calls.push([id, data]); return Promise.resolve({}); },
+  });
+
+  const grid = doc.getElementById("taskGrid");
+  grid.innerHTML = tasks.getAllTasks().map(tasks.taskCardHtml).join("");
+  tasks.bindTaskActions(grid);
+  const cardFor = (id) => grid.querySelector(`.task-card[data-id="${id}"]`);
+  const archiveBtn = doc.getElementById("detailArchiveBtn");
+  const restoreBtn = doc.getElementById("detailRestoreBtn");
+
+  click(dom, cardFor("open"));
+  assert.equal(archiveBtn.hidden, true);
+  assert.equal(restoreBtn.hidden, true);
+  click(dom, doc.getElementById("detailCloseBtn"));
+
+  click(dom, cardFor("done"));
+  assert.equal(archiveBtn.hidden, false);
+  click(dom, archiveBtn);
+  assert.equal(calls[0][0], "done");
+  assert.match(calls[0][1].archivedAt, /^\d{4}-/);
+  assert.equal(doc.getElementById("detailModalOverlay").hidden, true);
+
+  click(dom, cardFor("gone"));
+  assert.equal(archiveBtn.hidden, true);
+  assert.equal(restoreBtn.hidden, false);
+  click(dom, restoreBtn);
+  assert.deepEqual(calls[1], ["gone", { archivedAt: null }]);
+});
+
+test("archiveDoneTasks sweeps every done task after a confirm, and none without", async () => {
+  const calls = [];
+  const asked = [];
+  const { dom, tasks } = await bootTasks([
+    doneTask({ id: "a", order: 1 }),
+    doneTask({ id: "b", order: 2 }),
+    doneTask({ id: "c", order: 3, archivedAt: "2026-09-11T00:00:00.000Z" }),
+    { id: "d", title: "Open", note: "", status: "backlog", order: 4 },
+  ], {
+    updateTask: (id, data) => { calls.push([id, data]); return Promise.resolve({}); },
+  });
+  dom.window.confirm = (msg) => { asked.push(msg); return asked.length > 1; };
+
+  tasks.archiveDoneTasks();
+  assert.match(asked[0], /Archive 2 done tasks\?/);
+  assert.equal(calls.length, 0);
+
+  tasks.archiveDoneTasks();
+  assert.deepEqual(calls.map((c) => c[0]), ["a", "b"], "the already-archived and the open one are left alone");
+});

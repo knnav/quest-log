@@ -2,7 +2,11 @@
 export const DETAIL_MODAL_HTML = `
   <div class="modal-overlay" id="detailModalOverlay" hidden>
     <div class="modal">
-      <h2 id="detailTitle"></h2>
+      <div class="detail-head">
+        <h2 id="detailTitle"></h2>
+        <button type="button" id="detailArchiveBtn">Archive</button>
+        <button type="button" id="detailRestoreBtn">Restore</button>
+      </div>
       <div class="tags" id="detailTags" hidden></div>
       <p class="detail-text" id="detailText" hidden></p>
       <div class="detail-rows" id="detailRows"></div>
