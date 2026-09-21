@@ -61,10 +61,13 @@ const HEARTH = { width: 220, height: 210 };
 // (five tabs, two create buttons, the theme picker) and gives one column;
 // the maximum keeps it at two.
 const BOARD = { width: 600, height: 620, minWidth: 490, minHeight: 600, maxWidth: 720, maxHeight: 4000 };
-// Never taller than the hearth: the two sit side by side in one band, so a
-// panel that fits on screen wherever the hearth does needs no clamping as it
-// grows. Six rows plus an overflow line come to ~155px, well inside this.
-const PANEL = { width: 210, minHeight: 46, maxHeight: HEARTH.height };
+// Wider and taller than the hearth it sits beside: the rows are meant to be
+// read from across the room, so the type is larger than the board's, and six
+// of them plus the sub-heading and an overflow line come to ~215px. The cap
+// is what that needs with a little slack, not the hearth's height — the panel
+// grows downward from a top edge aligned with the hearth (see panelBounds),
+// so the extra only ever hangs below it.
+const PANEL = { width: 340, minHeight: 52, maxHeight: 250 };
 let mode = "board";
 // Where peace mode goes back to: it is entered from either face and leaves
 // to the same one, so it never has to decide what the user wanted.
