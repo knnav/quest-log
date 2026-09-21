@@ -13,8 +13,15 @@ npm start                              # run the app (electron .)
 npm test                               # all tests (node --test, ~4s)
 node --test test/fire.test.mjs         # one file
 node --test --test-name-pattern="cardHtml" test/quests.test.mjs   # one test by name
-npm run package:win / package:mac      # electron-builder zip → dist/
+npm run package:win                    # electron-builder zip → dist/
+npm run package:mac                    # electron-builder dir (arm64 + x64) → scripts/zip-app.js → dist/*-mac-<arch>.zip
+node scripts/app-icon.js               # regenerate the app icon (assets/icon.{ico,icns,png})
+node scripts/pixel-flame.js            # regenerate the bonfire's flame sprites (assets/css/flame-sprites.css)
 ```
+
+The app icon and the tray glyph (`assets/tray.png`) are the same 16-cell pixel flame; `scripts/app-icon.js` draws it with a log and a dark rounded square at every size, with no image dependencies (it writes PNG/ICO/ICNS by hand). `main.js` sets it on the `BrowserWindow` (`icon.ico` on Windows, `icon.png` elsewhere — that covers the title bar and alt-tab) and packaged builds stamp `assets/icon.ico` / `assets/icon.icns` on the executable through electron-builder's `win.icon` / `mac.icon` (from WSL too: electron-builder patches PE resources in pure JS, no wine). A Windows *taskbar button* is different: it never reads the window's icon, only the Start Menu shortcut carrying the app's AUMID or, failing that, the executable's own — so packaged is fine, and from source (`electron.exe`) `ensureDevShortcut()` writes a "Quest Log (dev)" shortcut with our `APP_ID` and icon into the user's Start Menu, once. Windows caches executable icons by path: a rebuilt `dist\win-unpacked\Quest Log.exe` can keep showing the old icon until `ie4uinit.exe -show` or extraction to a new folder. Edit the `GLYPH` in the script and regenerate rather than touching the files. From source on a Mac, `app.dock.setIcon` does the same job for the dock.
+
+`package:mac` deliberately does not use electron-builder's `zip` target: built anywhere but a Mac, that zip is made with 7za and flattens the Electron framework's symlinks into copies (three times the size, and no longer framework-shaped). `scripts/zip-app.js` zips the `dir` output itself, keeping symlinks and exec bits, one zip per arch. Builds from Linux/WSL are unsigned and un-notarised (signing needs macOS), so on first launch a downloaded copy is quarantined: `xattr -cr "Quest Log.app"` before opening it, or right-click → Open.
 
 Tests need no Electron: `store.js` is exercised via `createStore(tmpPath)` and renderer modules run under jsdom with `window.questLog` / `window.session` etc. stubbed. `test/app.test.mjs` boots the real `index.html` through the real `js/app.js`, and `test/inflight.test.mjs` does the same for `inflight.html` through `js/inflight.js`, so a renamed element id or broken import fails there. `test/detailFixture.mjs` mirrors the detail/gate modal markup from `index.html` — update it if that markup changes.
 

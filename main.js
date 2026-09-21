@@ -1,4 +1,10 @@
-const { app, BrowserWindow, Menu, Tray, dialog, ipcMain, nativeTheme, screen } = require("electron");
+const { app, BrowserWindow, Menu, Tray, dialog, ipcMain, nativeTheme, screen, shell } = require("electron");
+
+// Windows groups taskbar buttons by this id, and from source the default id
+// is Electron's own. Set before anything else; the same id as
+// electron-builder's appId, so a packaged build lands in the same group.
+const APP_ID = "com.questlog.app";
+if (process.platform === "win32") app.setAppUserModelId(APP_ID);
 const fs = require("fs");
 const path = require("path");
 const store = require("./store");
@@ -701,6 +707,10 @@ function createWindow() {
     maximizable: false,
     fullscreenable: false,
     frame: false,
+    // The taskbar / window-switcher icon while running from source (a
+    // packaged build also stamps it on the executable, see
+    // scripts/app-icon.js). Windows wants the .ico, everything else the PNG.
+    icon: path.join(__dirname, "assets", process.platform === "win32" ? "icon.ico" : "icon.png"),
     backgroundColor: nativeTheme.shouldUseDarkColors ? "#0b0714" : "#f6f3ff",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -875,7 +885,48 @@ function registerIpcHandlers() {
   ipcMain.on("panel:resize", (event, height) => resizePanel(height));
 }
 
+// A Windows taskbar button never takes its icon from the window. It takes it
+// from the Start Menu shortcut that carries the app's id, and failing that
+// from the executable's own icon. Packaged, the executable is ours
+// (scripts/app-icon.js stamps it), so nothing is needed. From source the
+// executable is electron.exe, and the one way to put our icon on the button
+// is a shortcut with our id that points at it — which is also a launcher for
+// the checkout, so it is not wasted. Written once and left alone while it
+// still says the right thing; "Quest Log (dev)" in the Start Menu, delete it
+// to be rid of it.
+function ensureDevShortcut() {
+  if (process.platform !== "win32" || app.isPackaged) return;
+  const link = path.join(app.getPath("appData"), "Microsoft", "Windows", "Start Menu", "Programs", "Quest Log (dev).lnk");
+  const want = {
+    target: process.execPath,
+    args: `"${__dirname}"`,
+    cwd: __dirname,
+    appUserModelId: APP_ID,
+    icon: path.join(__dirname, "assets", "icon.ico"),
+    iconIndex: 0,
+    description: "Quest Log, run from source",
+  };
+  try {
+    const have = shell.readShortcutLink(link);
+    if (have.target === want.target && have.args === want.args &&
+        have.icon === want.icon && have.appUserModelId === want.appUserModelId) return;
+  } catch (e) {
+    // Absent or unreadable: write it.
+  }
+  try {
+    shell.writeShortcutLink(link, "create", want);
+  } catch (e) {
+    // A Start Menu we cannot write to is not worth failing the launch over.
+  }
+}
+
 app.whenReady().then(() => {
+  // The dock icon from source: a packaged bundle carries its own (see
+  // scripts/app-icon.js) and would only be told the same thing.
+  if (process.platform === "darwin" && !app.isPackaged && app.dock) {
+    app.dock.setIcon(path.join(__dirname, "assets", "icon.png"));
+  }
+  ensureDevShortcut();
   // Before the window: the stamp on disk is the last visit, and the window's
   // first focus would overwrite it.
   readSeenBefore();

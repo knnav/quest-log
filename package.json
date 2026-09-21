@@ -2,13 +2,14 @@
   "name": "quest-log-app",
   "version": "1.0.0",
   "description": "Quest Log \u2014 local Electron board for scoped side-project drops.",
+  "author": "Kurt Norenbergs",
   "main": "main.js",
   "license": "MIT",
   "private": true,
   "scripts": {
     "start": "electron .",
     "package:win": "electron-builder --win zip",
-    "package:mac": "electron-builder --mac zip",
+    "package:mac": "electron-builder --mac && node scripts/zip-app.js",
     "test": "node --test"
   },
   "devDependencies": {
@@ -35,13 +36,22 @@
     "win": {
       "target": [
         "zip"
-      ]
+      ],
+      "icon": "assets/icon.ico"
     },
     "mac": {
       "target": [
-        "zip"
+        {
+          "target": "dir",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
       ],
-      "category": "public.app-category.productivity"
+      "category": "public.app-category.productivity",
+      "icon": "assets/icon.icns",
+      "darkModeSupport": true
     }
   }
 }
