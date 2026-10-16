@@ -131,7 +131,7 @@ function finishedRows(list, kind, sinceMs) {
 // Days run newest first, and so do the items within one. A day with nothing
 // finished and no session is left out rather than shown empty — except
 // today, which is always there so the tab has somewhere to say "nothing
-// yet". Quests come before tasks in the in-flight list, as on the panel; the
+// yet". Quests come before tasks in the in-flight list, as in mini mode; the
 // finished lists are in time order and mix the two. Sessions are counted by
 // the day they ended in, like the Focus tab's "Today" line.
 export function standup(quests, tasks, sessions, now) {

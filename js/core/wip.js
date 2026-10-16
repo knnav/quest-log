@@ -1,19 +1,18 @@
 // What "in flight" means, in one place.
 //
-// The floating In Flight panel is a different window from the board, so this
-// is pure and DOM-free: both sides derive the same list from the same rule
-// rather than each holding its own idea of what is in progress.
+// Pure and DOM-free: the In Flight list under the fire is drawn from this,
+// and the rule for what counts lives here rather than in the view.
 //
 // Quests come before tasks — a quest is the larger commitment and the thing
 // most worth being reminded of — and within each kind the board's own drag
-// order is kept, so the panel reads top-to-bottom like the In Progress block.
+// order is kept, so the list reads top-to-bottom like the In Progress block.
 //
 // Below the in-flight rows sits "next up": the backlog cards marked important,
-// in the same quests-then-tasks order. The panel's height is capped, and what
+// in the same quests-then-tasks order. The mini window's height is fixed, and what
 // you are doing outranks what you might do next, so in-flight rows take the
 // space first and next-up gets what is left.
 //
-// Deliberately built from the *unfiltered* lists: the panel is a reminder of
+// Deliberately built from the *unfiltered* lists: the list is a reminder of
 // what you are actually doing, and must not empty out because a search term
 // is sitting in the Quests tab.
 

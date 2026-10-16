@@ -6,11 +6,12 @@
 // really quits (main.js owns the prompt). There is no maximise because the
 // board's width is capped at two columns.
 //
-// The third button switches the In Flight panel on and off. It is a switch,
+// The first button switches the In Flight list on and off. It is a switch,
 // not an action, so it reflects state: main.js broadcasts every change to the
 // flag (the tray and the hearth's menu can flip it too) and this redraws.
-// What it controls is whether the panel appears in mini mode, so the tooltip
-// says so — from the board, flipping it changes nothing you can see yet.
+// What it controls is whether mini mode shows the list under the fire, so
+// the tooltip says so — from the board, flipping it changes nothing you can
+// see yet.
 //
 // The fourth is peace: the fire alone, over the whole display. A window mode
 // like the other two, so it sits with the window controls.
@@ -43,7 +44,7 @@ function initPanelButton() {
   var btn = document.getElementById("panelBtn");
   if (!btn) return;
 
-  // No bridge means no second window to show, so the switch would be a lie.
+  // No bridge means nothing to switch, so the switch would be a lie.
   if (!window.panel) {
     btn.hidden = true;
     return;
@@ -55,8 +56,8 @@ function initPanelButton() {
     btn.classList.toggle("on", enabled);
     btn.setAttribute("aria-pressed", enabled ? "true" : "false");
     btn.title = enabled
-      ? "In Flight panel: shown in mini mode"
-      : "In Flight panel: off";
+      ? "In Flight list: shown under the hearth"
+      : "In Flight list: off";
   }
 
   function apply(next) {

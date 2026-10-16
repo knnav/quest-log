@@ -57,19 +57,30 @@ function boot(quests, tasks, options) {
   };
   win.matchMedia = () => ({ matches: false, addEventListener() {} });
 
-  // The panel lives in another window, so the board only ever pushes to it.
-  dom.pushes = [];
+  // The In Flight list is drawn in this document, beside the hearth; this reads
+  // it back in the shape core/wip.js builds it.
+  const rowsIn = (id) => Array.from(win.document.querySelectorAll("#" + id + " .panel-row")).map((row) => ({
+    kind: row.querySelector(".panel-kind").classList.contains("task") ? "task" : "quest",
+    title: row.querySelector(".panel-row-title").textContent,
+  }));
+  dom.inFlight = () => {
+    const more = win.document.querySelector("#inflight .panel-more");
+    return {
+      rows: rowsIn("panelList"),
+      nextUp: rowsIn("panelNextUpList"),
+      hidden: more ? Number(more.textContent.replace(/\D/g, "")) : 0,
+    };
+  };
   let enabled = !!options.panelEnabled;
   let enabledListener = null;
   if (!options.noPanel) {
     win.panel = {
-      push: (data) => dom.pushes.push(data),
       setEnabled: (next) => { enabled = !!next; return Promise.resolve(enabled); },
       isEnabled: () => Promise.resolve(enabled),
       onEnabledChange: (cb) => { enabledListener = cb; },
     };
   }
-  // What main.js broadcasts when the tray or the panel's own × flips the flag.
+  // What main.js broadcasts when the tray or the hearth menu flips the flag.
   dom.pushEnabled = (next) => enabledListener(next);
 
   globalThis.window = win;
@@ -545,21 +556,21 @@ test("the Let go count appears only once something has been let go", async () =>
 });
 
 
-test("what is in flight is pushed to the panel window", async () => {
+test("what is in flight is drawn beside the hearth", async () => {
   const dom = await boot(QUESTS, SIDE_QUESTS);
-  const last = dom.pushes[dom.pushes.length - 1];
+  const last = dom.inFlight();
 
   // q2 is the only quest in progress here, and no task is.
   assert.deepEqual(last, { rows: [{ kind: "quest", title: "Doing it" }], nextUp: [], hidden: 0 });
 });
 
-test("in-progress tasks reach the panel too, after the quests", async () => {
+test("in-progress tasks reach the In Flight list too, after the quests", async () => {
   const tasks = [
     { id: "s1", title: "Plants", note: "", status: "in_progress", order: 1 },
     { id: "s2", title: "Bank", note: "", status: "backlog", order: 2 },
   ];
   const dom = await boot(QUESTS, tasks);
-  const last = dom.pushes[dom.pushes.length - 1];
+  const last = dom.inFlight();
 
   assert.deepEqual(last.rows, [
     { kind: "quest", title: "Doing it" },
@@ -567,10 +578,10 @@ test("in-progress tasks reach the panel too, after the quests", async () => {
   ]);
 });
 
-test("filtering the Quests tab does not empty the panel", async () => {
+test("filtering the Quests tab does not empty the In Flight list", async () => {
   const dom = await boot(QUESTS, SIDE_QUESTS);
   const doc = dom.window.document;
-  const before = dom.pushes[dom.pushes.length - 1];
+  const before = dom.inFlight();
 
   const search = doc.getElementById("questSearch");
   search.value = "nothing matches this";
@@ -578,7 +589,7 @@ test("filtering the Quests tab does not empty the panel", async () => {
 
   assert.equal(doc.getElementById("progressGrid").querySelectorAll(".quest-card").length, 0,
     "the board is filtered");
-  const after = dom.pushes[dom.pushes.length - 1];
+  const after = dom.inFlight();
   assert.deepEqual(after, before, "what you are actually doing has not changed");
 });
 
@@ -595,7 +606,7 @@ test("the title bar switch reflects the panel flag and flips it", async () => {
   assert.equal(btn.getAttribute("aria-pressed"), "false");
   assert.ok(!btn.classList.contains("on"));
 
-  // The tray and the panel's own × flip the same flag; the switch follows.
+  // The tray and the hearth menu flip the same flag; the switch follows.
   dom.pushEnabled(true);
   assert.equal(btn.getAttribute("aria-pressed"), "true");
   assert.ok(btn.classList.contains("on"));
@@ -646,8 +657,8 @@ test("archived quests and tasks leave the board but not the ledger or the stats"
   assert.equal(doc.getElementById("tasksArchiveGrid").querySelector(".card-title").textContent, "Plants");
   assert.equal(doc.getElementById("tasksEmpty").hidden, true);
 
-  // The In Flight panel never saw them anyway.
-  assert.deepEqual(dom.pushes[dom.pushes.length - 1].rows.map((r) => r.title), ["Doing it"]);
+  // The In Flight list never saw them anyway.
+  assert.deepEqual(dom.inFlight().rows.map((r) => r.title), ["Doing it"]);
 });
 
 test("the tasks Hall of Fame's 'Archive all' sweeps the done tasks", async () => {
@@ -666,7 +677,7 @@ test("the tasks Hall of Fame's 'Archive all' sweeps the done tasks", async () =>
 
 // ---- next up ----
 
-test("starred backlog cards get a Next up section on both tabs and a block in the panel", async () => {
+test("starred backlog cards get a Next up section on both tabs and a block in the In Flight list", async () => {
   const quests = [QUESTS[0], QUESTS[1], Object.assign({}, QUESTS[2], { important: true })];
   const tasks = [SIDE_QUESTS[0], Object.assign({}, SIDE_QUESTS[1], { important: true })];
 
@@ -684,8 +695,8 @@ test("starred backlog cards get a Next up section on both tabs and a block in th
   assert.equal(doc.getElementById("nextUpTasksGrid").querySelector(".card-title").textContent, "Bank");
   assert.equal(doc.getElementById("backlogTasks").hidden, true, "nothing plain left in Backlog");
 
-  // The panel gets both, quests first, under what is in flight.
-  const last = dom.pushes[dom.pushes.length - 1];
+  // The list gets both, quests first, under what is in flight.
+  const last = dom.inFlight();
   assert.deepEqual(last.rows.map((r) => r.title), ["Doing it"]);
   assert.deepEqual(last.nextUp, [{ kind: "quest", title: "Waiting" }, { kind: "task", title: "Bank" }]);
 });

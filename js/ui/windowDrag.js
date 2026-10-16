@@ -1,9 +1,8 @@
 // Dragging a frameless window by one of its own elements.
 //
-// Both floating faces are moved this way — the hearth and the In Flight panel
-// — so the mechanism lives here once: the renderer reports pointer deltas over
-// window.windowControls and main.js applies them to whichever window sent
-// them.
+// The hearth face (with the In Flight list beside it) is moved this way: the
+// renderer reports pointer deltas over window.windowControls and main.js
+// applies them to whichever window sent them.
 //
 // It is deliberately not a CSS `-webkit-app-region: drag`, and that is not a
 // style choice. On Windows a drag region is handled as a title bar at the
