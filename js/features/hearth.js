@@ -10,9 +10,10 @@
 //
 // In hearth mode the whole face can be dragged, a double-click anywhere
 // brings the board back, right-click opens a small menu, Escape is the
-// keyboard way out. The drag itself lives in ui/windowDrag.js, shared with
-// the In Flight panel — read the note there (and the one above `dragging` in
-// main.js) before reaching for a CSS drag region instead. The pause/stop
+// keyboard way out. All of that covers the In Flight list under the fire
+// too (features/inflight.js), so the window behaves as one thing. The drag
+// itself lives in ui/windowDrag.js — read the note there (and the one above
+// `dragging` in main.js) before reaching for a CSS drag region instead. The pause/stop
 // buttons only appear while a session is running.
 //
 // Peace mode is deliberately deaf to all of that: there is nothing to drag a

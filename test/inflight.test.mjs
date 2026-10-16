@@ -1,6 +1,7 @@
-// Boots the real inflight.html through the real js/inflight.js, the way
-// app.test.mjs boots the board: a renamed element id in the panel's document
-// fails here rather than in front of the user.
+// The In Flight list beside the hearth, drawn into the real index.html
+// markup by the real js/features/inflight.js — with hearth.js wired over the
+// same face, since the list is dragged, double-clicked and right-clicked with
+// the fire. A renamed element id fails here rather than in front of the user.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -9,55 +10,47 @@ import { fileURLToPath } from "node:url";
 import { JSDOM } from "jsdom";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
-const INFLIGHT_HTML = fs.readFileSync(path.join(ROOT, "inflight.html"), "utf-8");
+const INDEX_HTML = fs.readFileSync(path.join(ROOT, "index.html"), "utf-8");
 
 let moduleCounter = 0;
 
-function memoryStorage() {
-  const data = {};
-  return {
-    getItem: (k) => (k in data ? data[k] : null),
-    setItem: (k, v) => { data[k] = String(v); },
-  };
-}
-
-// Stubs the bridges the panel talks to and records what it asked for.
+// Stubs the bridges the face talks to and records what it asked for.
 function setup(options) {
   options = options || {};
-  const dom = new JSDOM(`<!doctype html><html><body>${INFLIGHT_HTML}</body></html>`, {
+  const dom = new JSDOM(`<!doctype html><html><body>${INDEX_HTML}</body></html>`, {
     url: "http://localhost/",
   });
 
   const win = dom.window;
   const calls = [];
-  const heights = [];
-  let dataListener = null;
 
-  win.panel = {
-    get: () => Promise.resolve(options.data || null),
-    onData: (cb) => { dataListener = cb; },
-    hide: () => calls.push("hide"),
-    menu: () => calls.push("menu"),
-    resize: (h) => heights.push(h),
-  };
+  const heights = [];
+  win.panel = { reportHeight: (h) => heights.push(h) };
   win.windowControls = {
     expand: () => calls.push("expand"),
+    hearthMenu: () => calls.push("menu"),
     dragStart: () => calls.push("drag-start"),
     dragMove: (dx, dy) => calls.push("drag-move " + dx + "," + dy),
     dragEnd: () => calls.push("drag-end"),
+    getMode: () => Promise.resolve("hearth"),
+    onModeChange: () => {},
   };
-  win.matchMedia = () => ({ matches: false, addEventListener() {} });
 
   globalThis.window = win;
   globalThis.document = win.document;
-  globalThis.localStorage = memoryStorage();
 
   moduleCounter += 1;
-  return import(`../js/inflight.js?instance=${moduleCounter}`).then(() => {
+  return Promise.all([
+    import(`../js/features/hearth.js?instance=${moduleCounter}`),
+    import(`../js/features/inflight.js?instance=${moduleCounter}`),
+  ]).then(([hearth, inflight]) => {
+    hearth.initHearth();
+    inflight.initInFlight();
+    if (options.data) inflight.renderInFlight(options.data);
     return new Promise((resolve) => setTimeout(() => resolve({
       dom, calls, heights,
       doc: win.document,
-      push: (data) => dataListener(data),
+      push: inflight.renderInFlight,
     }), 0));
   });
 }
@@ -88,11 +81,6 @@ test("draws the kind and title of everything pushed to it", async () => {
   assert.ok(doc.querySelectorAll(".panel-row")[1].querySelector(".panel-kind").classList.contains("task"));
 });
 
-test("whatever was pushed before it opened is drawn immediately", async () => {
-  const { doc } = await setup({ data: IN_FLIGHT });
-  assert.deepEqual(rows(doc).map((r) => r.title), ["Ship the thing", "Water the plants"]);
-});
-
 test("nothing in flight says so rather than showing an empty box", async () => {
   const { doc, push } = await setup();
 
@@ -107,7 +95,7 @@ test("nothing in flight says so rather than showing an empty box", async () => {
   assert.deepEqual(rows(doc), []);
 });
 
-test("a missing or broken push draws the empty state, not a blank panel", async () => {
+test("a missing or broken render draws the empty state, not a blank list", async () => {
   const { doc, push } = await setup({ data: IN_FLIGHT });
 
   push(null);
@@ -187,42 +175,42 @@ test("titles are escaped", async () => {
   assert.equal(doc.querySelector("#panelList img"), null);
 });
 
-test("the height is reported after every render, so the window can follow it", async () => {
-  const { heights, push } = await setup();
-  const before = heights.length;
-  push(IN_FLIGHT);
-  assert.ok(heights.length > before, "a render reports a height");
-});
-
-test("a double-click brings the board back, but not from the ×", async () => {
+test("a double-click on the list brings the board back", async () => {
   const { doc, calls } = await setup({ data: IN_FLIGHT });
-  const dblclick = (el) => el.dispatchEvent(new doc.defaultView.MouseEvent("dblclick", { bubbles: true }));
-
-  dblclick(doc.querySelector(".panel-row-title"));
+  doc.querySelector(".panel-row-title").dispatchEvent(new doc.defaultView.MouseEvent("dblclick", { bubbles: true }));
   assert.deepEqual(calls, ["expand"]);
-
-  dblclick(doc.getElementById("panelClose"));
-  assert.deepEqual(calls, ["expand"], "double-clicking the × must not expand");
 });
 
-test("the × hides the panel", async () => {
-  const { doc, calls } = await setup();
-  doc.getElementById("panelClose").click();
-  assert.deepEqual(calls, ["hide"]);
+test("the list has no close button: the switch is the only way to turn it off", async () => {
+  const { doc } = await setup({ data: IN_FLIGHT });
+  assert.equal(doc.querySelector("#inflight button"), null);
 });
 
-test("right-click asks the main process for the panel menu", async () => {
+test("the measured height is reported so the window can fit the rows", async () => {
+  const { doc, heights, push } = await setup();
+  Object.defineProperty(doc.getElementById("inflight"), "offsetHeight", { configurable: true, get: () => 150 });
+  push(IN_FLIGHT);
+  assert.equal(heights[heights.length - 1], 150);
+});
+
+test("a list that cannot be measured (hidden, or no layout) reports nothing", async () => {
+  const { heights, push } = await setup();
+  push(IN_FLIGHT);
+  assert.deepEqual(heights, [], "jsdom has no layout, as a hidden list has no height");
+});
+
+test("right-click on the list opens the hearth's menu", async () => {
   const { doc, calls } = await setup();
   const ev = new doc.defaultView.MouseEvent("contextmenu", { bubbles: true, cancelable: true });
-  doc.getElementById("panel").dispatchEvent(ev);
+  doc.getElementById("inflight").dispatchEvent(ev);
 
   assert.deepEqual(calls, ["menu"]);
   assert.equal(ev.defaultPrevented, true);
 });
 
-test("the panel can be dragged, and reports the deltas like the hearth", async () => {
+test("the list drags the window like the fire does", async () => {
   const { doc, calls } = await setup({ data: IN_FLIGHT });
-  const el = doc.getElementById("panel");
+  const el = doc.getElementById("inflight");
   const pointer = (type, opts) => el.dispatchEvent(
     new doc.defaultView.MouseEvent(type, Object.assign({ bubbles: true, button: 0 }, opts))
   );
@@ -235,10 +223,11 @@ test("the panel can be dragged, and reports the deltas like the hearth", async (
   assert.deepEqual(calls, ["drag-start", "drag-move 15,-10", "drag-end"]);
 });
 
-test("survives a document without the panel markup or the bridges", async () => {
+test("survives a document without the list markup or the bridges", async () => {
   const dom = new JSDOM("<!doctype html><body><p>nothing</p></body>", { url: "http://localhost/" });
   globalThis.window = dom.window;
   globalThis.document = dom.window.document;
   moduleCounter += 1;
-  await assert.doesNotReject(() => import(`../js/inflight.js?instance=${moduleCounter}`));
+  const mod = await import(`../js/features/inflight.js?instance=${moduleCounter}`);
+  assert.doesNotThrow(() => { mod.initInFlight(); mod.renderInFlight({ rows: [{ kind: "quest", title: "x" }] }); });
 });

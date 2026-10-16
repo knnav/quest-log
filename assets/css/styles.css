@@ -394,7 +394,7 @@ body[data-mode="hearth"] .modal-overlay { display: none; }
 /* A fixed unit here: the vh/vw formula was tuned for the board and would
    shrink the fire to a match head in a 220px window. Tuned for the largest
    fire again: at full growth the box is 156px, which with the quote is a
-   little more than the 210px window — the rule below lets the spark headroom
+   little more than the 220px window — the rule below lets the spark headroom
    at the top take the clipping. */
 body[data-mode="hearth"] .bonfire { --u: calc(1.8px * var(--growth)); }
 
@@ -549,8 +549,11 @@ body.is-idle[data-mode="hearth"] .bonfire { animation-play-state: running; }
 .hearth-btn:hover { border-color: var(--accent); color: var(--accent); }
 .hearth-btn.stop:hover { border-color: var(--danger); color: var(--danger); }
 
+/* Across the whole bottom edge, the In Flight list's included: the session
+   belongs to the window, not to the fire's half of it. */
 .hearth-view-progress {
   position: absolute;
+  z-index: 2;
   left: 0;
   right: 0;
   bottom: 0;
@@ -897,27 +900,34 @@ body[data-mode="peace"] .reentry { display: none; }
   }
 }
 
-/* ---- the In Flight panel (inflight.html, its own window) ---- */
+/* ---- the In Flight list (mini mode, under the fire) ---- */
 
-/* The second window, and the whole of its document. It is sized to its
-   contents rather than filling a fixed box — js/inflight.js reports the height
-   after each render and main.js resizes the window to match — so nothing in
-   here stretches, and the body carries the panel's own colour so there is
-   never a strip of a different shade under it.
+/* Part of the hearth face, so it is dragged, double-clicked and right-clicked
+   with it, and on the same floor with no rule between them. Shown by width
+   rather than by a flag: main.js makes the mini window PANEL wide when the
+   list is on (main.js, miniSize) and 220 when it is off, so the list appears
+   in the same frame the window widens and never in a window that has no room
+   for it. Peace is wide too, hence the mode in the selector — the calm gets no
+   list. Board mode hides the whole face.
 
-   Dragged by hand like the hearth, hence the grab cursor and touch-action;
-   see js/ui/windowDrag.js. */
-body.is-panel { background: var(--panel); }
+   The face is a bottom-aligned column, so the list goes last (order) and the
+   fire sits directly above it exactly as it sits above the window's bottom
+   edge without one. main.js sizes the window to the fire's box plus the
+   list's measured height (features/inflight.js reports it). */
+.hearth-view .panel { display: none; }
+
+@media (min-width: 300px) {
+  body[data-mode="hearth"] .hearth-view .panel { display: block; }
+}
 
 .panel {
-  flex: none;
-  -webkit-user-select: none;
+  order: 1;
+  align-self: stretch;
+  overflow: hidden;
+  max-height: 250px;
+  padding-top: 10px;
+  text-align: left;
   cursor: grab;
-  touch-action: none;
-  min-height: 52px;
-  padding: 7px 10px 10px;
-  background: var(--panel);
-  border: 1px solid var(--panel-border);
 }
 
 .panel-head {
@@ -934,27 +944,6 @@ body.is-panel { background: var(--panel); }
   letter-spacing: 1px;
   color: var(--accent);
 }
-
-/* Hidden until the pointer is over the panel: this is meant to be read at a
-   glance, not operated, and a × sitting there invites fiddling. */
-.panel-btn {
-  opacity: 0;
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  line-height: 1;
-  font-family: inherit;
-  font-size: 10px;
-  border: none;
-  border-radius: 3px;
-  background: transparent;
-  color: var(--text-dim);
-  cursor: pointer;
-  transition: opacity 0.15s ease, color 0.12s ease;
-}
-
-.panel:hover .panel-btn { opacity: 1; }
-.panel-btn:hover { color: var(--danger); }
 
 .panel-list {
   display: flex;
@@ -987,7 +976,7 @@ body.is-panel { background: var(--panel); }
   background: var(--chip-bg);
 }
 
-/* One line each: the window is 340px wide and a wrapped title would push the
+/* One line each: the column is 340px wide and a wrapped title would push the
    rest of the list out of the box. */
 .panel-row-title {
   min-width: 0;

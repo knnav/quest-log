@@ -32,6 +32,7 @@ import { isAway, stillInFlight } from "./core/reentry.js";
 import { initGates } from "./features/gates.js";
 import { initSession, renderFocusQuests, renderToday, chime } from "./features/session.js";
 import { initHearth } from "./features/hearth.js";
+import { initInFlight, renderInFlight, reportHeight as reportInFlightHeight } from "./features/inflight.js";
 import { wipItems } from "./core/wip.js";
 
 // The In Progress block above the board. Split out because it is the only
@@ -54,17 +55,15 @@ function renderProgress() {
   renderFocusQuests();
   renderHome();
   renderStandup();
-  pushInFlight();
+  renderMiniInFlight();
 }
 
-// The In Flight panel is a window of its own, so it is pushed to rather than
-// rendered: main.js relays whatever the board sends. Built from the unfiltered
-// lists, because a search term in the Quests tab must not empty the panel —
-// see core/wip.js. Called from the two data-change paths only, not from the
+// The In Flight list under the fire. Built from the unfiltered lists,
+// because a search term in the Quests tab must not empty it — see
+// core/wip.js. Called from the two data-change paths only, not from the
 // filter-only redraw.
-function pushInFlight() {
-  if (!window.panel) return;
-  window.panel.push(wipItems(getAllQuests(), getAllTasks()));
+function renderMiniInFlight() {
+  renderInFlight(wipItems(getAllQuests(), getAllTasks()));
 }
 
 function renderTaskSection(sectionId, gridId, tasks) {
@@ -100,7 +99,7 @@ function renderTasks() {
   document.getElementById("tasksEmpty").hidden = getAllTasks().length > 0;
   renderHome();
   renderStandup();
-  pushInFlight();
+  renderMiniInFlight();
 }
 
 function homeData() {
@@ -187,6 +186,7 @@ initSession({
 initLevelUp();
 initHome(homeData, { onLevelUp: chime });
 initStandup(standupData, { quest: questDetail, task: taskDetail });
+initInFlight();
 // The quote comes from a different pool in peace mode, so every switch
 // repaints it. Leaving the board takes the landing card down with it: the
 // hearth is a fine answer to "welcome back", and the card must not be
@@ -195,6 +195,7 @@ initHearth({
   onModeChange: function (mode) {
     renderHome();
     if (mode !== "board") hideReentry();
+    if (mode === "hearth") reportInFlightHeight();
   }
 });
 // A row on the landing card opens the same detail modal the boards use.
